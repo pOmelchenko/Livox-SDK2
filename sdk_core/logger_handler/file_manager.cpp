@@ -26,6 +26,7 @@
 
 #ifdef WIN32
   #include <direct.h>
+  #include <sys/stat.h>
 #else
   #include <dirent.h>
   #include <sys/stat.h>
@@ -34,6 +35,7 @@
 #endif
 
 #include <algorithm>
+#include <cerrno>
 #include <string>
 #include <map>
 
@@ -44,6 +46,41 @@ namespace lidar {
 
 constexpr uint16_t kLengthOfTimeInFilename = 19;
 constexpr bool kFOk = 0;
+
+namespace {
+
+bool IsPathSeparator(char value) {
+#ifdef WIN32
+  return value == '/' || value == '\\';
+#else
+  return value == '/';
+#endif
+}
+
+bool IsDirectory(const std::string& path) {
+#ifdef WIN32
+  struct _stat status = {};
+  return _stat(path.c_str(), &status) == 0 &&
+         (status.st_mode & _S_IFDIR) != 0;
+#else
+  struct stat status = {};
+  return stat(path.c_str(), &status) == 0 && S_ISDIR(status.st_mode);
+#endif
+}
+
+bool CreateDirectoryComponent(const std::string& path) {
+  if (IsDirectory(path)) {
+    return true;
+  }
+#ifdef WIN32
+  const int result = mkdir(path.c_str());
+#else
+  const int result = mkdir(path.c_str(), 0777);
+#endif
+  return result == 0 || (errno == EEXIST && IsDirectory(path));
+}
+
+}  // namespace
 
 #ifdef WIN32
 uint64_t GetDirTotalSize(const std::string& dir_name) {
@@ -346,13 +383,78 @@ bool StoreFileName(const char* filename, std::multimap<std::string, std::string>
 }
 
 bool MakeDirecotory(std::string dir) {
-  int flag = -1;
+  if (dir.empty()) {
+    return false;
+  }
+
 #ifdef WIN32
-  flag = mkdir(dir.c_str());
+  std::replace(dir.begin(), dir.end(), '\\', '/');
+#endif
+  while (dir.size() > 1 && dir.back() == '/') {
+#ifdef WIN32
+    if (dir.size() == 3 && dir[1] == ':') {
+      break;
+    }
+#endif
+    dir.pop_back();
+  }
+
+  std::string current;
+  std::size_t position = 0;
+#ifdef WIN32
+  if (dir.size() >= 2 && dir[1] == ':') {
+    current = dir.substr(0, 2);
+    position = 2;
+  } else if (dir.size() >= 2 && dir[0] == '/' && dir[1] == '/') {
+    const std::size_t server_end = dir.find('/', 2);
+    const std::size_t share_end =
+        server_end == std::string::npos
+            ? std::string::npos
+            : dir.find('/', server_end + 1);
+    if (server_end == std::string::npos) {
+      return false;
+    }
+    current = dir.substr(0, share_end);
+    position = share_end == std::string::npos ? dir.size() : share_end + 1;
+    if (!IsDirectory(current)) {
+      return false;
+    }
+  } else if (dir.front() == '/') {
+    current = "/";
+    position = 1;
+  }
 #else
-  flag = mkdir(dir.c_str(), 0777);
-#endif // WIN32
-  return (flag == 0);
+  if (dir.front() == '/') {
+    current = "/";
+    position = 1;
+  }
+#endif
+
+  while (position < dir.size()) {
+    while (position < dir.size() && IsPathSeparator(dir[position])) {
+      ++position;
+    }
+    if (position >= dir.size()) {
+      break;
+    }
+    const std::size_t separator = dir.find('/', position);
+    const std::string component =
+        dir.substr(position, separator == std::string::npos
+                                 ? std::string::npos
+                                 : separator - position);
+    if (!current.empty() && current.back() != '/') {
+      current.push_back('/');
+    }
+    current.append(component);
+    if (!CreateDirectoryComponent(current)) {
+      return false;
+    }
+    if (separator == std::string::npos) {
+      break;
+    }
+    position = separator + 1;
+  }
+  return IsDirectory(dir);
 }
 
 bool IsDirectoryExits(std::string dir) {
