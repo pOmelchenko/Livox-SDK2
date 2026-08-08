@@ -38,7 +38,7 @@ jobs:
       - name: Configure SDK
         run: >-
           cmake -S . -B build/sdk -A x64
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
       - name: Build SDK
         run: cmake --build build/sdk --config Release
