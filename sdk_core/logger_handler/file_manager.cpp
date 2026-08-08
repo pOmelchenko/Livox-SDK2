@@ -23,6 +23,7 @@
 //
 
 #include "file_manager.h"
+#include "logger_handler/directory_creation_plan.h"
 
 #ifdef WIN32
   #include <direct.h>
@@ -34,10 +35,9 @@
   #include <unistd.h>
 #endif
 
-#include <algorithm>
 #include <cerrno>
-#include <string>
 #include <map>
+#include <string>
 
 #include "base/logging.h"
 
@@ -48,14 +48,6 @@ constexpr uint16_t kLengthOfTimeInFilename = 19;
 constexpr bool kFOk = 0;
 
 namespace {
-
-bool IsPathSeparator(char value) {
-#ifdef WIN32
-  return value == '/' || value == '\\';
-#else
-  return value == '/';
-#endif
-}
 
 bool IsDirectory(const std::string& path) {
 #ifdef WIN32
@@ -383,78 +375,28 @@ bool StoreFileName(const char* filename, std::multimap<std::string, std::string>
 }
 
 bool MakeDirecotory(std::string dir) {
-  if (dir.empty()) {
+  detail::DirectoryCreationPlan plan;
+#ifdef WIN32
+  const detail::DirectoryPathStyle path_style =
+      detail::DirectoryPathStyle::kWindows;
+#else
+  const detail::DirectoryPathStyle path_style =
+      detail::DirectoryPathStyle::kUnix;
+#endif
+  if (!detail::BuildDirectoryCreationPlan(dir, path_style, &plan)) {
     return false;
   }
 
-#ifdef WIN32
-  std::replace(dir.begin(), dir.end(), '\\', '/');
-#endif
-  while (dir.size() > 1 && dir.back() == '/') {
-#ifdef WIN32
-    if (dir.size() == 3 && dir[1] == ':') {
-      break;
-    }
-#endif
-    dir.pop_back();
+  if (!plan.required_existing_root.empty() &&
+      !IsDirectory(plan.required_existing_root)) {
+    return false;
   }
-
-  std::string current;
-  std::size_t position = 0;
-#ifdef WIN32
-  if (dir.size() >= 2 && dir[1] == ':') {
-    current = dir.substr(0, 2);
-    position = 2;
-  } else if (dir.size() >= 2 && dir[0] == '/' && dir[1] == '/') {
-    const std::size_t server_end = dir.find('/', 2);
-    const std::size_t share_end =
-        server_end == std::string::npos
-            ? std::string::npos
-            : dir.find('/', server_end + 1);
-    if (server_end == std::string::npos) {
+  for (const auto& component : plan.components) {
+    if (!CreateDirectoryComponent(component)) {
       return false;
     }
-    current = dir.substr(0, share_end);
-    position = share_end == std::string::npos ? dir.size() : share_end + 1;
-    if (!IsDirectory(current)) {
-      return false;
-    }
-  } else if (dir.front() == '/') {
-    current = "/";
-    position = 1;
   }
-#else
-  if (dir.front() == '/') {
-    current = "/";
-    position = 1;
-  }
-#endif
-
-  while (position < dir.size()) {
-    while (position < dir.size() && IsPathSeparator(dir[position])) {
-      ++position;
-    }
-    if (position >= dir.size()) {
-      break;
-    }
-    const std::size_t separator = dir.find('/', position);
-    const std::string component =
-        dir.substr(position, separator == std::string::npos
-                                 ? std::string::npos
-                                 : separator - position);
-    if (!current.empty() && current.back() != '/') {
-      current.push_back('/');
-    }
-    current.append(component);
-    if (!CreateDirectoryComponent(current)) {
-      return false;
-    }
-    if (separator == std::string::npos) {
-      break;
-    }
-    position = separator + 1;
-  }
-  return IsDirectory(dir);
+  return IsDirectory(plan.normalized_path);
 }
 
 bool IsDirectoryExits(std::string dir) {
