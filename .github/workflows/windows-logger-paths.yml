@@ -1,0 +1,44 @@
+name: Windows logger paths
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/windows-logger-paths.yml"
+      - "sdk_core/logger_handler/directory_creation_plan.h"
+      - "sdk_core/logger_handler/file_manager.cpp"
+      - "tests/logger_path/**"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/windows-logger-paths.yml"
+      - "sdk_core/logger_handler/directory_creation_plan.h"
+      - "sdk_core/logger_handler/file_manager.cpp"
+      - "tests/logger_path/**"
+
+permissions:
+  contents: read
+
+jobs:
+  logger-paths:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Configure focused tests
+        run: cmake -S tests/logger_path -B build/logger-path -A x64
+
+      - name: Build focused tests
+        run: cmake --build build/logger-path --config Release
+
+      - name: Run focused tests
+        run: ctest --test-dir build/logger-path -C Release --output-on-failure
+
+      - name: Configure SDK
+        run: >-
+          cmake -S . -B build/sdk -A x64
+          "-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+
+      - name: Build SDK
+        run: cmake --build build/sdk --config Release

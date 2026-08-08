@@ -23,6 +23,7 @@
 //
 #ifndef WIN32
 #include "base/network/network_util.h"
+#include <errno.h>
 #include <ifaddrs.h>
 #include <string>
 #include <string.h>
@@ -36,7 +37,7 @@ namespace util {
 
 socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_broadcast, const std::string netif, const std::string multicast_ip) {
   int status = -1;
-  int on = -1;
+  int on = 1;
   int sock = -1;
   int recv_buff_size = 1024 * 1024 * 200;
   struct sockaddr_in servaddr;
@@ -64,6 +65,15 @@ socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_bro
       close(sock);
       return -1;
    }
+#ifdef __APPLE__
+    status = setsockopt(sock, SOL_SOCKET, SO_REUSEPORT,
+                        (char *) &on, sizeof (on));
+    if (status != 0) {
+      printf("reuse port failed\n");
+      close(sock);
+      return -1;
+   }
+#endif
   }
   status = setsockopt(sock, SOL_SOCKET, SO_RCVBUF,
 	  (char *)&recv_buff_size, sizeof(recv_buff_size));
@@ -82,14 +92,24 @@ socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_bro
     if(!multicast_ip.empty()){
       servaddr.sin_addr.s_addr = inet_addr(multicast_ip.c_str());
     } else {
+#ifdef __APPLE__
+      if (netif == "255.255.255.255") {
+        servaddr.sin_addr.s_addr = INADDR_ANY;
+      } else
+#endif
+      {
       servaddr.sin_addr.s_addr = inet_addr(netif.c_str());
+      }
     }
   }
   servaddr.sin_port = htons(port);
 
   status = bind(sock, (const struct sockaddr *)&servaddr, sizeof(servaddr));
   if (status != 0) {
-    printf("bind failed\n");
+    printf("bind failed %s:%u: %s\n",
+           netif.empty() ? "0.0.0.0" : netif.c_str(),
+           port,
+           strerror(errno));
     close(sock);
     return -1;
   }

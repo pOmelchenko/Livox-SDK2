@@ -23,9 +23,11 @@
 //
 
 #include "file_manager.h"
+#include "logger_handler/directory_creation_plan.h"
 
 #ifdef WIN32
   #include <direct.h>
+  #include <sys/stat.h>
 #else
   #include <dirent.h>
   #include <sys/stat.h>
@@ -33,9 +35,9 @@
   #include <unistd.h>
 #endif
 
-#include <algorithm>
-#include <string>
+#include <cerrno>
 #include <map>
+#include <string>
 
 #include "base/logging.h"
 
@@ -44,6 +46,33 @@ namespace lidar {
 
 constexpr uint16_t kLengthOfTimeInFilename = 19;
 constexpr bool kFOk = 0;
+
+namespace {
+
+bool IsDirectory(const std::string& path) {
+#ifdef WIN32
+  struct _stat status = {};
+  return _stat(path.c_str(), &status) == 0 &&
+         (status.st_mode & _S_IFDIR) != 0;
+#else
+  struct stat status = {};
+  return stat(path.c_str(), &status) == 0 && S_ISDIR(status.st_mode);
+#endif
+}
+
+bool CreateDirectoryComponent(const std::string& path) {
+  if (IsDirectory(path)) {
+    return true;
+  }
+#ifdef WIN32
+  const int result = mkdir(path.c_str());
+#else
+  const int result = mkdir(path.c_str(), 0777);
+#endif
+  return result == 0 || (errno == EEXIST && IsDirectory(path));
+}
+
+}  // namespace
 
 #ifdef WIN32
 uint64_t GetDirTotalSize(const std::string& dir_name) {
@@ -346,13 +375,28 @@ bool StoreFileName(const char* filename, std::multimap<std::string, std::string>
 }
 
 bool MakeDirecotory(std::string dir) {
-  int flag = -1;
+  detail::DirectoryCreationPlan plan;
 #ifdef WIN32
-  flag = mkdir(dir.c_str());
+  const detail::DirectoryPathStyle path_style =
+      detail::DirectoryPathStyle::kWindows;
 #else
-  flag = mkdir(dir.c_str(), 0777);
-#endif // WIN32
-  return (flag == 0);
+  const detail::DirectoryPathStyle path_style =
+      detail::DirectoryPathStyle::kUnix;
+#endif
+  if (!detail::BuildDirectoryCreationPlan(dir, path_style, &plan)) {
+    return false;
+  }
+
+  if (!plan.required_existing_root.empty() &&
+      !IsDirectory(plan.required_existing_root)) {
+    return false;
+  }
+  for (const auto& component : plan.components) {
+    if (!CreateDirectoryComponent(component)) {
+      return false;
+    }
+  }
+  return IsDirectory(plan.normalized_path);
 }
 
 bool IsDirectoryExits(std::string dir) {
