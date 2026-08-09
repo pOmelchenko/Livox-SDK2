@@ -130,6 +130,46 @@ class GovernanceValidatorTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("passed for 1 commit", result.stdout)
 
+    def test_one_character_subject_and_sections_are_rejected(self):
+        commit = dict(
+            VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")[0]
+        )
+        commit["message"] = """.
+
+Problem:
+x
+
+Evidence and decision:
+x
+
+Implementation:
+x
+
+Compatibility:
+x
+
+Verification:
+x
+
+Source attribution:
+x
+
+Upstream disposition:
+x
+
+Refs: #42
+Agent-Authored: OpenAI Codex
+"""
+
+        errors = VALIDATOR_MODULE.validate_commit(commit)
+
+        self.assertTrue(
+            any("missing imperative subject" in error for error in errors)
+        )
+        self.assertEqual(
+            sum("is not substantive" in error for error in errors), 7
+        )
+
     def test_indented_declaration_lines_count_as_duplicates(self):
         commit = dict(
             VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")[0]

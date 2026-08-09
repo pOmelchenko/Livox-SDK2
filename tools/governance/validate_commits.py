@@ -9,7 +9,12 @@ import sys
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from intake_contracts import is_placeholder_agent_name, validate_issue_body
+from intake_contracts import (
+    has_meaningful_text,
+    is_placeholder_agent_name,
+    is_substantive,
+    validate_issue_body,
+)
 
 
 REQUIRED_SECTIONS: Tuple[str, ...] = (
@@ -299,7 +304,9 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     errors: List[str] = []
 
     lines = message.splitlines()
-    if not lines or not lines[0].strip():
+    if not lines or not has_meaningful_text(
+        lines[0], minimum_length=5, minimum_alphanumeric=5
+    ):
         errors.append("missing imperative subject")
     if len(lines) < 3 or lines[1].strip():
         errors.append("subject must be followed by a blank line and detailed body")
@@ -317,6 +324,10 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
                 "required section '{}' uses a bare placeholder; add a reason".format(
                     name
                 )
+            )
+        elif not is_substantive(sections[name]):
+            errors.append(
+                "required section '{}' is not substantive".format(name)
             )
 
     present_required = [name for name in REQUIRED_SECTIONS if name in positions]
@@ -367,7 +378,7 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     categories = concern_categories(paths)
     if len(categories) > 1:
         explanation = sections.get("Combined concerns", "").strip()
-        if len(explanation) < 15 or is_bare_placeholder(explanation):
+        if not is_substantive(explanation) or is_bare_placeholder(explanation):
             errors.append(
                 "changes multiple concern categories ({}) without a substantive "
                 "'Combined concerns' explanation".format(", ".join(categories))

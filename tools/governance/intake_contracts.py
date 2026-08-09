@@ -30,6 +30,7 @@ DISPOSITION_LANGUAGE = re.compile(
     re.IGNORECASE,
 )
 CHECKBOX = re.compile(r"^\s*-\s+\[(?P<mark>[ xX])\]\s+\S", re.MULTILINE)
+ALPHANUMERIC_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 EVIDENCE_LANGUAGE = re.compile(
     r"\b(?:evidence|fail(?:s|ed|ure)?|missing|observ(?:e|ed|able)|"
     r"reproduc(?:e|ed|es|ible)|show(?:s|ed)?|unprotected)\b",
@@ -68,9 +69,27 @@ def parse_markdown_sections(
     }
 
 
+def has_meaningful_text(
+    value: str,
+    minimum_length: int,
+    minimum_alphanumeric: int,
+) -> bool:
+    stripped = value.strip()
+    tokens = ALPHANUMERIC_TOKEN.findall(stripped)
+    return (
+        len(stripped) >= minimum_length
+        and len(tokens) >= 2
+        and sum(len(token) for token in tokens) >= minimum_alphanumeric
+        and any(len(token) >= 3 for token in tokens)
+    )
+
+
 def is_substantive(value: str) -> bool:
     normalized = value.strip().casefold().rstrip(".,;:!?")
-    return len(value.strip()) >= 15 and normalized not in BARE_PLACEHOLDERS
+    return (
+        has_meaningful_text(value, minimum_length=15, minimum_alphanumeric=10)
+        and normalized not in BARE_PLACEHOLDERS
+    )
 
 
 def is_placeholder_agent_name(value: str) -> bool:

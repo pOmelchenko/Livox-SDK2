@@ -45,6 +45,9 @@ category also explains why the pieces cannot build and qualify independently
 under `Combined concerns`. The validator normalizes surrounding whitespace
 before counting trailer-shaped issue and agent declarations across the whole
 message, so indentation cannot hide a conflicting declaration.
+Required prose must contain reviewer-readable words and detail; punctuation,
+one-character values, and length-only placeholders do not satisfy a section or
+the imperative subject contract.
 
 The `Downstream governance` status validates every commit between the pull
 request merge base and head. The workflow runs the validator from the trusted

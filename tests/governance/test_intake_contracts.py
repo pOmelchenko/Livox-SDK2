@@ -7,7 +7,11 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPOSITORY / "tools" / "governance"))
-from intake_contracts import validate_issue_body, validate_pull_request_body
+from intake_contracts import (
+    is_substantive,
+    validate_issue_body,
+    validate_pull_request_body,
+)
 sys.path.pop(0)
 
 
@@ -109,6 +113,9 @@ class IntakeContractTests(unittest.TestCase):
     def test_empty_issue_and_pull_request_fail_all_required_fields(self):
         self.assertGreaterEqual(len(validate_issue_body("")), 6)
         self.assertEqual(len(validate_pull_request_body("")), 9)
+
+    def test_punctuation_only_text_is_not_substantive(self):
+        self.assertFalse(is_substantive("." * 15))
 
     def test_github_issue_form_h3_headings_pass(self):
         issue_form_body = VALID_ISSUE.replace("## ", "### ")
