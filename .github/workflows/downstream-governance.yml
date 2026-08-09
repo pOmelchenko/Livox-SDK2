@@ -36,6 +36,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Require identity-preserving repository merge settings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh api "repos/${GITHUB_REPOSITORY}"
+          |
+          python3 tools/governance/validate_repository_settings.py
+
       - name: Fetch pull-request metadata without checking out its code
         run: >-
           git fetch --no-tags origin
