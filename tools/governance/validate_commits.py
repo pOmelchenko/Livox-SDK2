@@ -35,6 +35,9 @@ NAMED_AGENT_TRAILER = re.compile(
 TRAILER_LINE = re.compile(
     r"^(?:Refs|Closes|Fixes|Agent-Authored|Agent-Assisted|Agent-Authorship):"
 )
+AGENT_DECLARATION_LINE = re.compile(
+    r"^(?:Agent-Authored|Agent-Assisted|Agent-Authorship):"
+)
 GENERIC_TRAILER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*:\s+\S.*$")
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
 
@@ -64,6 +67,7 @@ def collect_commits(repository: Path, base: str, head: str) -> List[Dict[str, ob
         paths = run_git(
             repository,
             "diff-tree",
+            "-m",
             "--root",
             "--no-commit-id",
             "--name-only",
@@ -224,14 +228,19 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     agent_declarations = [
         line for line in trailer_block if AGENT_TRAILER.fullmatch(line)
     ]
+    all_agent_declarations = [
+        line
+        for line in message.splitlines()
+        if AGENT_DECLARATION_LINE.match(line)
+    ]
     if not agent_declarations:
         errors.append(
             "missing agent authorship declaration "
             "(Agent-Authored, Agent-Assisted, or Agent-Authorship: none)"
         )
-    elif len(agent_declarations) > 1:
+    if len(all_agent_declarations) > 1:
         errors.append("multiple agent authorship declarations")
-    else:
+    elif agent_declarations:
         named_declaration = NAMED_AGENT_TRAILER.fullmatch(agent_declarations[0])
         if named_declaration and is_bare_placeholder(named_declaration.group("agent")):
             errors.append(

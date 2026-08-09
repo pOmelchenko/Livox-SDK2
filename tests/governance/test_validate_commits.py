@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -21,6 +22,45 @@ def run_fixture(name):
     )
 
 
+def run_git(repository, *arguments):
+    return subprocess.run(
+        ["git", "-C", str(repository)] + list(arguments),
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def contract_message(subject):
+    return """{subject}
+
+Problem:
+Exercise governance validation against a synthetic Git history.
+
+Evidence and decision:
+Use a real merge commit so Git path collection behavior is covered.
+
+Implementation:
+Create one focused synthetic change.
+
+Compatibility:
+No production SDK behavior changes.
+
+Verification:
+The governance regression inspects the synthetic commit.
+
+Source attribution:
+Project-owned synthetic test history.
+
+Upstream disposition:
+No upstream submission is planned for synthetic test history.
+
+Refs: #42
+Agent-Authored: OpenAI Codex
+""".format(subject=subject)
+
+
 class GovernanceValidatorTests(unittest.TestCase):
     def test_accepted_intake_passes(self):
         result = run_fixture("accepted.json")
@@ -31,6 +71,79 @@ class GovernanceValidatorTests(unittest.TestCase):
         result = run_fixture("explained-placeholder.json")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("passed for 1 commit", result.stdout)
+
+    def test_merge_commit_paths_are_validated(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            run_git(repository, "init")
+            run_git(repository, "config", "user.name", "Governance Test")
+            run_git(
+                repository,
+                "config",
+                "user.email",
+                "governance@example.invalid",
+            )
+
+            (repository / "base.txt").write_text("base\n", encoding="utf-8")
+            run_git(repository, "add", "base.txt")
+            run_git(repository, "commit", "-m", "chore: establish synthetic base")
+            base = run_git(repository, "rev-parse", "HEAD").stdout.strip()
+            primary_branch = run_git(
+                repository, "branch", "--show-current"
+            ).stdout.strip()
+
+            run_git(repository, "switch", "-c", "review-side")
+            (repository / "include").mkdir()
+            (repository / "include" / "public_api.h").write_text(
+                "// public API\n", encoding="utf-8"
+            )
+            run_git(repository, "add", "include/public_api.h")
+            run_git(
+                repository,
+                "commit",
+                "-m",
+                contract_message("feat(api): add synthetic public contract"),
+            )
+
+            run_git(repository, "switch", primary_branch)
+            (repository / "sdk_core").mkdir()
+            (repository / "sdk_core" / "runtime.cpp").write_text(
+                "// implementation\n", encoding="utf-8"
+            )
+            run_git(repository, "add", "sdk_core/runtime.cpp")
+            run_git(
+                repository,
+                "commit",
+                "-m",
+                contract_message("fix(core): add synthetic implementation"),
+            )
+            run_git(
+                repository,
+                "merge",
+                "--no-ff",
+                "review-side",
+                "-m",
+                contract_message("merge: combine synthetic concerns"),
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(VALIDATOR),
+                    "--repository",
+                    str(repository),
+                    "--base",
+                    base,
+                    "--head",
+                    "HEAD",
+                ],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertIn("(product implementation, public API)", result.stderr)
 
     def test_rejected_intakes_fail_for_the_expected_reason(self):
         cases = {
@@ -59,6 +172,9 @@ class GovernanceValidatorTests(unittest.TestCase):
             ],
             "invalid-agent-placeholder.json": [
                 "require a non-placeholder agent name",
+            ],
+            "conflicting-agent-declarations.json": [
+                "multiple agent authorship declarations",
             ],
             "unexplained-path-boundaries.json": [
                 "(build configuration, product implementation)",

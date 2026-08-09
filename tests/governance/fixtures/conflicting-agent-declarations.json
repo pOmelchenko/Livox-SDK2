@@ -1,0 +1,12 @@
+{
+  "description": "Authorship declarations outside the terminal block still count as conflicting disclosures",
+  "commits": [
+    {
+      "sha": "synthetic-conflicting-agent-declarations",
+      "message": "fix(governance): reject conflicting disclosures\n\nAgent-Assisted: Review Bot\n\nProblem:\nA commit contains an agent declaration outside the final trailer block.\n\nEvidence and decision:\nCount every trailer-shaped agent disclosure while requiring the accepted declaration at the end.\n\nImplementation:\nExercise conflicting assisted and authored declarations.\n\nCompatibility:\nNo SDK interfaces or behavior change.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
+    }
+  ]
+}
