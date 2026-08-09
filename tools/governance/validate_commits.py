@@ -45,6 +45,8 @@ AGENT_DECLARATION_LINE = re.compile(
 ISSUE_DECLARATION_LINE = re.compile(r"^(?:Refs|Closes|Fixes):")
 GENERIC_TRAILER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*:\s+\S.*$")
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
+MAINTAINER_ACCEPTANCE_LABEL = "downstream:accepted"
+LEGACY_BOOTSTRAP_ISSUE = ("pomelchenko/livox-sdk2", 5)
 
 
 def run_git(repository: Path, *arguments: str) -> str:
@@ -251,10 +253,28 @@ def validate_governing_issues(
                     ):
                         error = "does not resolve to a GitHub issue"
                     else:
+                        is_legacy_bootstrap = (
+                            repository.casefold(), number
+                        ) == LEGACY_BOOTSTRAP_ISSUE
                         intake_errors = validate_issue_body(
                             str(document.get("body") or ""),
                             expected_downstream_base,
+                            allow_legacy_bootstrap=is_legacy_bootstrap,
                         )
+                        labels = {
+                            str(label.get("name") or "").casefold()
+                            for label in (document.get("labels") or [])
+                            if isinstance(label, dict)
+                        }
+                        if (
+                            not is_legacy_bootstrap
+                            and MAINTAINER_ACCEPTANCE_LABEL not in labels
+                        ):
+                            intake_errors.append(
+                                "missing maintainer acceptance label '{}'".format(
+                                    MAINTAINER_ACCEPTANCE_LABEL
+                                )
+                            )
                         if intake_errors:
                             error = "fails intake contract: {}".format(
                                 "; ".join(intake_errors)

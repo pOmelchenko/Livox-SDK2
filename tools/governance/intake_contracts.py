@@ -24,6 +24,12 @@ NAMED_AGENT_DISCLOSURE = re.compile(
 )
 NO_AGENT_DISCLOSURE = re.compile(r"^Agent-Authorship:\s+none\s*$", re.MULTILINE)
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
+DISPOSITION_LANGUAGE = re.compile(
+    r"\b(?:accept(?:ed)?|adapt(?:ed)?|defer(?:red)?|reject(?:ed)?|duplicate|"
+    r"already[- ]upstreamed|project-owned)\b",
+    re.IGNORECASE,
+)
+CHECKBOX = re.compile(r"^\s*-\s+\[(?P<mark>[ xX])\]\s+\S", re.MULTILINE)
 EVIDENCE_LANGUAGE = re.compile(
     r"\b(?:evidence|fail(?:s|ed|ure)?|missing|observ(?:e|ed|able)|"
     r"reproduc(?:e|ed|es|ible)|show(?:s|ed)?|unprotected)\b",
@@ -124,9 +130,38 @@ ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("required verification", ("Required verification",)),
 )
 
+STRICT_ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    (
+        "user value and alternatives",
+        ("User value and alternatives", "Intended change and alternatives"),
+    ),
+    (
+        "source attribution and disposition",
+        ("Source attribution and disposition", "Proposed disposition"),
+    ),
+    ("upstream disposition", ("Upstream disposition",)),
+    ("agent authorship disclosure", ("Agent authorship disclosure",)),
+    ("intake checks", ("Intake checks",)),
+)
+
+LEGACY_BOOTSTRAP_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    ("bootstrap acceptance", ("Acceptance",)),
+    ("bootstrap source attribution", ("Source attribution",)),
+)
+
+THIRD_PARTY_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    ("source repository", ("Source repository",)),
+    ("full source commit SHA", ("Full source commit SHA",)),
+    ("original author", ("Original author",)),
+    ("source license", ("Source license",)),
+    ("proposed disposition", ("Proposed disposition",)),
+)
+
 
 def validate_issue_body(
-    body: str, expected_downstream_base: Optional[str] = None
+    body: str,
+    expected_downstream_base: Optional[str] = None,
+    allow_legacy_bootstrap: bool = False,
 ) -> List[str]:
     if expected_downstream_base is not None and not EXACT_FULL_SHA.fullmatch(
         expected_downstream_base
@@ -134,11 +169,58 @@ def validate_issue_body(
         raise ValueError("expected downstream base must be a 40-character SHA")
 
     sections = parse_markdown_sections(body, heading_levels=(2, 3))
+    requirements = ISSUE_REQUIREMENTS + (
+        LEGACY_BOOTSTRAP_REQUIREMENTS
+        if allow_legacy_bootstrap
+        else STRICT_ISSUE_REQUIREMENTS
+    )
     errors = [
         "missing substantive issue field '{}'".format(label)
-        for label, headings in ISSUE_REQUIREMENTS
+        for label, headings in requirements
         if not has_substantive_section(sections, headings)
     ]
+
+    if not allow_legacy_bootstrap:
+        provenance = "\n".join(
+            content_for(
+                sections,
+                ("Source attribution and disposition", "Proposed disposition"),
+            )
+        )
+        if provenance and not DISPOSITION_LANGUAGE.search(provenance):
+            errors.append(
+                "issue source attribution field has no recognized disposition"
+            )
+
+        agent_authorship = sections.get("agent authorship disclosure", "")
+        if agent_authorship and len(
+            canonical_agent_declarations(agent_authorship)
+        ) != 1:
+            errors.append(
+                "issue agent authorship field must have exactly one canonical declaration"
+            )
+
+        intake_checks = sections.get("intake checks", "")
+        checkbox_marks = [
+            match.group("mark") for match in CHECKBOX.finditer(intake_checks)
+        ]
+        if intake_checks and (
+            len(checkbox_marks) != 3
+            or any(mark.casefold() != "x" for mark in checkbox_marks)
+        ):
+            errors.append("issue intake checks are not all checked")
+
+        if "source repository" in sections:
+            errors.extend(
+                "missing substantive issue field '{}'".format(label)
+                for label, headings in THIRD_PARTY_REQUIREMENTS
+                if not has_substantive_section(sections, headings)
+            )
+            source_commit = sections.get("full source commit sha", "").strip()
+            if source_commit and not EXACT_FULL_SHA.fullmatch(source_commit):
+                errors.append(
+                    "issue full source commit SHA must be exactly 40 hexadecimal characters"
+                )
 
     evidence_headings = ("Current-base evidence", "Current-base re-evaluation")
     evidence_sections = content_for(sections, evidence_headings)

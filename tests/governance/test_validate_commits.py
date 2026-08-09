@@ -34,9 +34,17 @@ The problem reproduces at 606f33353a31b9bdabe827d168a32fdb1c7c4057.
 
 Change only the governance validator and its focused tests.
 
+## User value and alternatives
+
+Preserve auditable maintenance; alternatives were manual review or no change.
+
 ## Non-goals
 
 Do not change production SDK behavior or public interfaces.
+
+## Source attribution and disposition
+
+Project-owned downstream work accepted for focused implementation.
 
 ## Compatibility and risk
 
@@ -45,6 +53,20 @@ No SDK API, ABI, wire, platform, or consumer behavior changes.
 ## Required verification
 
 Run the focused deterministic governance unit suite.
+
+## Upstream disposition
+
+Maintainer pOmelchenko will revisit submission if upstream requests this tooling.
+
+## Agent authorship disclosure
+
+Agent-Authored: OpenAI Codex
+
+## Intake checks
+
+- [x] I searched downstream and upstream for equivalent work.
+- [x] This issue contains one independently reviewable problem.
+- [x] I removed private and generated artifacts.
 """
 
 
@@ -210,6 +232,7 @@ class GovernanceValidatorTests(unittest.TestCase):
                     "number": 42,
                     "title": "Accepted intake",
                     "body": VALID_ISSUE_BODY,
+                    "labels": [{"name": "downstream:accepted"}],
                 }
             ),
             stderr="",
@@ -236,7 +259,12 @@ class GovernanceValidatorTests(unittest.TestCase):
             args=[],
             returncode=0,
             stdout=json.dumps(
-                {"number": 42, "title": "Stale intake", "body": VALID_ISSUE_BODY}
+                {
+                    "number": 42,
+                    "title": "Stale intake",
+                    "body": VALID_ISSUE_BODY,
+                    "labels": [{"name": "downstream:accepted"}],
+                }
             ),
             stderr="",
         )
@@ -252,6 +280,34 @@ class GovernanceValidatorTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
         self.assertIn(
             "issue current-base evidence does not match the current downstream base",
+            errors[0],
+        )
+
+    def test_governing_issue_requires_maintainer_acceptance_label(self):
+        commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
+        response = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "number": 42,
+                    "title": "Unaccepted intake",
+                    "body": VALID_ISSUE_BODY,
+                    "labels": [],
+                }
+            ),
+            stderr="",
+        )
+        with mock.patch.object(
+            VALIDATOR_MODULE.subprocess, "run", return_value=response
+        ):
+            errors = VALIDATOR_MODULE.validate_governing_issues(
+                commits, "pOmelchenko/Livox-SDK2"
+            )
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn(
+            "missing maintainer acceptance label 'downstream:accepted'",
             errors[0],
         )
 

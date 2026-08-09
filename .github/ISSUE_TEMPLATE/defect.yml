@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         Use this form for one independently reviewable downstream defect. Do not combine cleanup, packaging, API, and behavioral work.
+        Implementation cannot begin until the maintainer applies the `downstream:accepted` label.
 
   - type: input
     id: downstream_base
@@ -49,6 +50,14 @@ body:
       required: true
 
   - type: textarea
+    id: user_value_alternatives
+    attributes:
+      label: User value and alternatives
+      description: Identify the supported consumer value, alternatives considered, and why the selected scope is preferred.
+    validations:
+      required: true
+
+  - type: textarea
     id: provenance
     attributes:
       label: Source attribution and disposition
@@ -84,7 +93,9 @@ body:
     id: authorship
     attributes:
       label: Agent authorship disclosure
-      description: Name any agent that drafted substantive content, or state "None".
+      description: >-
+        Use exactly Agent-Authored: Name, Agent-Assisted: Name, or
+        Agent-Authorship: none.
     validations:
       required: true
 

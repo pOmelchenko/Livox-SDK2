@@ -21,6 +21,14 @@ reviewable problem or need. Before implementation, the issue records:
 - an explicit accepted, deferred, or rejected disposition; and
 - deterministic tests and any required platform or hardware qualification.
 
+For every new structured intake, the maintainer records acceptance by applying
+the `downstream:accepted` label; author-entered proposed dispositions do not
+substitute for that label. The trusted validator also requires user value and
+alternatives, provenance and disposition, upstream disposition, canonical agent
+authorship disclosure, and every rendered intake checkbox to be complete.
+Issue #5 is the sole bootstrap exception because it predates these forms: its
+`Acceptance` and `Source attribution` sections are its immutable legacy record.
+
 Do not bulk-import branches or combine unrelated behavior, formatting, build,
 packaging, dependency, API, and documentation changes. A combined commit must
 explain why its parts cannot build and qualify independently.

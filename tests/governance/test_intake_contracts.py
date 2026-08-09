@@ -27,9 +27,17 @@ It reproduces at 606f33353a31b9bdabe827d168a32fdb1c7c4057.
 
 Change the smallest implementation and regression necessary.
 
+## User value and alternatives
+
+Preserve the supported consumer; alternatives were upstream-only use or no change.
+
 ## Non-goals
 
 Do not include cleanup, packaging, or unrelated API changes.
+
+## Source attribution and disposition
+
+Project-owned downstream work accepted for focused implementation.
 
 ## Compatibility and risk
 
@@ -38,6 +46,20 @@ No public API, ABI, wire, or supported-platform behavior changes.
 ## Required verification
 
 Run the focused regression and supported compiler matrix.
+
+## Upstream disposition
+
+Maintainer pOmelchenko will revisit submission if upstream requests this tooling.
+
+## Agent authorship disclosure
+
+Agent-Authored: OpenAI Codex
+
+## Intake checks
+
+- [x] I searched downstream and upstream for equivalent work.
+- [x] This issue contains one independently reviewable problem.
+- [x] I removed private and generated artifacts.
 """
 
 
@@ -141,6 +163,110 @@ class IntakeContractTests(unittest.TestCase):
             "issue downstream base does not match the current downstream base",
             validate_issue_body(stale, expected),
         )
+
+    def test_issue_requires_policy_provenance_and_checked_intake(self):
+        missing_provenance = VALID_ISSUE.replace(
+            "## Source attribution and disposition\n\n"
+            "Project-owned downstream work accepted for focused implementation.\n\n",
+            "",
+        )
+        self.assertIn(
+            "missing substantive issue field 'source attribution and disposition'",
+            validate_issue_body(missing_provenance),
+        )
+
+        unchecked = VALID_ISSUE.replace("- [x]", "- [ ]", 1)
+        self.assertIn(
+            "issue intake checks are not all checked",
+            validate_issue_body(unchecked),
+        )
+
+        informal_agent = VALID_ISSUE.replace(
+            "Agent-Authored: OpenAI Codex", "Drafted with automation."
+        )
+        self.assertIn(
+            "issue agent authorship field must have exactly one canonical declaration",
+            validate_issue_body(informal_agent),
+        )
+
+        missing_check = VALID_ISSUE.replace(
+            "- [x] I removed private and generated artifacts.\n", ""
+        )
+        self.assertIn(
+            "issue intake checks are not all checked",
+            validate_issue_body(missing_check),
+        )
+
+    def test_third_party_intake_requires_exact_source_identity(self):
+        third_party = VALID_ISSUE + """
+
+## Source repository
+
+https://github.com/example/fork
+
+## Full source commit SHA
+
+x
+
+## Original author
+
+Example Contributor with a public source identity.
+
+## Source license
+
+BSD-3-Clause with the original notices retained.
+
+## Proposed disposition
+
+Accept with adaptation
+"""
+        self.assertIn(
+            "issue full source commit SHA must be exactly 40 hexadecimal characters",
+            validate_issue_body(third_party),
+        )
+
+    def test_legacy_bootstrap_requires_explicit_acceptance_and_attribution(self):
+        legacy = """## Problem
+
+A focused legacy governance problem affects the maintained downstream.
+
+## Current-base evidence
+
+The problem reproduces at 606f33353a31b9bdabe827d168a32fdb1c7c4057.
+
+## Intended scope
+
+Change only the focused governance enforcement behavior.
+
+## Non-goals
+
+Do not change SDK source, API, ABI, wire behavior, or packaging.
+
+## Compatibility and risk
+
+No SDK API, ABI, wire, platform, or consumer behavior changes.
+
+## Required verification
+
+Run the focused deterministic governance unit suite.
+
+## Acceptance
+
+The maintainer accepted this bootstrap governance scope before implementation.
+
+## Source attribution
+
+Project-owned downstream governance work drafted with OpenAI Codex.
+"""
+        self.assertEqual(
+            validate_issue_body(
+                legacy,
+                "606f33353a31b9bdabe827d168a32fdb1c7c4057",
+                allow_legacy_bootstrap=True,
+            ),
+            [],
+        )
+        self.assertGreater(len(validate_issue_body(legacy)), 0)
 
     def test_legacy_evidence_must_be_bounded_to_one_proof_paragraph(self):
         without_evidence = VALID_ISSUE.replace(

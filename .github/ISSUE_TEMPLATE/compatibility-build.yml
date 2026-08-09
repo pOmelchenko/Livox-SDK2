@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         Use this form when the governing concern is compatibility or build behavior. Open separate issues for unrelated runtime defects or cleanup.
+        Implementation cannot begin until the maintainer applies the `downstream:accepted` label.
 
   - type: dropdown
     id: concern
@@ -98,7 +99,9 @@ body:
     id: authorship
     attributes:
       label: Agent authorship disclosure
-      description: Name any agent that drafted substantive content, or state "None".
+      description: >-
+        Use exactly Agent-Authored: Name, Agent-Assisted: Name, or
+        Agent-Authorship: none.
     validations:
       required: true
 

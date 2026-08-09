@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         This form evaluates one immutable candidate against the current downstream base. Do not import an entire branch or combine unrelated commits.
+        Implementation cannot begin until the maintainer applies the `downstream:accepted` label.
 
   - type: input
     id: source_repository
@@ -87,6 +88,14 @@ body:
       required: true
 
   - type: textarea
+    id: user_value_alternatives
+    attributes:
+      label: User value and alternatives
+      description: Identify the supported consumer value, alternatives considered, and why this candidate is preferred.
+    validations:
+      required: true
+
+  - type: textarea
     id: compatibility
     attributes:
       label: Compatibility and risk
@@ -114,7 +123,9 @@ body:
     id: authorship
     attributes:
       label: Agent authorship disclosure
-      description: Name any agent that performed substantive analysis or drafted content, or state "None".
+      description: >-
+        Use exactly Agent-Authored: Name, Agent-Assisted: Name, or
+        Agent-Authorship: none.
     validations:
       required: true
 
