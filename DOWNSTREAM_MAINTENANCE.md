@@ -53,6 +53,11 @@ commit declaration fails. Pull requests keep commits independently reviewable
 and pass both this governance status and the checks required by the affected
 behavior.
 
+Because GitHub commit statuses are scoped to a head SHA rather than to one pull
+request, success requires every open pull request into `master` that shares the
+same head SHA to pass its pull-request contract. A valid description cannot
+therefore replace the failure of another pull request on the same commit.
+
 Every configured pull-request event first replaces any earlier governance
 result on the current head with `pending`, before checkout or validation. This
 closes the interval in which an edited description could otherwise retain the

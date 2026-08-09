@@ -40,6 +40,15 @@ class WorkflowContractTests(unittest.TestCase):
             WORKFLOW,
         )
 
+    def test_every_open_pull_request_on_head_is_validated(self):
+        self.assertIn("--json number,headRefOid", WORKFLOW)
+        self.assertIn(
+            '--jq ".[] | select(.headRefOid == \\"${HEAD_SHA}\\") | .number"',
+            WORKFLOW,
+        )
+        self.assertIn('--number "${same_head_pr_number}"', WORKFLOW)
+        self.assertIn('[[ "${event_pr_seen}" == "true" ]]', WORKFLOW)
+
 
 if __name__ == "__main__":
     unittest.main()

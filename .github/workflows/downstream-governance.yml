@@ -69,7 +69,7 @@ jobs:
           git fetch --no-tags origin
           "+refs/pull/${PR_NUMBER}/head:refs/remotes/governance/pr-head"
 
-      - name: Validate downstream commit and pull-request contracts
+      - name: Validate downstream commits and every pull-request contract on head
         id: validate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -78,12 +78,32 @@ jobs:
             --base "${BASE_SHA}" \
             --head refs/remotes/governance/pr-head \
             --issue-repository "${GITHUB_REPOSITORY}"
-          python3 tools/governance/validate_pull_request.py \
-            --repository "${GITHUB_REPOSITORY}" \
-            --number "${PR_NUMBER}" \
-            --repository-path . \
-            --base "${BASE_SHA}" \
-            --head refs/remotes/governance/pr-head
+
+          same_head_pr_numbers="$(
+            gh pr list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --base master \
+              --state open \
+              --limit 1000 \
+              --json number,headRefOid \
+              --jq ".[] | select(.headRefOid == \"${HEAD_SHA}\") | .number"
+          )"
+          [[ -n "${same_head_pr_numbers}" ]]
+
+          event_pr_seen=false
+          while IFS= read -r same_head_pr_number; do
+            [[ -n "${same_head_pr_number}" ]] || continue
+            if [[ "${same_head_pr_number}" == "${PR_NUMBER}" ]]; then
+              event_pr_seen=true
+            fi
+            python3 tools/governance/validate_pull_request.py \
+              --repository "${GITHUB_REPOSITORY}" \
+              --number "${same_head_pr_number}" \
+              --repository-path . \
+              --base "${BASE_SHA}" \
+              --head refs/remotes/governance/pr-head
+          done <<< "${same_head_pr_numbers}"
+          [[ "${event_pr_seen}" == "true" ]]
 
       - name: Publish the required status on the pull-request head
         if: always()
