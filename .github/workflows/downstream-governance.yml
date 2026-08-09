@@ -21,8 +21,8 @@ permissions:
   statuses: write
 
 concurrency:
-  group: governance-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: downstream-governance-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -91,8 +91,21 @@ jobs:
           state=failure
           description="Governance contract validation failed"
           if [[ "${VALIDATION_OUTCOME}" == "success" ]]; then
-            state=success
-            description="Governance contract validation passed"
+            if current_base_sha="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/git/ref/heads/master" \
+                --jq .object.sha
+            )"; then
+              if [[ "${current_base_sha}" == "${BASE_SHA}" ]]; then
+                state=success
+                description="Governance contract validation passed"
+              else
+                state=pending
+                description="Base changed; governance revalidation required"
+              fi
+            else
+              description="Could not confirm the current governance base"
+            fi
           fi
           gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
