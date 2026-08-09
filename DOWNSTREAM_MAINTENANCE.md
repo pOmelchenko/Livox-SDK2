@@ -135,11 +135,13 @@ as protected until post-configuration API evidence replaces this bootstrap
 record.
 
 The same bootstrap inspection showed `allow_merge_commit: true`,
-`allow_squash_merge: true`, and `allow_rebase_merge: true`. Before merging this
-policy pull request, select the merge-commit strategy. Before qualifying later
-pull requests, disable squash and rebase merges at repository level; otherwise
-the governance status deliberately fails because GitHub could replace reviewed
-commits with a new, unvalidated identity.
+`allow_squash_merge: true`, and `allow_rebase_merge: true`. On 2026-08-09,
+before merging this policy pull request, repository settings were changed to
+`allow_merge_commit: true`, `allow_squash_merge: false`, and
+`allow_rebase_merge: false`; the follow-up repository API response confirmed
+those values. Merge this pull request with the merge-commit strategy. Later
+qualification rechecks the settings through the governance status, which fails
+if GitHub could replace reviewed commits with a new, unvalidated identity.
 
 The target control for `master` requires a pull request, one approving human
 review, resolved conversations, and the `Downstream governance` status. It also
