@@ -11,6 +11,8 @@ consumers while those fixes are not available from upstream.
 Every downstream change starts with a GitHub issue for one independently
 reviewable problem or need. Before implementation, the issue records:
 
+- the exact 40-character commit SHA of the downstream base when the intake
+  template provides a `Downstream base` field;
 - reproduction or proof against the current downstream base;
 - user value and alternatives considered;
 - source commit, authorship, license, and attribution for adapted work;
@@ -41,9 +43,11 @@ issue reference through the GitHub API and rejects missing, inaccessible,
 cross-repository, pull-request-only, or structurally incomplete intake. It also
 validates the pull-request description for the governing issue, independently
 reviewable concern, provenance, agent authorship, compatibility, completed and
-pending verification, upstream disposition, and rollback. Pull requests keep
-commits independently reviewable and pass both this governance status and the
-checks required by the affected behavior.
+pending verification, upstream disposition, and rollback. The pull-request
+agent declaration set must exactly match the declarations in the validated
+commits; a summary that contradicts or omits a commit declaration fails. Pull
+requests keep commits independently reviewable and pass both this governance
+status and the checks required by the affected behavior.
 
 Every configured pull-request event first replaces any earlier governance
 result on the current head with `pending`, before checkout or validation. This

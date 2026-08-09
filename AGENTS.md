@@ -117,7 +117,8 @@ Refs: #<issue>
   author, reviewer, and merger.
 - Repeat the disclosure in the pull-request description. Human review is still
   required before merge, especially for wire parsing, concurrency, networking,
-  public API/ABI, and platform-specific changes.
+  public API/ABI, and platform-specific changes. The pull-request declaration
+  set must exactly match the declarations carried by its validated commits.
 
 ## Pull Requests And Publication
 
