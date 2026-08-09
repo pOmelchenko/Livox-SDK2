@@ -37,10 +37,20 @@ The `Downstream governance` status validates every commit between the pull
 request merge base and head. The workflow runs the validator from the trusted
 base revision, reads commit messages and changed paths from the pull request,
 and never executes pull-request code. It resolves the normalized governing
-issue reference through the GitHub API and rejects missing, inaccessible, or
-pull-request-only references. Pull requests keep commits independently
-reviewable and pass both this governance status and the checks required by the
-affected behavior.
+issue reference through the GitHub API and rejects missing, inaccessible,
+cross-repository, pull-request-only, or structurally incomplete intake. It also
+validates the pull-request description for the governing issue, independently
+reviewable concern, provenance, agent authorship, compatibility, completed and
+pending verification, upstream disposition, and rollback. Pull requests keep
+commits independently reviewable and pass both this governance status and the
+checks required by the affected behavior.
+
+When `master` advances, the trusted workflow marks the `Downstream governance`
+status pending on every open pull-request head. A later `synchronize`, `edited`,
+`reopened`, or other configured pull-request event reruns the trusted-base
+validation and replaces that pending state. Consequently, a success produced
+against an older validator or policy cannot remain mergeable after the base
+changes.
 
 Accepted pull requests use GitHub's merge-commit strategy. Repository settings
 keep merge commits enabled and disable squash and rebase merges so the commits
@@ -148,7 +158,8 @@ if GitHub could replace reviewed commits with a new, unvalidated identity.
 The target control for `master` requires a pull request, one approving human
 review, resolved conversations, and the `Downstream governance` status. It also
 blocks force pushes and branch deletion. Repository merge settings allow only
-merge commits, preserving the exact commits accepted by the governance status.
+merge commits, preserving the exact commits accepted by the governance status,
+and a `master` update invalidates success statuses on other open pull requests.
 The maintainer emergency bypass stays available only to repair a broken gate;
 ordinary changes use the reviewed path.
 
