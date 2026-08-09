@@ -172,6 +172,29 @@ class IntakeContractTests(unittest.TestCase):
             validate_pull_request_body(conflicting),
         )
 
+    def test_pr_agent_authorship_matches_commit_declarations(self):
+        self.assertEqual(
+            validate_pull_request_body(
+                VALID_PULL_REQUEST, ["Agent-Authored: OpenAI Codex"]
+            ),
+            [],
+        )
+
+        contradictory = VALID_PULL_REQUEST.replace(
+            "Agent-Authored: OpenAI Codex", "Agent-Authorship: none"
+        )
+        errors = validate_pull_request_body(
+            contradictory, ["Agent-Authored: OpenAI Codex"]
+        )
+        self.assertTrue(
+            any(
+                error.startswith(
+                    "pull-request agent authorship does not match commit declarations"
+                )
+                for error in errors
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

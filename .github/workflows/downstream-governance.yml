@@ -77,7 +77,10 @@ jobs:
             --issue-repository "${GITHUB_REPOSITORY}"
           python3 tools/governance/validate_pull_request.py \
             --repository "${GITHUB_REPOSITORY}" \
-            --number "${PR_NUMBER}"
+            --number "${PR_NUMBER}" \
+            --repository-path . \
+            --base "${BASE_SHA}" \
+            --head refs/remotes/governance/pr-head
 
       - name: Publish the required status on the pull-request head
         if: always()

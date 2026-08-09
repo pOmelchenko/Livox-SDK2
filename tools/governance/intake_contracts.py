@@ -2,7 +2,7 @@
 """Pure Markdown intake-contract validation for issues and pull requests."""
 
 import re
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
 HEADING = re.compile(r"^(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$")
@@ -15,7 +15,7 @@ ISSUE_LINK = re.compile(
     re.IGNORECASE,
 )
 NAMED_AGENT_DISCLOSURE = re.compile(
-    r"^(?:Agent-Authored|Agent-Assisted):\s+(?P<agent>\S.*)\s*$",
+    r"^(?P<kind>Agent-Authored|Agent-Assisted):\s+(?P<agent>\S.*)\s*$",
     re.MULTILINE,
 )
 NO_AGENT_DISCLOSURE = re.compile(r"^Agent-Authorship:\s+none\s*$", re.MULTILINE)
@@ -144,7 +144,20 @@ PULL_REQUEST_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
 )
 
 
-def validate_pull_request_body(body: str) -> List[str]:
+def canonical_agent_declarations(text: str) -> Set[str]:
+    declarations = {
+        "{}: {}".format(match.group("kind"), match.group("agent").strip())
+        for match in NAMED_AGENT_DISCLOSURE.finditer(text)
+    }
+    if NO_AGENT_DISCLOSURE.search(text):
+        declarations.add("Agent-Authorship: none")
+    return declarations
+
+
+def validate_pull_request_body(
+    body: str,
+    commit_agent_declarations: Optional[Iterable[str]] = None,
+) -> List[str]:
     sections = parse_markdown_sections(body)
     errors = [
         "missing substantive pull-request field '{}'".format(label)
@@ -177,4 +190,17 @@ def validate_pull_request_body(body: str) -> List[str]:
             )
         if named_agents and no_agent:
             errors.append("pull-request agent authorship declarations conflict")
+        if commit_agent_declarations is not None:
+            pull_request_declarations = canonical_agent_declarations(authorship)
+            expected_declarations = {
+                declaration.strip() for declaration in commit_agent_declarations
+            }
+            if pull_request_declarations != expected_declarations:
+                errors.append(
+                    "pull-request agent authorship does not match commit "
+                    "declarations (expected: {}; found: {})".format(
+                        ", ".join(sorted(expected_declarations)) or "none",
+                        ", ".join(sorted(pull_request_declarations)) or "none",
+                    )
+                )
     return errors

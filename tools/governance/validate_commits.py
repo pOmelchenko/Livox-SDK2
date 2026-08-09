@@ -359,6 +359,19 @@ def validate_commits(commits: Sequence[Dict[str, object]]) -> List[str]:
     return errors
 
 
+def collect_agent_authorship_declarations(
+    commits: Sequence[Dict[str, object]],
+) -> List[str]:
+    declarations: List[str] = []
+    for commit in commits:
+        declarations.extend(
+            line
+            for line in terminal_trailer_block(str(commit["message"]))
+            if AGENT_TRAILER.fullmatch(line)
+        )
+    return declarations
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
