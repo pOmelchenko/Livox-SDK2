@@ -12,7 +12,8 @@ Every downstream change starts with a GitHub issue for one independently
 reviewable problem or need. Before implementation, the issue records:
 
 - the exact 40-character commit SHA of the downstream base when the intake
-  template provides a `Downstream base` field;
+  template provides a `Downstream base` field; that identity must match the
+  base revision validated for the pull request;
 - reproduction or proof against the current downstream base;
 - user value and alternatives considered;
 - source commit, authorship, license, and attribution for adapted work;
@@ -33,7 +34,9 @@ sections in this order: `Problem`, `Evidence and decision`, `Implementation`,
 trailer and exactly one of `Agent-Authored`, `Agent-Assisted`, or
 `Agent-Authorship: none`. A commit spanning more than one maintenance concern
 category also explains why the pieces cannot build and qualify independently
-under `Combined concerns`.
+under `Combined concerns`. The validator normalizes surrounding whitespace
+before counting trailer-shaped issue and agent declarations across the whole
+message, so indentation cannot hide a conflicting declaration.
 
 The `Downstream governance` status validates every commit between the pull
 request merge base and head. The workflow runs the validator from the trusted
@@ -44,10 +47,11 @@ cross-repository, pull-request-only, or structurally incomplete intake. It also
 validates the pull-request description for the governing issue, independently
 reviewable concern, provenance, agent authorship, compatibility, completed and
 pending verification, upstream disposition, and rollback. The pull-request
-agent declaration set must exactly match the declarations in the validated
-commits; a summary that contradicts or omits a commit declaration fails. Pull
-requests keep commits independently reviewable and pass both this governance
-status and the checks required by the affected behavior.
+governing-issue and agent declaration sets must exactly match the corresponding
+trailers in the validated commits; a summary that contradicts or omits a
+commit declaration fails. Pull requests keep commits independently reviewable
+and pass both this governance status and the checks required by the affected
+behavior.
 
 Every configured pull-request event first replaces any earlier governance
 result on the current head with `pending`, before checkout or validation. This
@@ -59,7 +63,10 @@ status pending on every open pull-request head. A later `synchronize`, `edited`,
 `reopened`, or other configured pull-request event reruns the trusted-base
 validation and replaces that pending state. Consequently, a success produced
 against an older validator or policy cannot remain mergeable after the base
-changes.
+changes. Pull-request validation and base-update invalidation share one
+non-cancelling concurrency group, and a successful validation rechecks the live
+`master` identity immediately before publishing. A stale run leaves the status
+pending rather than restoring success.
 
 Accepted pull requests use GitHub's merge-commit strategy. Repository settings
 keep merge commits enabled and disable squash and rebase merges so the commits

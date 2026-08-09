@@ -17,7 +17,8 @@ requirement.
 - Open or identify a GitHub issue before changing source, tests, build files,
   public API/ABI, release metadata, or maintenance policy.
 - The issue must describe one independently reviewable problem, current-base
-  evidence, intended scope, non-goals, compatibility risk, and required tests.
+  evidence tied to the exact current downstream commit, intended scope,
+  non-goals, compatibility risk, and required tests.
 - Re-check third-party and neighboring-fork changes against the current base.
   Record the original repository, full commit SHA, author, license, and the
   accepted, adapted, deferred, rejected, duplicate, or already-upstreamed
@@ -110,7 +111,8 @@ Refs: #<issue>
 
 - Every non-trivial downstream commit uses exactly one of `Agent-Authored`,
   `Agent-Assisted`, or `Agent-Authorship: none` so the declaration is
-  mechanically checkable.
+  mechanically checkable. Surrounding whitespace does not hide an additional
+  trailer-shaped declaration elsewhere in the message.
 - Do not use `Co-authored-by` for an automated agent unless it has a real,
   maintainer-approved contributor identity. Agent trailers disclose tooling;
   they do not invent a person or transfer responsibility away from the human
@@ -129,8 +131,13 @@ Refs: #<issue>
   a clearly documented stacked dependency.
 - The pull-request body must list linked issues, agent authorship, provenance,
   compatibility risk, checks completed, checks pending, and rollback guidance.
+  Its governing-issue set must exactly match the normalized issue trailers in
+  the validated commits.
 - Pull requests to `master` must pass the `Downstream governance` status from
   the trusted-base workflow and receive at least one independent human review.
+  The workflow serializes PR validation with base-update invalidation and
+  confirms that `master` still matches the validated base before publishing
+  success.
 - Merge accepted pull requests with GitHub's merge-commit strategy. Keep merge
   commits enabled and disable squash and rebase merges so the exact validated
   commit identities and messages land on `master` without rewriting.
