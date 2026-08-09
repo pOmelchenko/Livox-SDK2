@@ -29,6 +29,17 @@ class WorkflowContractTests(unittest.TestCase):
             WORKFLOW,
         )
 
+    def test_issue_edits_invalidate_open_pull_request_heads(self):
+        self.assertIn("issues:\n    types:\n      - edited", WORKFLOW)
+        self.assertIn(
+            "if: github.event_name == 'push' || github.event_name == 'issues'",
+            WORKFLOW,
+        )
+        self.assertIn(
+            'description="Governing issue changed; governance revalidation required"',
+            WORKFLOW,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

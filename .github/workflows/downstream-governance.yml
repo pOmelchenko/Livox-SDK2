@@ -13,6 +13,9 @@ on:
   push:
     branches:
       - master
+  issues:
+    types:
+      - edited
 
 permissions:
   contents: read
@@ -114,9 +117,9 @@ jobs:
             -f description="${description}" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-  invalidate-after-base-update:
+  invalidate-after-governance-input-update:
     name: Require open pull-request revalidation
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'issues'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -124,6 +127,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          description="Base changed; governance revalidation required"
+          if [[ "${GITHUB_EVENT_NAME}" == "issues" ]]; then
+            description="Governing issue changed; governance revalidation required"
+          fi
           gh pr list \
             --repo "${GITHUB_REPOSITORY}" \
             --base master \
@@ -137,6 +144,6 @@ jobs:
               "repos/${GITHUB_REPOSITORY}/statuses/${head_sha}" \
               -f state=pending \
               -f context="Downstream governance" \
-              -f description="Base changed; governance revalidation required" \
+              -f description="${description}" \
               -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           done

@@ -68,6 +68,11 @@ non-cancelling concurrency group, and a successful validation rechecks the live
 `master` identity immediately before publishing. A stale run leaves the status
 pending rather than restoring success.
 
+Editing a governing issue also marks the status pending on every open
+pull-request head. This deliberately fails closed without trusting mutable
+issue-to-pull-request indexing: the next configured pull-request event
+revalidates the current issue body before restoring success.
+
 Accepted pull requests use GitHub's merge-commit strategy. Repository settings
 keep merge commits enabled and disable squash and rebase merges so the commits
 that land retain the identities and messages validated on the pull-request
