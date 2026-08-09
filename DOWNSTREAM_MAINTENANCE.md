@@ -68,10 +68,12 @@ status pending on every open pull-request head. A later `synchronize`, `edited`,
 `reopened`, or other configured pull-request event reruns the trusted-base
 validation and replaces that pending state. Consequently, a success produced
 against an older validator or policy cannot remain mergeable after the base
-changes. Pull-request validation and base-update invalidation share one
-non-cancelling concurrency group, and a successful validation rechecks the live
-`master` identity immediately before publishing. A stale run leaves the status
-pending rather than restoring success.
+changes. Pull-request validation is keyed by the event head SHA; a newer event
+on that SHA cancels the older run and validates every open pull request sharing
+the commit. Base and issue invalidation do not share that bounded concurrency
+group, so pull-request traffic cannot discard an invalidation run. A successful
+validation rechecks the live `master` identity immediately before publishing.
+A stale run leaves the status pending rather than restoring success.
 
 Editing a governing issue also marks the status pending on every open
 pull-request head. This deliberately fails closed without trusting mutable

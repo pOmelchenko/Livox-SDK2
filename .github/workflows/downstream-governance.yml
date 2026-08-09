@@ -23,16 +23,16 @@ permissions:
   pull-requests: read
   statuses: write
 
-concurrency:
-  group: downstream-governance-${{ github.repository }}
-  cancel-in-progress: false
-
 jobs:
   validate:
     name: Governance
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: >-
+        downstream-governance-${{ github.repository }}-head-${{ github.event.pull_request.head.sha }}
+      cancel-in-progress: true
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}

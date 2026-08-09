@@ -135,9 +135,10 @@ Refs: #<issue>
   the validated commits.
 - Pull requests to `master` must pass the `Downstream governance` status from
   the trusted-base workflow and receive at least one independent human review.
-  The workflow serializes PR validation with base-update invalidation and
-  confirms that `master` still matches the validated base before publishing
-  success.
+  The workflow keeps only the latest validation for a shared head SHA, runs
+  base and issue invalidation independently so they cannot be discarded by
+  pull-request traffic, and confirms that `master` still matches the validated
+  base before publishing success.
 - Merge accepted pull requests with GitHub's merge-commit strategy. Keep merge
   commits enabled and disable squash and rebase merges so the exact validated
   commit identities and messages land on `master` without rewriting.

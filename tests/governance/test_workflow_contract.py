@@ -11,11 +11,18 @@ WORKFLOW = (
 
 
 class WorkflowContractTests(unittest.TestCase):
-    def test_pr_validation_and_base_invalidation_runs_are_serialized(self):
+    def test_latest_head_validation_cannot_cancel_input_invalidation(self):
         self.assertIn(
-            "group: downstream-governance-${{ github.repository }}", WORKFLOW
+            "downstream-governance-${{ github.repository }}-head-"
+            "${{ github.event.pull_request.head.sha }}",
+            WORKFLOW,
         )
-        self.assertIn("cancel-in-progress: false", WORKFLOW)
+        self.assertIn("cancel-in-progress: true", WORKFLOW)
+        self.assertNotIn(
+            "group: downstream-governance-${{ github.repository }}\n"
+            "  cancel-in-progress: false",
+            WORKFLOW,
+        )
 
     def test_success_is_bound_to_the_current_master_identity(self):
         self.assertIn(
