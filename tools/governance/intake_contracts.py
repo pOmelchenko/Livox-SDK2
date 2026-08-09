@@ -5,7 +5,10 @@ import re
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
-HEADING = re.compile(r"^(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$")
+HEADING = re.compile(
+    r"^\s{0,3}(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$"
+)
+FENCE = re.compile(r"^\s{0,3}(?P<marker>`{3,}|~{3,})")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
 EXACT_FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
@@ -33,15 +36,28 @@ def parse_markdown_sections(
 ) -> Dict[str, str]:
     content: Dict[str, List[str]] = {}
     active = ""
-    for line in body.splitlines():
-        heading = HEADING.fullmatch(line.strip())
+    fence_marker = ""
+    visible_body = HTML_COMMENT.sub("", body)
+    for line in visible_body.splitlines():
+        fence = FENCE.match(line)
+        if fence:
+            marker = fence.group("marker")
+            if not fence_marker:
+                fence_marker = marker
+            elif marker[0] == fence_marker[0] and len(marker) >= len(fence_marker):
+                fence_marker = ""
+            continue
+        if fence_marker or line.startswith(("    ", "\t")):
+            continue
+
+        heading = HEADING.fullmatch(line)
         if heading and len(heading.group("marks")) in heading_levels:
             active = heading.group("label").strip().casefold()
             content.setdefault(active, [])
         elif active:
             content[active].append(line)
     return {
-        heading: HTML_COMMENT.sub("", "\n".join(lines)).strip()
+        heading: "\n".join(lines).strip()
         for heading, lines in content.items()
     }
 

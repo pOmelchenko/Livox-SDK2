@@ -92,6 +92,22 @@ class IntakeContractTests(unittest.TestCase):
         issue_form_body = VALID_ISSUE.replace("## ", "### ")
         self.assertEqual(validate_issue_body(issue_form_body), [])
 
+    def test_hidden_or_code_block_contracts_do_not_count(self):
+        hidden_issue = "<!--\n{}\n-->".format(VALID_ISSUE)
+        hidden_pull_request = "<!--\n{}\n-->".format(VALID_PULL_REQUEST)
+        fenced_issue = "```markdown\n{}\n```".format(VALID_ISSUE)
+        fenced_pull_request = "~~~markdown\n{}\n~~~".format(VALID_PULL_REQUEST)
+        indented_issue = "\n".join(
+            "    " + line for line in VALID_ISSUE.splitlines()
+        )
+
+        for body in (hidden_issue, fenced_issue, indented_issue):
+            with self.subTest(kind="issue"):
+                self.assertGreaterEqual(len(validate_issue_body(body)), 6)
+        for body in (hidden_pull_request, fenced_pull_request):
+            with self.subTest(kind="pull-request"):
+                self.assertEqual(len(validate_pull_request_body(body)), 9)
+
     def test_issue_form_requires_exact_downstream_base_sha(self):
         invalid = VALID_ISSUE.replace(
             "606f33353a31b9bdabe827d168a32fdb1c7c4057\n\n"
