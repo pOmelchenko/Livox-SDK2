@@ -1,0 +1,10 @@
+{
+  "description": "Rejected because provenance and upstream disposition are absent",
+  "commits": [
+    {
+      "sha": "synthetic-missing-provenance-disposition",
+      "message": "fix(network): reject malformed discovery packet\n\nProblem:\nA malformed discovery packet reaches the parser.\n\nEvidence and decision:\nThe current base reproduces the problem.\n\nImplementation:\nAdd a length guard.\n\nCompatibility:\nNo public API, ABI, or valid wire behavior changes.\n\nVerification:\nThe focused regression passes.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": ["sdk_core/comm/sdk_protocol.cpp"]
+    }
+  ]
+}

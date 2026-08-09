@@ -1,0 +1,10 @@
+{
+  "description": "Rejected because agent authorship is not declared",
+  "commits": [
+    {
+      "sha": "synthetic-missing-agent-trailer",
+      "message": "fix(network): reject malformed discovery packet\n\nProblem:\nA malformed discovery packet reaches the parser.\n\nEvidence and decision:\nThe current base reproduces the problem.\n\nImplementation:\nAdd a length guard.\n\nCompatibility:\nNo public API, ABI, or valid wire behavior changes.\n\nVerification:\nThe focused regression passes.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nSubmit after sanitizer qualification; owner is the downstream maintainer.\n\nRefs: #42\n",
+      "paths": ["sdk_core/comm/sdk_protocol.cpp"]
+    }
+  ]
+}

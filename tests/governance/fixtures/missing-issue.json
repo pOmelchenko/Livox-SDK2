@@ -1,0 +1,10 @@
+{
+  "description": "Rejected because no governing issue trailer is present",
+  "commits": [
+    {
+      "sha": "synthetic-missing-issue",
+      "message": "fix(network): reject malformed discovery packet\n\nProblem:\nA malformed discovery packet reaches the parser.\n\nEvidence and decision:\nThe current base reproduces the problem.\n\nImplementation:\nAdd a length guard.\n\nCompatibility:\nNo public API, ABI, or valid wire behavior changes.\n\nVerification:\nThe focused regression passes.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nSubmit after sanitizer qualification; owner is the downstream maintainer.\n\nAgent-Authored: OpenAI Codex\n",
+      "paths": ["sdk_core/comm/sdk_protocol.cpp"]
+    }
+  ]
+}

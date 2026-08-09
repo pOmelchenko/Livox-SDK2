@@ -1,0 +1,13 @@
+{
+  "description": "Rejected because intake templates and repository automation are combined without explanation",
+  "commits": [
+    {
+      "sha": "synthetic-unexplained-combined",
+      "message": "chore(governance): combine unrelated controls\n\nProblem:\nThe repository has no automated governance control.\n\nEvidence and decision:\nAdd several controls in one commit.\n\nImplementation:\nAdd a pull-request template and workflow.\n\nCompatibility:\nNo SDK source, API, ABI, or wire behavior changes.\n\nVerification:\nYAML syntax checks pass.\n\nSource attribution:\nProject-owned downstream governance work.\n\nUpstream disposition:\nDo not submit downstream-only controls upstream.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        ".github/pull_request_template.md",
+        ".github/workflows/governance.yml"
+      ]
+    }
+  ]
+}
