@@ -40,6 +40,14 @@ request, and never executes pull-request code. Pull requests keep commits
 independently reviewable and pass both this governance status and the checks
 required by the affected behavior.
 
+Accepted pull requests use GitHub's merge-commit strategy. Repository settings
+keep merge commits enabled and disable squash and rebase merges so the commits
+that land retain the identities and messages validated on the pull-request
+head. The workflow fails when those repository settings are not active. The
+GitHub-generated merge commit is an administrative record linked to the pull
+request and is exempt from the content-commit message template; it may not be
+used to replace or rewrite the validated commits.
+
 Every general-purpose fix records either an upstream pull request URL or a
 documented reason for not submitting it, with an owner and revisit trigger.
 When upstream accepts an equivalent change, retire the downstream commit in a
@@ -126,10 +134,19 @@ was observed; the control is simply not active yet. Do not describe `master`
 as protected until post-configuration API evidence replaces this bootstrap
 record.
 
+The same bootstrap inspection showed `allow_merge_commit: true`,
+`allow_squash_merge: true`, and `allow_rebase_merge: true`. Before merging this
+policy pull request, select the merge-commit strategy. Before qualifying later
+pull requests, disable squash and rebase merges at repository level; otherwise
+the governance status deliberately fails because GitHub could replace reviewed
+commits with a new, unvalidated identity.
+
 The target control for `master` requires a pull request, one approving human
 review, resolved conversations, and the `Downstream governance` status. It also
-blocks force pushes and branch deletion. The maintainer emergency bypass stays
-available only to repair a broken gate; ordinary changes use the reviewed path.
+blocks force pushes and branch deletion. Repository merge settings allow only
+merge commits, preserving the exact commits accepted by the governance status.
+The maintainer emergency bypass stays available only to repair a broken gate;
+ordinary changes use the reviewed path.
 
 The workflow must first exist on `master` and publish a successful
 `Downstream governance` status on a synthetic accepted pull request. A second
@@ -143,6 +160,8 @@ control, not evidence of protection:
 gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection
 gh api repos/pOmelchenko/Livox-SDK2/rulesets
 gh api repos/pOmelchenko/Livox-SDK2/rules/branches/master
+gh api repos/pOmelchenko/Livox-SDK2 --jq \
+  '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'
 ```
 
 If the new gate locks out valid changes, first capture the same API evidence

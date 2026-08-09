@@ -130,6 +130,14 @@ Refs: #<issue>
   compatibility risk, checks completed, checks pending, and rollback guidance.
 - Pull requests to `master` must pass the `Downstream governance` status from
   the trusted-base workflow and receive at least one independent human review.
+- Merge accepted pull requests with GitHub's merge-commit strategy. Keep merge
+  commits enabled and disable squash and rebase merges so the exact validated
+  commit identities and messages land on `master` without rewriting.
+- The GitHub-generated merge commit is an administrative record linked to the
+  pull request and is exempt from the content-commit message template. This
+  exemption does not apply to squash commits, rebased commits, direct pushes,
+  or any other commit that introduces content without preserving the validated
+  pull-request commits.
 - A general-purpose fix must have an upstream pull request or a recorded reason,
   owner, and revisit trigger before it is considered complete.
 - Do not publish a consumer tag or ask a consumer to bump its gitlink until the
