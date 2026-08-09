@@ -1,0 +1,68 @@
+name: Downstream governance
+
+on:
+  pull_request_target:
+    branches:
+      - master
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: governance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Check out the trusted base revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.BASE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch pull-request metadata without checking out its code
+        run: >-
+          git fetch --no-tags origin
+          "+refs/pull/${PR_NUMBER}/head:refs/remotes/governance/pr-head"
+
+      - name: Validate downstream commit contracts
+        id: validate
+        run: >-
+          python3 tools/governance/validate_commits.py
+          --base "${BASE_SHA}"
+          --head refs/remotes/governance/pr-head
+
+      - name: Publish the required status on the pull-request head
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATION_OUTCOME: ${{ steps.validate.outcome }}
+        run: |
+          state=failure
+          description="Commit contract validation failed"
+          if [[ "${VALIDATION_OUTCOME}" == "success" ]]; then
+            state=success
+            description="Commit contract validation passed"
+          fi
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+            -f state="${state}" \
+            -f context="Downstream governance" \
+            -f description="${description}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
