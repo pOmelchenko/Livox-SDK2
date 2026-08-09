@@ -262,6 +262,53 @@ Agent-Authored: OpenAI Codex
             self.assertEqual(result.returncode, 1, result.stdout)
             self.assertIn("(product implementation, public API)", result.stderr)
 
+    def test_unicode_path_is_collected_without_git_quoting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            run_git(repository, "init")
+            run_git(repository, "config", "user.name", "Governance Test")
+            run_git(
+                repository,
+                "config",
+                "user.email",
+                "governance@example.invalid",
+            )
+            run_git(repository, "config", "commit.gpgsign", "false")
+
+            (repository / "base.txt").write_text("base\n", encoding="utf-8")
+            run_git(repository, "add", "base.txt")
+            run_git(repository, "commit", "-m", "chore: establish synthetic base")
+            base = run_git(repository, "rev-parse", "HEAD").stdout.strip()
+
+            (repository / "include").mkdir()
+            (repository / "include" / "é.h").write_text(
+                "// public API\n", encoding="utf-8"
+            )
+            (repository / "sdk_core").mkdir()
+            (repository / "sdk_core" / "x.cpp").write_text(
+                "// implementation\n", encoding="utf-8"
+            )
+            run_git(repository, "add", "include/é.h", "sdk_core/x.cpp")
+            run_git(
+                repository,
+                "commit",
+                "-m",
+                contract_message("fix(core): exercise unicode path collection"),
+            )
+
+            commits = VALIDATOR_MODULE.collect_commits(repository, base, "HEAD")
+            errors = VALIDATOR_MODULE.validate_commits(commits)
+
+            self.assertEqual(
+                commits[0]["paths"], ["include/é.h", "sdk_core/x.cpp"]
+            )
+            self.assertTrue(
+                any(
+                    "(product implementation, public API)" in error
+                    for error in errors
+                )
+            )
+
     def test_existing_governing_issue_passes_api_verification(self):
         commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
         response = subprocess.CompletedProcess(

@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -64,6 +65,23 @@ def run_git(repository: Path, *arguments: str) -> str:
     )
     if completed.returncode != 0:
         detail = completed.stderr.strip() or completed.stdout.strip()
+        raise RuntimeError(
+            "git {} failed: {}".format(" ".join(arguments), detail)
+        )
+    return completed.stdout
+
+
+def run_git_bytes(repository: Path, *arguments: str) -> bytes:
+    completed = subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout).decode(
+            errors="replace"
+        ).strip()
         raise RuntimeError("git {} failed: {}".format(" ".join(arguments), detail))
     return completed.stdout
 
@@ -76,16 +94,18 @@ def collect_commits(repository: Path, base: str, head: str) -> List[Dict[str, ob
     commits: List[Dict[str, object]] = []
     for revision in revisions:
         message = run_git(repository, "show", "-s", "--format=%B", revision)
-        paths = run_git(
+        raw_paths = run_git_bytes(
             repository,
             "diff-tree",
             "-m",
             "--root",
             "--no-commit-id",
             "--name-only",
+            "-z",
             "-r",
             revision,
-        ).splitlines()
+        )
+        paths = [os.fsdecode(path) for path in raw_paths.split(b"\0") if path]
         commits.append({"sha": revision, "message": message, "paths": paths})
     return commits
 
