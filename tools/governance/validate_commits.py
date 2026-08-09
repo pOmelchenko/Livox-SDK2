@@ -305,12 +305,13 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
         errors.append("required sections are out of order")
 
     trailer_block = terminal_trailer_block(message)
+    normalized_lines = [line.strip() for line in message.splitlines()]
     issue_declarations = [
         line for line in trailer_block if ISSUE_TRAILER.fullmatch(line)
     ]
     all_issue_declarations = [
         line
-        for line in message.splitlines()
+        for line in normalized_lines
         if ISSUE_DECLARATION_LINE.match(line)
     ]
     if not issue_declarations:
@@ -323,7 +324,7 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     ]
     all_agent_declarations = [
         line
-        for line in message.splitlines()
+        for line in normalized_lines
         if AGENT_DECLARATION_LINE.match(line)
     ]
     if not agent_declarations:

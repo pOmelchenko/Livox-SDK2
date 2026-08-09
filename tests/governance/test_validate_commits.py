@@ -108,6 +108,25 @@ class GovernanceValidatorTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("passed for 1 commit", result.stdout)
 
+    def test_indented_declaration_lines_count_as_duplicates(self):
+        commit = dict(
+            VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")[0]
+        )
+        commit["message"] = str(commit["message"]).replace(
+            "Problem:\n",
+            " Refs: #1\n Agent-Assisted: Review Bot\n\nProblem:\n",
+            1,
+        )
+
+        errors = VALIDATOR_MODULE.validate_commit(commit)
+
+        self.assertTrue(
+            any("multiple governing issue trailers" in error for error in errors)
+        )
+        self.assertTrue(
+            any("multiple agent authorship declarations" in error for error in errors)
+        )
+
     def test_merge_commit_paths_are_validated(self):
         with tempfile.TemporaryDirectory() as directory:
             repository = Path(directory)
