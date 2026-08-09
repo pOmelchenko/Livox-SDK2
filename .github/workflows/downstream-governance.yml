@@ -51,10 +51,13 @@ jobs:
 
       - name: Validate downstream commit contracts
         id: validate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >-
           python3 tools/governance/validate_commits.py
           --base "${BASE_SHA}"
           --head refs/remotes/governance/pr-head
+          --issue-repository "${GITHUB_REPOSITORY}"
 
       - name: Publish the required status on the pull-request head
         if: always()
