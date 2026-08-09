@@ -46,8 +46,9 @@ Use a short imperative English subject, preferably Conventional Commits style:
 <type>[optional scope]: <imperative description>
 ```
 
-Every non-trivial commit must have a detailed English body. Use the applicable
-sections below and omit only sections that genuinely do not apply:
+Every non-trivial commit must have a detailed English body. Use every required
+section below, in order; state `None` with a reason rather than omitting a
+section:
 
 ```text
 Problem:
@@ -72,12 +73,15 @@ Upstream disposition:
 <upstream PR URL, or owner and trigger for not submitting yet>
 
 Refs: #<issue>
-Agent-Authored: <agent name>
+<one agent-authorship declaration>
 ```
 
 - Use immutable full commit SHAs for imported or adapted work.
 - State blocked, skipped, or platform-specific verification honestly. A green
   unrelated check is not evidence for the changed behavior.
+- If changed paths span more than one maintenance concern category, add a
+  `Combined concerns:` section that explains why the pieces cannot build and
+  qualify independently. `None` is not an explanation.
 - Link the governing issue from the commit and link the pull request back with
   `Closes #<issue>` or `Refs #<issue>`, as appropriate.
 
@@ -98,6 +102,15 @@ Agent-Authored: <agent name>
   ```
 
 - Replace `OpenAI Codex` with the actual agent name when another agent is used.
+- When no automated agent substantively authored or assisted the commit, use:
+
+  ```text
+  Agent-Authorship: none
+  ```
+
+- Every non-trivial downstream commit uses exactly one of `Agent-Authored`,
+  `Agent-Assisted`, or `Agent-Authorship: none` so the declaration is
+  mechanically checkable.
 - Do not use `Co-authored-by` for an automated agent unless it has a real,
   maintainer-approved contributor identity. Agent trailers disclose tooling;
   they do not invent a person or transfer responsibility away from the human
@@ -115,6 +128,8 @@ Agent-Authored: <agent name>
   a clearly documented stacked dependency.
 - The pull-request body must list linked issues, agent authorship, provenance,
   compatibility risk, checks completed, checks pending, and rollback guidance.
+- Pull requests to `master` must pass the `Downstream governance` status from
+  the trusted-base workflow and receive at least one independent human review.
 - A general-purpose fix must have an upstream pull request or a recorded reason,
   owner, and revisit trigger before it is considered complete.
 - Do not publish a consumer tag or ask a consumer to bump its gitlink until the

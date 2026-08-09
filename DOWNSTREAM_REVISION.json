@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-09",
+  "scope": "Source-bearing downstream baseline before issue #5 governance-only commits",
+  "status": "unreleased",
+  "upstream": {
+    "repository": "https://github.com/Livox-SDK/Livox-SDK2.git",
+    "base_commit": "08f523c930b2f0ba1e98a6afaa8d7476bf479908"
+  },
+  "downstream": {
+    "repository": "https://github.com/pOmelchenko/Livox-SDK2.git",
+    "revision": "r1",
+    "baseline_commit": "606f33353a31b9bdabe827d168a32fdb1c7c4057",
+    "integration_commit": "606f33353a31b9bdabe827d168a32fdb1c7c4057",
+    "ordered_commits": [
+      "fc3143bc91b6f5e40c9c1dc13b9d49959eecd66e",
+      "ae9bdbfa0feb5abc960285f7f617ce318caeedb2",
+      "28c5e39325ff5276b32daa928e0aa4792d9abeea",
+      "077bd0a98506cca26b07c05148c0f85d83680b15",
+      "40a709948d1fc86716fb1acf90d6bc7801193d90",
+      "e6b6ef3ad26c036baedc3b35c806575060986253"
+    ],
+    "published_tag": null,
+    "rollback_commit": "08f523c930b2f0ba1e98a6afaa8d7476bf479908"
+  }
+}
