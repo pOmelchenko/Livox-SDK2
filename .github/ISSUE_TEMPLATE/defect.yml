@@ -1,0 +1,101 @@
+name: Downstream defect
+description: Report one reproducible defect in the maintained downstream SDK.
+title: "[Defect]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for one independently reviewable downstream defect. Do not combine cleanup, packaging, API, and behavioral work.
+
+  - type: input
+    id: downstream_base
+    attributes:
+      label: Downstream base
+      description: Give the exact 40-character downstream commit SHA where the defect reproduces.
+      placeholder: 606f33353a31b9bdabe827d168a32fdb1c7c4057
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Observable problem
+      description: Describe the behavior, affected consumer, and why it is a defect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current-base evidence
+      description: Provide deterministic reproduction steps, logs without private data, or a minimal failing example.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Intended scope
+      description: State the smallest behavior and files that should change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: List neighboring concerns that this issue must not absorb.
+    validations:
+      required: true
+
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Source attribution and disposition
+      description: For adapted work, give repository, full commit SHA, author, license, and accepted/adapted/deferred/rejected/duplicate/already-upstreamed disposition. For project-owned work, say so explicitly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risk
+      description: Cover public API, ABI, wire behavior, platforms, consumers, and rollback risk.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: List deterministic tests plus any compiler, sanitizer, platform, or physical-device qualification required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: upstream_disposition
+    attributes:
+      label: Upstream disposition
+      description: Link an upstream issue/PR, or name the owner and objective trigger for deciding whether to submit one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authorship
+    attributes:
+      label: Agent authorship disclosure
+      description: Name any agent that drafted substantive content, or state "None".
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: intake_checks
+    attributes:
+      label: Intake checks
+      options:
+        - label: I searched the downstream and upstream issue trackers for equivalent work.
+          required: true
+        - label: This issue contains one independently reviewable problem.
+          required: true
+        - label: I removed credentials, private network details, raw captures, logs, and build artifacts.
+          required: true

@@ -1,0 +1,131 @@
+name: Third-party candidate intake
+description: Evaluate one immutable third-party commit or focused patch candidate.
+title: "[Candidate]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form evaluates one immutable candidate against the current downstream base. Do not import an entire branch or combine unrelated commits.
+
+  - type: input
+    id: source_repository
+    attributes:
+      label: Source repository
+      placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+
+  - type: input
+    id: source_commit
+    attributes:
+      label: Full source commit SHA
+      description: Use the immutable 40-character commit identifier, not a branch or abbreviated SHA.
+    validations:
+      required: true
+
+  - type: input
+    id: source_author
+    attributes:
+      label: Original author
+      description: Give the author name and the public identity recorded by the source commit.
+    validations:
+      required: true
+
+  - type: input
+    id: source_license
+    attributes:
+      label: Source license
+      description: Identify the applicable license and any retained notice requirements.
+    validations:
+      required: true
+
+  - type: input
+    id: downstream_base
+    attributes:
+      label: Downstream base
+      description: Give the exact 40-character downstream commit SHA used for re-evaluation.
+      placeholder: 606f33353a31b9bdabe827d168a32fdb1c7c4057
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Independently reviewable problem
+      description: Describe the single downstream problem this candidate could solve.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_base_evidence
+    attributes:
+      label: Current-base re-evaluation
+      description: Show whether the problem and candidate still apply, conflict, duplicate downstream work, or are already upstreamed.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: disposition
+    attributes:
+      label: Proposed disposition
+      options:
+        - Accept unchanged
+        - Accept with adaptation
+        - Defer
+        - Reject
+        - Duplicate
+        - Already upstreamed
+    validations:
+      required: true
+
+  - type: textarea
+    id: selected_scope
+    attributes:
+      label: Selected and excluded scope
+      description: List the exact files/hunks proposed for migration and every neighboring hunk explicitly excluded.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risk
+      description: Cover API, ABI, wire, concurrency, memory safety, platforms, consumers, and rollback.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: List deterministic regressions and any sanitizer, platform, or hardware qualification required.
+    validations:
+      required: true
+
+  - type: textarea
+    id: upstream_disposition
+    attributes:
+      label: Upstream disposition
+      description: Link the existing upstream work or name the owner and objective revisit trigger.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authorship
+    attributes:
+      label: Agent authorship disclosure
+      description: Name any agent that performed substantive analysis or drafted content, or state "None".
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: intake_checks
+    attributes:
+      label: Intake checks
+      options:
+        - label: I verified the source repository, immutable commit, author, and license.
+          required: true
+        - label: I compared this candidate with the current downstream and official upstream bases.
+          required: true
+        - label: I am proposing one candidate for one independently reviewable problem, not a branch import.
+          required: true

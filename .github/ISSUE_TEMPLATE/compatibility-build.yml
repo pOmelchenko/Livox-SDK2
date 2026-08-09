@@ -1,0 +1,115 @@
+name: Compatibility or build work
+description: Propose one compiler, platform, packaging, API/ABI, or consumer compatibility change.
+title: "[Compatibility]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the governing concern is compatibility or build behavior. Open separate issues for unrelated runtime defects or cleanup.
+
+  - type: dropdown
+    id: concern
+    attributes:
+      label: Primary concern
+      options:
+        - Compiler or language mode
+        - Operating system or architecture
+        - Build system or dependency
+        - Packaging or installation
+        - Public API or ABI
+        - Consumer integration
+    validations:
+      required: true
+
+  - type: input
+    id: downstream_base
+    attributes:
+      label: Downstream base
+      description: Give the exact 40-character downstream commit SHA evaluated.
+      placeholder: 606f33353a31b9bdabe827d168a32fdb1c7c4057
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Affected matrix entry
+      description: Identify compiler/toolchain versions, OS, architecture, generator, dependency versions, and consumer pin.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current-base evidence
+      description: Include the exact command and deterministic failure or incompatibility observed at the stated base.
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Intended change and alternatives
+      description: State the smallest proposed change, alternatives considered, and why the downstream should own it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: Identify related platforms, dependencies, APIs, cleanup, or behavior excluded from this issue.
+    validations:
+      required: true
+
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Source attribution and disposition
+      description: For adapted work, give repository, full commit SHA, author, license, and disposition. For project-owned work, say so explicitly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility analysis
+      description: Describe source, binary, wire, platform, packaging, and consumer impact, including any migration.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: List the smallest regression and the supported build/platform matrix that must pass.
+    validations:
+      required: true
+
+  - type: textarea
+    id: upstream_disposition
+    attributes:
+      label: Upstream disposition
+      description: Link an upstream issue/PR, or name the owner and objective revisit trigger.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authorship
+    attributes:
+      label: Agent authorship disclosure
+      description: Name any agent that drafted substantive content, or state "None".
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: intake_checks
+    attributes:
+      label: Intake checks
+      options:
+        - label: I checked the current official upstream branch and releases for equivalent support.
+          required: true
+        - label: This issue contains one independently reviewable compatibility or build concern.
+          required: true
+        - label: The verification plan distinguishes local evidence from still-pending platform qualification.
+          required: true

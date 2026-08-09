@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Official Livox SDK support
+    url: https://github.com/Livox-SDK/Livox-SDK2/issues
+    about: Report issues that reproduce on the official upstream SDK and do not depend on this downstream.
