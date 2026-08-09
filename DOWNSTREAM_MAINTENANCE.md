@@ -72,8 +72,10 @@ changes. Pull-request validation is keyed by the event head SHA; a newer event
 on that SHA cancels the older run and validates every open pull request sharing
 the commit. Base and issue invalidation do not share that bounded concurrency
 group, so pull-request traffic cannot discard an invalidation run. A successful
-validation rechecks the live `master` identity immediately before publishing.
-A stale run leaves the status pending rather than restoring success.
+validation requires the fetched pull-request ref to equal the event head and
+rechecks the live pull-request head, base SHA, base branch, and `master` identity
+immediately before publishing. A stale run leaves the status pending rather
+than restoring success.
 
 Editing a governing issue also marks the status pending on every open
 pull-request head. This deliberately fails closed without trusting mutable

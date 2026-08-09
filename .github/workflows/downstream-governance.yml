@@ -65,9 +65,11 @@ jobs:
           python3 tools/governance/validate_repository_settings.py
 
       - name: Fetch pull-request metadata without checking out its code
-        run: >-
+        run: |
           git fetch --no-tags origin
           "+refs/pull/${PR_NUMBER}/head:refs/remotes/governance/pr-head"
+          fetched_head_sha="$(git rev-parse refs/remotes/governance/pr-head)"
+          [[ "${fetched_head_sha}" == "${HEAD_SHA}" ]]
 
       - name: Validate downstream commits and every pull-request contract on head
         id: validate
@@ -114,7 +116,24 @@ jobs:
           state=failure
           description="Governance contract validation failed"
           if [[ "${VALIDATION_OUTCOME}" == "success" ]]; then
-            if current_base_sha="$(
+            if current_pr_identity="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
+                --jq '[.head.sha, .base.sha, .base.ref] | @tsv'
+            )"; then
+              IFS=$'\t' read -r current_head_sha current_pr_base_sha current_base_ref \
+                <<< "${current_pr_identity}"
+            else
+              current_head_sha=""
+              current_pr_base_sha=""
+              current_base_ref=""
+            fi
+            if [[ "${current_head_sha}" != "${HEAD_SHA}" ||
+                  "${current_pr_base_sha}" != "${BASE_SHA}" ||
+                  "${current_base_ref}" != "master" ]]; then
+              state=pending
+              description="Pull-request identity changed; governance revalidation required"
+            elif current_base_sha="$(
               gh api \
                 "repos/${GITHUB_REPOSITORY}/git/ref/heads/master" \
                 --jq .object.sha

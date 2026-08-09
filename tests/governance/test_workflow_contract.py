@@ -36,6 +36,19 @@ class WorkflowContractTests(unittest.TestCase):
             WORKFLOW,
         )
 
+    def test_fetched_and_live_pull_request_identities_match_event(self):
+        self.assertIn(
+            'fetched_head_sha="$(git rev-parse refs/remotes/governance/pr-head)"',
+            WORKFLOW,
+        )
+        self.assertIn('[[ "${fetched_head_sha}" == "${HEAD_SHA}" ]]', WORKFLOW)
+        self.assertIn(
+            "--jq '[.head.sha, .base.sha, .base.ref] | @tsv'", WORKFLOW
+        )
+        self.assertIn('"${current_head_sha}" != "${HEAD_SHA}"', WORKFLOW)
+        self.assertIn('"${current_pr_base_sha}" != "${BASE_SHA}"', WORKFLOW)
+        self.assertIn('"${current_base_ref}" != "master"', WORKFLOW)
+
     def test_issue_edits_invalidate_open_pull_request_heads(self):
         self.assertIn("issues:\n    types:\n      - edited", WORKFLOW)
         self.assertIn(
