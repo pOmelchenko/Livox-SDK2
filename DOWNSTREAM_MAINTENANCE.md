@@ -45,6 +45,11 @@ pending verification, upstream disposition, and rollback. Pull requests keep
 commits independently reviewable and pass both this governance status and the
 checks required by the affected behavior.
 
+Every configured pull-request event first replaces any earlier governance
+result on the current head with `pending`, before checkout or validation. This
+closes the interval in which an edited description could otherwise retain the
+previous successful status while its new contract is being checked.
+
 When `master` advances, the trusted workflow marks the `Downstream governance`
 status pending on every open pull-request head. A later `synchronize`, `edited`,
 `reopened`, or other configured pull-request event reruns the trusted-base
