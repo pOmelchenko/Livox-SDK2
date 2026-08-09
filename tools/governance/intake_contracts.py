@@ -5,7 +5,7 @@ import re
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 
-HEADING = re.compile(r"^##\s+(.+?)\s*$")
+HEADING = re.compile(r"^(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
 ISSUE_LINK = re.compile(
@@ -13,20 +13,28 @@ ISSUE_LINK = re.compile(
     r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\b",
     re.IGNORECASE,
 )
-AGENT_DISCLOSURE = re.compile(
-    r"\b(?:Agent-Authored|Agent-Assisted):\s+\S|"
-    r"\bAgent-Authorship:\s+none\b"
+NAMED_AGENT_DISCLOSURE = re.compile(
+    r"^(?:Agent-Authored|Agent-Assisted):\s+(?P<agent>\S.*)\s*$",
+    re.MULTILINE,
 )
+NO_AGENT_DISCLOSURE = re.compile(r"^Agent-Authorship:\s+none\s*$", re.MULTILINE)
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
+EVIDENCE_LANGUAGE = re.compile(
+    r"\b(?:evidence|fail(?:s|ed|ure)?|missing|observ(?:e|ed|able)|"
+    r"reproduc(?:e|ed|es|ible)|show(?:s|ed)?|unprotected)\b",
+    re.IGNORECASE,
+)
 
 
-def parse_markdown_sections(body: str) -> Dict[str, str]:
+def parse_markdown_sections(
+    body: str, heading_levels: Sequence[int] = (2,)
+) -> Dict[str, str]:
     content: Dict[str, List[str]] = {}
     active = ""
     for line in body.splitlines():
         heading = HEADING.fullmatch(line.strip())
-        if heading:
-            active = heading.group(1).strip().casefold()
+        if heading and len(heading.group("marks")) in heading_levels:
+            active = heading.group("label").strip().casefold()
             content.setdefault(active, [])
         elif active:
             content[active].append(line)
@@ -39,6 +47,18 @@ def parse_markdown_sections(body: str) -> Dict[str, str]:
 def is_substantive(value: str) -> bool:
     normalized = value.strip().casefold().rstrip(".,;:!?")
     return len(value.strip()) >= 15 and normalized not in BARE_PLACEHOLDERS
+
+
+def is_placeholder_agent_name(value: str) -> bool:
+    normalized = value.strip().casefold()
+    for placeholder in BARE_PLACEHOLDERS:
+        if normalized == placeholder:
+            return True
+        if normalized.startswith(
+            tuple(placeholder + suffix for suffix in " .,;:!?—–-")
+        ):
+            return True
+    return False
 
 
 def content_for(
@@ -81,7 +101,7 @@ ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
 
 
 def validate_issue_body(body: str) -> List[str]:
-    sections = parse_markdown_sections(body)
+    sections = parse_markdown_sections(body, heading_levels=(2, 3))
     errors = [
         "missing substantive issue field '{}'".format(label)
         for label, headings in ISSUE_REQUIREMENTS
@@ -91,9 +111,12 @@ def validate_issue_body(body: str) -> List[str]:
     has_evidence_section = has_substantive_section(
         sections, ("Current-base evidence", "Current-base re-evaluation")
     )
-    has_legacy_current_base_evidence = bool(
-        FULL_SHA.search(body)
-        and re.search(r"\bcurrent\b", body, re.IGNORECASE)
+    paragraphs = re.split(r"\n\s*\n", HTML_COMMENT.sub("", body))
+    has_legacy_current_base_evidence = any(
+        FULL_SHA.search(paragraph)
+        and re.search(r"\bcurrent(?:-base)?\b", paragraph, re.IGNORECASE)
+        and EVIDENCE_LANGUAGE.search(paragraph)
+        for paragraph in paragraphs
     )
     if not has_evidence_section and not has_legacy_current_base_evidence:
         errors.append("missing substantive issue field 'current-base evidence'")
@@ -131,6 +154,19 @@ def validate_pull_request_body(body: str) -> List[str]:
     authorship = sections.get("agent authorship", "")
     if not authorship:
         errors.append("missing substantive pull-request field 'agent authorship'")
-    elif not AGENT_DISCLOSURE.search(authorship):
-        errors.append("pull-request agent authorship field has no declaration")
+    else:
+        named_agents = [
+            match.group("agent")
+            for match in NAMED_AGENT_DISCLOSURE.finditer(authorship)
+        ]
+        no_agent = bool(NO_AGENT_DISCLOSURE.search(authorship))
+        if not named_agents and not no_agent:
+            errors.append("pull-request agent authorship field has no declaration")
+        if any(is_placeholder_agent_name(agent) for agent in named_agents):
+            errors.append(
+                "Agent-Authored and Agent-Assisted require a non-placeholder "
+                "agent name in the pull-request description"
+            )
+        if named_agents and no_agent:
+            errors.append("pull-request agent authorship declarations conflict")
     return errors

@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from intake_contracts import validate_issue_body
+from intake_contracts import is_placeholder_agent_name, validate_issue_body
 
 
 REQUIRED_SECTIONS: Tuple[str, ...] = (
@@ -332,7 +332,9 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
         errors.append("multiple agent authorship declarations")
     elif agent_declarations:
         named_declaration = NAMED_AGENT_TRAILER.fullmatch(agent_declarations[0])
-        if named_declaration and is_bare_placeholder(named_declaration.group("agent")):
+        if named_declaration and is_placeholder_agent_name(
+            named_declaration.group("agent")
+        ):
             errors.append(
                 "Agent-Authored and Agent-Assisted require a non-placeholder "
                 "agent name; use 'Agent-Authorship: none' when no agent was involved"

@@ -14,6 +14,13 @@
       "paths": [
         "tools/governance/validate_commits.py"
       ]
+    },
+    {
+      "sha": "synthetic-authored-explained-none",
+      "message": "fix(governance): reject explained authored-none placeholder\n\nProblem:\nA named-agent declaration can disguise a placeholder with explanatory text.\n\nEvidence and decision:\nReserve the no-agent case for the dedicated authorship declaration.\n\nImplementation:\nExercise an authored placeholder followed by a reason.\n\nCompatibility:\nNo SDK interfaces or behavior change.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: none because no agent was involved\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
     }
   ]
 }
