@@ -211,6 +211,31 @@ class GovernanceValidatorTests(unittest.TestCase):
             text=True,
         )
 
+    def test_governing_issue_must_match_expected_downstream_base(self):
+        commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
+        response = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=json.dumps(
+                {"number": 42, "title": "Stale intake", "body": VALID_ISSUE_BODY}
+            ),
+            stderr="",
+        )
+        with mock.patch.object(
+            VALIDATOR_MODULE.subprocess, "run", return_value=response
+        ):
+            errors = VALIDATOR_MODULE.validate_governing_issues(
+                commits,
+                "pOmelchenko/Livox-SDK2",
+                "a" * 40,
+            )
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn(
+            "issue current-base evidence does not match the current downstream base",
+            errors[0],
+        )
+
     def test_missing_or_pull_request_reference_fails_issue_verification(self):
         commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
         responses = (

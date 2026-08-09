@@ -10,8 +10,9 @@ HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
 EXACT_FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
 ISSUE_LINK = re.compile(
-    r"(?:^|\s)(?:Refs|Closes|Fixes)?\s*"
-    r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\b",
+    r"(?:^|\s)(?:(?:Refs|Closes|Fixes)\s*:?\s*)?"
+    r"(?:(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+))?"
+    r"#(?P<number>[1-9][0-9]*)\b",
     re.IGNORECASE,
 )
 NAMED_AGENT_DISCLOSURE = re.compile(
@@ -62,6 +63,13 @@ def is_placeholder_agent_name(value: str) -> bool:
     return False
 
 
+def contains_full_sha(text: str, expected_sha: str) -> bool:
+    expected = expected_sha.casefold()
+    return any(
+        match.group(0).casefold() == expected for match in FULL_SHA.finditer(text)
+    )
+
+
 def content_for(
     sections: Dict[str, str], headings: Iterable[str]
 ) -> Sequence[str]:
@@ -101,7 +109,14 @@ ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
 )
 
 
-def validate_issue_body(body: str) -> List[str]:
+def validate_issue_body(
+    body: str, expected_downstream_base: Optional[str] = None
+) -> List[str]:
+    if expected_downstream_base is not None and not EXACT_FULL_SHA.fullmatch(
+        expected_downstream_base
+    ):
+        raise ValueError("expected downstream base must be a 40-character SHA")
+
     sections = parse_markdown_sections(body, heading_levels=(2, 3))
     errors = [
         "missing substantive issue field '{}'".format(label)
@@ -109,8 +124,10 @@ def validate_issue_body(body: str) -> List[str]:
         if not has_substantive_section(sections, headings)
     ]
 
-    has_evidence_section = has_substantive_section(
-        sections, ("Current-base evidence", "Current-base re-evaluation")
+    evidence_headings = ("Current-base evidence", "Current-base re-evaluation")
+    evidence_sections = content_for(sections, evidence_headings)
+    has_evidence_section = any(
+        is_substantive(value) for value in evidence_sections
     )
     paragraphs = re.split(r"\n\s*\n", HTML_COMMENT.sub("", body))
     has_legacy_current_base_evidence = any(
@@ -122,12 +139,35 @@ def validate_issue_body(body: str) -> List[str]:
     if not has_evidence_section and not has_legacy_current_base_evidence:
         errors.append("missing substantive issue field 'current-base evidence'")
 
-    if "downstream base" in sections and not EXACT_FULL_SHA.fullmatch(
-        sections["downstream base"].strip()
-    ):
-        errors.append(
-            "issue downstream base must be exactly one 40-character commit SHA"
+    if expected_downstream_base is not None and "downstream base" not in sections:
+        expected_identity = expected_downstream_base.casefold()
+        evidence_identifies_expected_base = any(
+            contains_full_sha(value, expected_identity) for value in evidence_sections
+        ) or any(
+            contains_full_sha(paragraph, expected_identity)
+            and re.search(r"\bcurrent(?:-base)?\b", paragraph, re.IGNORECASE)
+            and EVIDENCE_LANGUAGE.search(paragraph)
+            for paragraph in paragraphs
         )
+        if not evidence_identifies_expected_base:
+            errors.append(
+                "issue current-base evidence does not match the current "
+                "downstream base"
+            )
+
+    if "downstream base" in sections:
+        downstream_base = sections["downstream base"].strip()
+        if not EXACT_FULL_SHA.fullmatch(downstream_base):
+            errors.append(
+                "issue downstream base must be exactly one 40-character commit SHA"
+            )
+        elif (
+            expected_downstream_base is not None
+            and downstream_base.casefold() != expected_downstream_base.casefold()
+        ):
+            errors.append(
+                "issue downstream base does not match the current downstream base"
+            )
     return errors
 
 
@@ -154,9 +194,30 @@ def canonical_agent_declarations(text: str) -> Set[str]:
     return declarations
 
 
+def canonical_issue_references(
+    text: str, default_repository: str
+) -> Set[Tuple[str, int]]:
+    return {
+        (
+            (match.group("repository") or default_repository).casefold(),
+            int(match.group("number")),
+        )
+        for match in ISSUE_LINK.finditer(text)
+    }
+
+
+def format_issue_references(references: Iterable[Tuple[str, int]]) -> str:
+    return ", ".join(
+        "{}#{}".format(repository, number)
+        for repository, number in sorted(set(references))
+    )
+
+
 def validate_pull_request_body(
     body: str,
     commit_agent_declarations: Optional[Iterable[str]] = None,
+    commit_issue_references: Optional[Iterable[Tuple[str, int]]] = None,
+    default_repository: str = "",
 ) -> List[str]:
     sections = parse_markdown_sections(body)
     errors = [
@@ -171,6 +232,22 @@ def validate_pull_request_body(
         errors.append("missing substantive pull-request field 'governing issue'")
     elif not ISSUE_LINK.search(governing_issue):
         errors.append("pull-request governing issue field has no #N reference")
+    elif commit_issue_references is not None:
+        pull_request_references = canonical_issue_references(
+            governing_issue, default_repository
+        )
+        expected_references = {
+            (repository.casefold(), number)
+            for repository, number in commit_issue_references
+        }
+        if pull_request_references != expected_references:
+            errors.append(
+                "pull-request governing issues do not match commit references "
+                "(expected: {}; found: {})".format(
+                    format_issue_references(expected_references) or "none",
+                    format_issue_references(pull_request_references) or "none",
+                )
+            )
 
     authorship = sections.get("agent authorship", "")
     if not authorship:

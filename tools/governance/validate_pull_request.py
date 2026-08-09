@@ -13,6 +13,7 @@ from intake_contracts import validate_pull_request_body
 from validate_commits import (
     collect_agent_authorship_declarations,
     collect_commits,
+    collect_governing_issue_references,
 )
 
 
@@ -69,6 +70,8 @@ def main() -> int:
     errors = validate_pull_request_body(
         str(pull_request.get("body") or ""),
         collect_agent_authorship_declarations(commits),
+        collect_governing_issue_references(commits, arguments.repository),
+        arguments.repository,
     )
     if errors:
         print("pull-request contract validation failed:", file=sys.stderr)

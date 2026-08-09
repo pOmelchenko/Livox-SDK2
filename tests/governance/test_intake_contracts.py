@@ -116,6 +116,16 @@ class IntakeContractTests(unittest.TestCase):
             validate_issue_body(decorated),
         )
 
+    def test_issue_downstream_base_matches_expected_base(self):
+        expected = "606f33353a31b9bdabe827d168a32fdb1c7c4057"
+        self.assertEqual(validate_issue_body(VALID_ISSUE, expected), [])
+
+        stale = VALID_ISSUE.replace(expected, "a" * 40, 1)
+        self.assertIn(
+            "issue downstream base does not match the current downstream base",
+            validate_issue_body(stale, expected),
+        )
+
     def test_legacy_evidence_must_be_bounded_to_one_proof_paragraph(self):
         without_evidence = VALID_ISSUE.replace(
             "## Current-base evidence\n\n"
@@ -190,6 +200,32 @@ class IntakeContractTests(unittest.TestCase):
             any(
                 error.startswith(
                     "pull-request agent authorship does not match commit declarations"
+                )
+                for error in errors
+            )
+        )
+
+    def test_pr_governing_issues_match_commit_references(self):
+        expected = [("pOmelchenko/Livox-SDK2", 42)]
+        self.assertEqual(
+            validate_pull_request_body(
+                VALID_PULL_REQUEST,
+                commit_issue_references=expected,
+                default_repository="pOmelchenko/Livox-SDK2",
+            ),
+            [],
+        )
+
+        contradictory = VALID_PULL_REQUEST.replace("Refs #42", "Refs #99")
+        errors = validate_pull_request_body(
+            contradictory,
+            commit_issue_references=expected,
+            default_repository="pOmelchenko/Livox-SDK2",
+        )
+        self.assertTrue(
+            any(
+                error.startswith(
+                    "pull-request governing issues do not match commit references"
                 )
                 for error in errors
             )

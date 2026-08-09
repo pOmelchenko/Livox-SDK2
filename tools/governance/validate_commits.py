@@ -207,7 +207,9 @@ def governing_issue_reference(
 
 
 def validate_governing_issues(
-    commits: Sequence[Dict[str, object]], default_repository: str
+    commits: Sequence[Dict[str, object]],
+    default_repository: str,
+    expected_downstream_base: Optional[str] = None,
 ) -> List[str]:
     if not REPOSITORY_NAME.fullmatch(default_repository):
         raise ValueError("issue repository must use the owner/name form")
@@ -250,7 +252,8 @@ def validate_governing_issues(
                         error = "does not resolve to a GitHub issue"
                     else:
                         intake_errors = validate_issue_body(
-                            str(document.get("body") or "")
+                            str(document.get("body") or ""),
+                            expected_downstream_base,
                         )
                         if intake_errors:
                             error = "fails intake contract: {}".format(
@@ -372,6 +375,19 @@ def collect_agent_authorship_declarations(
     return declarations
 
 
+def collect_governing_issue_references(
+    commits: Sequence[Dict[str, object]], default_repository: str
+) -> List[Tuple[str, int]]:
+    references: List[Tuple[str, int]] = []
+    for commit in commits:
+        reference = governing_issue_reference(
+            str(commit["message"]), default_repository
+        )
+        if reference is not None:
+            references.append(reference)
+    return references
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -411,8 +427,15 @@ def main() -> int:
     try:
         errors = validate_commits(commits)
         if arguments.issue_repository:
+            expected_downstream_base = run_git(
+                arguments.repository, "rev-parse", arguments.base
+            ).strip()
             errors.extend(
-                validate_governing_issues(commits, arguments.issue_repository)
+                validate_governing_issues(
+                    commits,
+                    arguments.issue_repository,
+                    expected_downstream_base,
+                )
             )
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
         print("governance validation could not run: {}".format(error), file=sys.stderr)
