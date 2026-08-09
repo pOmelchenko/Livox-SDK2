@@ -35,10 +35,12 @@ under `Combined concerns`.
 
 The `Downstream governance` status validates every commit between the pull
 request merge base and head. The workflow runs the validator from the trusted
-base revision, reads only commit messages and changed paths from the pull
-request, and never executes pull-request code. Pull requests keep commits
-independently reviewable and pass both this governance status and the checks
-required by the affected behavior.
+base revision, reads commit messages and changed paths from the pull request,
+and never executes pull-request code. It resolves the normalized governing
+issue reference through the GitHub API and rejects missing, inaccessible, or
+pull-request-only references. Pull requests keep commits independently
+reviewable and pass both this governance status and the checks required by the
+affected behavior.
 
 Accepted pull requests use GitHub's merge-commit strategy. Repository settings
 keep merge commits enabled and disable squash and rebase merges so the commits
