@@ -1,0 +1,29 @@
+{
+  "description": "Build, public API, and packaging paths remain distinct from implementation",
+  "commits": [
+    {
+      "sha": "synthetic-build-and-implementation",
+      "message": "fix(core): mix build and implementation\n\nProblem:\nA commit mixes build configuration with runtime implementation.\n\nEvidence and decision:\nThe fixture must be rejected without a combined-concerns explanation.\n\nImplementation:\nExercise build and implementation paths.\n\nCompatibility:\nThe synthetic change has no runtime effect.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned for this synthetic fixture.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "CMakeLists.txt",
+        "sdk_core/livox_lidar_sdk.cpp"
+      ]
+    },
+    {
+      "sha": "synthetic-api-and-implementation",
+      "message": "fix(core): mix API and implementation\n\nProblem:\nA commit mixes a public header with runtime implementation.\n\nEvidence and decision:\nThe fixture must be rejected without a combined-concerns explanation.\n\nImplementation:\nExercise API and implementation paths.\n\nCompatibility:\nThe synthetic change has no runtime effect.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned for this synthetic fixture.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "include/livox_lidar_api.h",
+        "sdk_core/livox_lidar_sdk.cpp"
+      ]
+    },
+    {
+      "sha": "synthetic-packaging-and-implementation",
+      "message": "fix(core): mix packaging and implementation\n\nProblem:\nA commit mixes packaging metadata with runtime implementation.\n\nEvidence and decision:\nThe fixture must be rejected without a combined-concerns explanation.\n\nImplementation:\nExercise packaging and implementation paths.\n\nCompatibility:\nThe synthetic change has no runtime effect.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned for this synthetic fixture.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "packaging/livox-sdk2.spec",
+        "sdk_core/livox_lidar_sdk.cpp"
+      ]
+    }
+  ]
+}

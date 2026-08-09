@@ -29,6 +29,9 @@ ISSUE_TRAILER = re.compile(
 AGENT_TRAILER = re.compile(
     r"^(?:Agent-Authored|Agent-Assisted):\s+\S.*$|^Agent-Authorship:\s+none\s*$"
 )
+NAMED_AGENT_TRAILER = re.compile(
+    r"^(?:Agent-Authored|Agent-Assisted):\s+(?P<agent>\S.*)$"
+)
 TRAILER_LINE = re.compile(
     r"^(?:Refs|Closes|Fixes|Agent-Authored|Agent-Assisted|Agent-Authorship):"
 )
@@ -142,6 +145,28 @@ def concern_for_path(path: str) -> str:
         return "repository automation"
     if path.startswith(".github/"):
         return "repository settings"
+    if path.startswith("include/"):
+        return "public API"
+    filename = path.rsplit("/", 1)[-1]
+    if (
+        filename == "CMakeLists.txt"
+        or path.startswith("cmake/")
+        or path.endswith(".cmake")
+        or filename in {"CMakePresets.json", "Makefile"}
+    ):
+        return "build configuration"
+    normalized = path.casefold()
+    normalized_filename = filename.casefold()
+    if (
+        normalized.startswith(("package/", "packaging/"))
+        or normalized_filename.startswith("dockerfile")
+        or normalized_filename
+        in {"conanfile.py", "conanfile.txt", "vcpkg.json", "vcpkg-configuration.json"}
+        or normalized_filename.endswith(".spec")
+    ):
+        return "packaging"
+    if path.startswith("3rdparty/"):
+        return "dependencies"
     if (
         path.startswith("docs/")
         or path.endswith(".md")
@@ -206,6 +231,13 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
         )
     elif len(agent_declarations) > 1:
         errors.append("multiple agent authorship declarations")
+    else:
+        named_declaration = NAMED_AGENT_TRAILER.fullmatch(agent_declarations[0])
+        if named_declaration and is_bare_placeholder(named_declaration.group("agent")):
+            errors.append(
+                "Agent-Authored and Agent-Assisted require a non-placeholder "
+                "agent name; use 'Agent-Authorship: none' when no agent was involved"
+            )
 
     categories = concern_categories(paths)
     if len(categories) > 1:

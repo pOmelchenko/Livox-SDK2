@@ -57,6 +57,14 @@ class GovernanceValidatorTests(unittest.TestCase):
                 "missing governing issue trailer",
                 "missing agent authorship declaration",
             ],
+            "invalid-agent-placeholder.json": [
+                "require a non-placeholder agent name",
+            ],
+            "unexplained-path-boundaries.json": [
+                "(build configuration, product implementation)",
+                "(product implementation, public API)",
+                "(packaging, product implementation)",
+            ],
         }
         for fixture, expected_messages in cases.items():
             with self.subTest(fixture=fixture):

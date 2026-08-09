@@ -1,0 +1,19 @@
+{
+  "description": "Authored and assisted declarations require an actual agent name",
+  "commits": [
+    {
+      "sha": "synthetic-authored-none",
+      "message": "fix(governance): reject authored none\n\nProblem:\nA named-agent declaration can contain a placeholder.\n\nEvidence and decision:\nReserve the no-agent case for the dedicated authorship declaration.\n\nImplementation:\nExercise an invalid authored declaration.\n\nCompatibility:\nNo SDK interfaces or behavior change.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: none\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
+    },
+    {
+      "sha": "synthetic-assisted-none",
+      "message": "fix(governance): reject assisted none\n\nProblem:\nA named-agent declaration can contain a placeholder.\n\nEvidence and decision:\nReserve the no-agent case for the dedicated authorship declaration.\n\nImplementation:\nExercise an invalid assisted declaration.\n\nCompatibility:\nNo SDK interfaces or behavior change.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Assisted: N/A\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
+    }
+  ]
+}
