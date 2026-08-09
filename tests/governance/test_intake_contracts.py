@@ -15,6 +15,10 @@ VALID_ISSUE = """## Observable problem
 
 One deterministic downstream defect affects a supported consumer.
 
+## Downstream base
+
+606f33353a31b9bdabe827d168a32fdb1c7c4057
+
 ## Current-base evidence
 
 It reproduces at 606f33353a31b9bdabe827d168a32fdb1c7c4057.
@@ -87,6 +91,30 @@ class IntakeContractTests(unittest.TestCase):
     def test_github_issue_form_h3_headings_pass(self):
         issue_form_body = VALID_ISSUE.replace("## ", "### ")
         self.assertEqual(validate_issue_body(issue_form_body), [])
+
+    def test_issue_form_requires_exact_downstream_base_sha(self):
+        invalid = VALID_ISSUE.replace(
+            "606f33353a31b9bdabe827d168a32fdb1c7c4057\n\n"
+            "## Current-base evidence",
+            "this is not a commit\n\n## Current-base evidence",
+            1,
+        )
+        self.assertIn(
+            "issue downstream base must be exactly one 40-character commit SHA",
+            validate_issue_body(invalid),
+        )
+
+        decorated = VALID_ISSUE.replace(
+            "606f33353a31b9bdabe827d168a32fdb1c7c4057\n\n"
+            "## Current-base evidence",
+            "base 606f33353a31b9bdabe827d168a32fdb1c7c4057\n\n"
+            "## Current-base evidence",
+            1,
+        )
+        self.assertIn(
+            "issue downstream base must be exactly one 40-character commit SHA",
+            validate_issue_body(decorated),
+        )
 
     def test_legacy_evidence_must_be_bounded_to_one_proof_paragraph(self):
         without_evidence = VALID_ISSUE.replace(

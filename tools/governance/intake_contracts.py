@@ -8,6 +8,7 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 HEADING = re.compile(r"^(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
+EXACT_FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
 ISSUE_LINK = re.compile(
     r"(?:^|\s)(?:Refs|Closes|Fixes)?\s*"
     r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\b",
@@ -120,6 +121,13 @@ def validate_issue_body(body: str) -> List[str]:
     )
     if not has_evidence_section and not has_legacy_current_base_evidence:
         errors.append("missing substantive issue field 'current-base evidence'")
+
+    if "downstream base" in sections and not EXACT_FULL_SHA.fullmatch(
+        sections["downstream base"].strip()
+    ):
+        errors.append(
+            "issue downstream base must be exactly one 40-character commit SHA"
+        )
     return errors
 
 
