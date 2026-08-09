@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+from intake_contracts import validate_issue_body
+
 
 REQUIRED_SECTIONS: Tuple[str, ...] = (
     "Problem",
@@ -222,27 +224,38 @@ def validate_governing_issues(
 
         if reference not in results:
             repository, number = reference
-            completed = subprocess.run(
-                ["gh", "api", "repos/{}/issues/{}".format(repository, number)],
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
             error = ""
-            if completed.returncode != 0:
-                error = "does not resolve to an accessible GitHub issue"
+            if repository.casefold() != default_repository.casefold():
+                error = "must belong to the governing repository"
             else:
-                try:
-                    document = json.loads(completed.stdout)
-                except json.JSONDecodeError:
-                    document = None
-                if (
-                    not isinstance(document, dict)
-                    or document.get("number") != number
-                    or "pull_request" in document
-                ):
-                    error = "does not resolve to a GitHub issue"
+                completed = subprocess.run(
+                    ["gh", "api", "repos/{}/issues/{}".format(repository, number)],
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+                if completed.returncode != 0:
+                    error = "does not resolve to an accessible GitHub issue"
+                else:
+                    try:
+                        document = json.loads(completed.stdout)
+                    except json.JSONDecodeError:
+                        document = None
+                    if (
+                        not isinstance(document, dict)
+                        or document.get("number") != number
+                        or "pull_request" in document
+                    ):
+                        error = "does not resolve to a GitHub issue"
+                    else:
+                        intake_errors = validate_issue_body(
+                            str(document.get("body") or "")
+                        )
+                        if intake_errors:
+                            error = "fails intake contract: {}".format(
+                                "; ".join(intake_errors)
+                            )
             results[reference] = error
 
         error = results[reference]

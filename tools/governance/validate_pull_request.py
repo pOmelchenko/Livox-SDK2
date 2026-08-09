@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Validate the structured Markdown contract of a GitHub pull request."""
+
+import argparse
+import json
+import re
+import subprocess
+import sys
+from typing import Dict
+
+from intake_contracts import validate_pull_request_body
+
+
+REPOSITORY_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+
+
+def fetch_pull_request(repository: str, number: int) -> Dict[str, object]:
+    completed = subprocess.run(
+        ["gh", "api", "repos/{}/pulls/{}".format(repository, number)],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError("pull request is missing or inaccessible")
+    try:
+        document = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("pull-request API returned invalid JSON") from error
+    if not isinstance(document, dict) or document.get("number") != number:
+        raise RuntimeError("pull-request API returned an unexpected object")
+    return document
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repository", required=True, help="GitHub owner/name")
+    parser.add_argument("--number", required=True, type=int)
+    arguments = parser.parse_args()
+    if not REPOSITORY_NAME.fullmatch(arguments.repository):
+        parser.error("--repository must use the owner/name form")
+    if arguments.number < 1:
+        parser.error("--number must be positive")
+    return arguments
+
+
+def main() -> int:
+    arguments = parse_arguments()
+    try:
+        pull_request = fetch_pull_request(arguments.repository, arguments.number)
+    except (OSError, RuntimeError) as error:
+        print("pull-request validation could not run: {}".format(error), file=sys.stderr)
+        return 2
+
+    errors = validate_pull_request_body(str(pull_request.get("body") or ""))
+    if errors:
+        print("pull-request contract validation failed:", file=sys.stderr)
+        for error in errors:
+            print("- {}".format(error), file=sys.stderr)
+        return 1
+
+    print("pull-request contract validation passed for #{}".format(arguments.number))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

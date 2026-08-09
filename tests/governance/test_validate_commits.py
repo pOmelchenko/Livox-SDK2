@@ -13,11 +13,39 @@ from unittest import mock
 REPOSITORY = Path(__file__).resolve().parents[2]
 VALIDATOR = REPOSITORY / "tools" / "governance" / "validate_commits.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+sys.path.insert(0, str(VALIDATOR.parent))
 VALIDATOR_SPEC = importlib.util.spec_from_file_location(
     "governance_validate_commits", VALIDATOR
 )
 VALIDATOR_MODULE = importlib.util.module_from_spec(VALIDATOR_SPEC)
 VALIDATOR_SPEC.loader.exec_module(VALIDATOR_MODULE)
+sys.path.pop(0)
+
+
+VALID_ISSUE_BODY = """## Problem
+
+A focused downstream problem needs a reviewed correction.
+
+## Current-base evidence
+
+The problem reproduces at 606f33353a31b9bdabe827d168a32fdb1c7c4057.
+
+## Intended scope
+
+Change only the governance validator and its focused tests.
+
+## Non-goals
+
+Do not change production SDK behavior or public interfaces.
+
+## Compatibility and risk
+
+No SDK API, ABI, wire, platform, or consumer behavior changes.
+
+## Required verification
+
+Run the focused deterministic governance unit suite.
+"""
 
 
 def run_fixture(name):
@@ -158,7 +186,13 @@ class GovernanceValidatorTests(unittest.TestCase):
         response = subprocess.CompletedProcess(
             args=[],
             returncode=0,
-            stdout=json.dumps({"number": 42, "title": "Accepted intake"}),
+            stdout=json.dumps(
+                {
+                    "number": 42,
+                    "title": "Accepted intake",
+                    "body": VALID_ISSUE_BODY,
+                }
+            ),
             stderr="",
         )
         with mock.patch.object(
@@ -202,6 +236,35 @@ class GovernanceValidatorTests(unittest.TestCase):
             self.assertIn(
                 "pOmelchenko/Livox-SDK2#42 does not resolve", errors[0]
             )
+
+    def test_incomplete_issue_or_cross_repository_reference_fails(self):
+        commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
+        incomplete = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=json.dumps({"number": 42, "body": ""}),
+            stderr="",
+        )
+        with mock.patch.object(
+            VALIDATOR_MODULE.subprocess, "run", return_value=incomplete
+        ):
+            errors = VALIDATOR_MODULE.validate_governing_issues(
+                commits, "pOmelchenko/Livox-SDK2"
+            )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("fails intake contract", errors[0])
+
+        cross_repository = [dict(commits[0])]
+        cross_repository[0]["message"] = str(cross_repository[0]["message"]).replace(
+            "Refs: #42", "Refs: other/repository#42"
+        )
+        with mock.patch.object(VALIDATOR_MODULE.subprocess, "run") as run:
+            errors = VALIDATOR_MODULE.validate_governing_issues(
+                cross_repository, "pOmelchenko/Livox-SDK2"
+            )
+        self.assertEqual(len(errors), 1)
+        self.assertIn("must belong to the governing repository", errors[0])
+        run.assert_not_called()
 
     def test_rejected_intakes_fail_for_the_expected_reason(self):
         cases = {
