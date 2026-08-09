@@ -1,0 +1,12 @@
+{
+  "description": "Issue declarations outside the terminal block still count as conflicting governance links",
+  "commits": [
+    {
+      "sha": "synthetic-conflicting-issue-declarations",
+      "message": "fix(governance): reject conflicting issue links\n\nRefs: #1\n\nProblem:\nA commit contains an issue declaration outside the final trailer block.\n\nEvidence and decision:\nCount every trailer-shaped issue declaration while requiring the accepted declaration at the end.\n\nImplementation:\nExercise two conflicting governing issue declarations.\n\nCompatibility:\nNo SDK interfaces or behavior change.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #2\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
+    }
+  ]
+}

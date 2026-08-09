@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 
 REQUIRED_SECTIONS: Tuple[str, ...] = (
@@ -22,9 +22,11 @@ REQUIRED_SECTIONS: Tuple[str, ...] = (
 OPTIONAL_SECTIONS: Tuple[str, ...] = ("Combined concerns",)
 KNOWN_SECTIONS = REQUIRED_SECTIONS + OPTIONAL_SECTIONS
 
+REPOSITORY_NAME = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 ISSUE_TRAILER = re.compile(
     r"^(?:Refs|Closes|Fixes):\s+"
-    r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\s*$"
+    r"(?:(?P<repository>[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+))?"
+    r"#(?P<number>[1-9][0-9]*)\s*$"
 )
 AGENT_TRAILER = re.compile(
     r"^(?:Agent-Authored|Agent-Assisted):\s+\S.*$|^Agent-Authorship:\s+none\s*$"
@@ -38,6 +40,7 @@ TRAILER_LINE = re.compile(
 AGENT_DECLARATION_LINE = re.compile(
     r"^(?:Agent-Authored|Agent-Assisted|Agent-Authorship):"
 )
+ISSUE_DECLARATION_LINE = re.compile(r"^(?:Refs|Closes|Fixes):")
 GENERIC_TRAILER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*:\s+\S.*$")
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
 
@@ -184,6 +187,75 @@ def concern_categories(paths: Iterable[str]) -> List[str]:
     return sorted({concern_for_path(path) for path in paths})
 
 
+def governing_issue_reference(
+    message: str, default_repository: str
+) -> Optional[Tuple[str, int]]:
+    matches = []
+    for line in terminal_trailer_block(message):
+        match = ISSUE_TRAILER.fullmatch(line)
+        if match:
+            matches.append(match)
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    return (
+        match.group("repository") or default_repository,
+        int(match.group("number")),
+    )
+
+
+def validate_governing_issues(
+    commits: Sequence[Dict[str, object]], default_repository: str
+) -> List[str]:
+    if not REPOSITORY_NAME.fullmatch(default_repository):
+        raise ValueError("issue repository must use the owner/name form")
+
+    errors: List[str] = []
+    results: Dict[Tuple[str, int], str] = {}
+    for commit in commits:
+        revision = str(commit["sha"])
+        reference = governing_issue_reference(
+            str(commit["message"]), default_repository
+        )
+        if reference is None:
+            continue
+
+        if reference not in results:
+            repository, number = reference
+            completed = subprocess.run(
+                ["gh", "api", "repos/{}/issues/{}".format(repository, number)],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            error = ""
+            if completed.returncode != 0:
+                error = "does not resolve to an accessible GitHub issue"
+            else:
+                try:
+                    document = json.loads(completed.stdout)
+                except json.JSONDecodeError:
+                    document = None
+                if (
+                    not isinstance(document, dict)
+                    or document.get("number") != number
+                    or "pull_request" in document
+                ):
+                    error = "does not resolve to a GitHub issue"
+            results[reference] = error
+
+        error = results[reference]
+        if error:
+            repository, number = reference
+            errors.append(
+                "{}: governing issue {}#{} {}".format(
+                    revision, repository, number, error
+                )
+            )
+    return errors
+
+
 def validate_commit(commit: Dict[str, object]) -> List[str]:
     revision = str(commit["sha"])
     message = str(commit["message"])
@@ -220,9 +292,14 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     issue_declarations = [
         line for line in trailer_block if ISSUE_TRAILER.fullmatch(line)
     ]
+    all_issue_declarations = [
+        line
+        for line in message.splitlines()
+        if ISSUE_DECLARATION_LINE.match(line)
+    ]
     if not issue_declarations:
         errors.append("missing governing issue trailer (Refs|Closes|Fixes: #N)")
-    elif len(issue_declarations) > 1:
+    if len(all_issue_declarations) > 1:
         errors.append("multiple governing issue trailers")
 
     agent_declarations = [
@@ -273,9 +350,15 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--base", help="base revision for a Git commit range")
     parser.add_argument("--head", help="head revision for a Git commit range")
     parser.add_argument("--fixture", type=Path, help="synthetic JSON commit fixture")
+    parser.add_argument(
+        "--issue-repository",
+        help="verify governing issues through GitHub using this owner/name default",
+    )
     arguments = parser.parse_args()
     if arguments.fixture and (arguments.base or arguments.head):
         parser.error("--fixture cannot be combined with --base or --head")
+    if arguments.fixture and arguments.issue_repository:
+        parser.error("--fixture cannot be combined with --issue-repository")
     if not arguments.fixture and not (arguments.base and arguments.head):
         parser.error("provide --fixture or both --base and --head")
     return arguments
@@ -297,7 +380,15 @@ def main() -> int:
         print("governance validation found no commits in the requested range", file=sys.stderr)
         return 1
 
-    errors = validate_commits(commits)
+    try:
+        errors = validate_commits(commits)
+        if arguments.issue_repository:
+            errors.extend(
+                validate_governing_issues(commits, arguments.issue_repository)
+            )
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as error:
+        print("governance validation could not run: {}".format(error), file=sys.stderr)
+        return 2
     if errors:
         print("governance validation failed:", file=sys.stderr)
         for error in errors:

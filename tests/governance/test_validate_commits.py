@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 
+import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 VALIDATOR = REPOSITORY / "tools" / "governance" / "validate_commits.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
+VALIDATOR_SPEC = importlib.util.spec_from_file_location(
+    "governance_validate_commits", VALIDATOR
+)
+VALIDATOR_MODULE = importlib.util.module_from_spec(VALIDATOR_SPEC)
+VALIDATOR_SPEC.loader.exec_module(VALIDATOR_MODULE)
 
 
 def run_fixture(name):
@@ -145,6 +153,56 @@ class GovernanceValidatorTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stdout)
             self.assertIn("(product implementation, public API)", result.stderr)
 
+    def test_existing_governing_issue_passes_api_verification(self):
+        commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
+        response = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=json.dumps({"number": 42, "title": "Accepted intake"}),
+            stderr="",
+        )
+        with mock.patch.object(
+            VALIDATOR_MODULE.subprocess, "run", return_value=response
+        ) as run:
+            errors = VALIDATOR_MODULE.validate_governing_issues(
+                commits, "pOmelchenko/Livox-SDK2"
+            )
+
+        self.assertEqual(errors, [])
+        run.assert_called_once_with(
+            ["gh", "api", "repos/pOmelchenko/Livox-SDK2/issues/42"],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+    def test_missing_or_pull_request_reference_fails_issue_verification(self):
+        commits = VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")
+        responses = (
+            subprocess.CompletedProcess(
+                args=[], returncode=1, stdout="", stderr="HTTP 404"
+            ),
+            subprocess.CompletedProcess(
+                args=[],
+                returncode=0,
+                stdout=json.dumps({"number": 42, "pull_request": {}}),
+                stderr="",
+            ),
+        )
+        for response in responses:
+            with self.subTest(returncode=response.returncode):
+                with mock.patch.object(
+                    VALIDATOR_MODULE.subprocess, "run", return_value=response
+                ):
+                    errors = VALIDATOR_MODULE.validate_governing_issues(
+                        commits, "pOmelchenko/Livox-SDK2"
+                    )
+            self.assertEqual(len(errors), 1)
+            self.assertIn(
+                "pOmelchenko/Livox-SDK2#42 does not resolve", errors[0]
+            )
+
     def test_rejected_intakes_fail_for_the_expected_reason(self):
         cases = {
             "missing-issue.json": ["missing governing issue trailer"],
@@ -175,6 +233,9 @@ class GovernanceValidatorTests(unittest.TestCase):
             ],
             "conflicting-agent-declarations.json": [
                 "multiple agent authorship declarations",
+            ],
+            "conflicting-issue-declarations.json": [
+                "multiple governing issue trailers",
             ],
             "unexplained-path-boundaries.json": [
                 "(build configuration, product implementation)",
