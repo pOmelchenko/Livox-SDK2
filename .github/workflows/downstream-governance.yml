@@ -16,6 +16,8 @@ on:
   issues:
     types:
       - edited
+      - labeled
+      - unlabeled
 
 permissions:
   contents: read

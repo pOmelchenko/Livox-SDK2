@@ -49,8 +49,9 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn('"${current_pr_base_sha}" != "${BASE_SHA}"', WORKFLOW)
         self.assertIn('"${current_base_ref}" != "master"', WORKFLOW)
 
-    def test_issue_edits_invalidate_open_pull_request_heads(self):
+    def test_issue_body_and_acceptance_label_changes_invalidate_statuses(self):
         self.assertIn("issues:\n    types:\n      - edited", WORKFLOW)
+        self.assertIn("      - labeled\n      - unlabeled", WORKFLOW)
         self.assertIn(
             "if: github.event_name == 'push' || github.event_name == 'issues'",
             WORKFLOW,
