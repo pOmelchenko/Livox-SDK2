@@ -1,0 +1,12 @@
+{
+  "description": "A non-applicability declaration with a substantive reason is accepted",
+  "commits": [
+    {
+      "sha": "synthetic-explained-placeholder",
+      "message": "fix(governance): accept explained non-applicability\n\nProblem:\nA policy section is not applicable to a governance-only change.\n\nEvidence and decision:\nAccept non-applicability when the author records a concrete reason.\n\nImplementation:\nExercise an explained compatibility declaration.\n\nCompatibility:\nN/A — this governance-only change does not modify SDK interfaces or behavior.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "tools/governance/validate_commits.py"
+      ]
+    }
+  ]
+}

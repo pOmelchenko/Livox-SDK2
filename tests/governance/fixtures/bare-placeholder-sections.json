@@ -1,0 +1,26 @@
+{
+  "description": "Required sections must explain non-applicability instead of using bare placeholders",
+  "commits": [
+    {
+      "sha": "synthetic-bare-none",
+      "message": "fix(network): reject bare None placeholder\n\nProblem:\nA required section can contain a bare placeholder.\n\nEvidence and decision:\nTreat a bare placeholder as missing rationale.\n\nImplementation:\nExercise the compatibility field.\n\nCompatibility:\nNone\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "sdk_core/comm/sdk_protocol.cpp"
+      ]
+    },
+    {
+      "sha": "synthetic-bare-na",
+      "message": "fix(network): reject bare N/A placeholder\n\nProblem:\nA required section can contain a bare placeholder.\n\nEvidence and decision:\nTreat a bare placeholder as missing rationale.\n\nImplementation:\nExercise the verification field.\n\nCompatibility:\nNo public API or ABI changes.\n\nVerification:\nN/A.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "sdk_core/comm/sdk_protocol.cpp"
+      ]
+    },
+    {
+      "sha": "synthetic-bare-not-applicable",
+      "message": "fix(network): reject bare not-applicable placeholder\n\nProblem:\nA required section can contain a bare placeholder.\n\nEvidence and decision:\nTreat a bare placeholder as missing rationale.\n\nImplementation:\nExercise the source-attribution field.\n\nCompatibility:\nNo public API or ABI changes.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nNot applicable!\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n",
+      "paths": [
+        "sdk_core/comm/sdk_protocol.cpp"
+      ]
+    }
+  ]
+}

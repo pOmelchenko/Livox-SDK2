@@ -1,0 +1,12 @@
+{
+  "description": "Issue and authorship declarations outside the terminal trailer block are rejected",
+  "commits": [
+    {
+      "sha": "synthetic-misplaced-trailers",
+      "message": "fix(network): reject misplaced trailers\n\nRefs: #42\nAgent-Authored: OpenAI Codex\n\nProblem:\nDeclarations placed before the required sections are not Git trailers.\n\nEvidence and decision:\nRequire declarations in the final trailer paragraph.\n\nImplementation:\nExercise a message with declarations near the subject.\n\nCompatibility:\nNo public API or ABI changes.\n\nVerification:\nThe synthetic fixture exercises the validator.\n\nSource attribution:\nProject-owned downstream correction.\n\nUpstream disposition:\nNo upstream submission is planned because this changes downstream governance only.\n\nThis arbitrary final paragraph must not be accepted as a trailer block.\n",
+      "paths": [
+        "sdk_core/comm/sdk_protocol.cpp"
+      ]
+    }
+  ]
+}

@@ -24,16 +24,16 @@ KNOWN_SECTIONS = REQUIRED_SECTIONS + OPTIONAL_SECTIONS
 
 ISSUE_TRAILER = re.compile(
     r"^(?:Refs|Closes|Fixes):\s+"
-    r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\s*$",
-    re.MULTILINE,
+    r"(?:[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[1-9][0-9]*\s*$"
 )
 AGENT_TRAILER = re.compile(
-    r"^(?:Agent-Authored|Agent-Assisted):\s+\S.*$|^Agent-Authorship:\s+none\s*$",
-    re.MULTILINE,
+    r"^(?:Agent-Authored|Agent-Assisted):\s+\S.*$|^Agent-Authorship:\s+none\s*$"
 )
 TRAILER_LINE = re.compile(
     r"^(?:Refs|Closes|Fixes|Agent-Authored|Agent-Assisted|Agent-Authorship):"
 )
+GENERIC_TRAILER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*:\s+\S.*$")
+BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
 
 
 def run_git(repository: Path, *arguments: str) -> str:
@@ -113,6 +113,26 @@ def parse_sections(message: str) -> Tuple[Dict[str, str], Dict[str, int], List[s
     return normalized, positions, duplicates
 
 
+def is_bare_placeholder(value: str) -> bool:
+    normalized = value.strip().casefold().rstrip(".,;:!?")
+    return normalized in BARE_PLACEHOLDERS
+
+
+def terminal_trailer_block(message: str) -> List[str]:
+    lines = message.rstrip().splitlines()
+    start = len(lines)
+    while start > 0 and lines[start - 1].strip():
+        start -= 1
+
+    if start == 0:
+        return []
+
+    block = [line.strip() for line in lines[start:]]
+    if not block or not all(GENERIC_TRAILER.fullmatch(line) for line in block):
+        return []
+    return block
+
+
 def concern_for_path(path: str) -> str:
     if path.startswith(".github/ISSUE_TEMPLATE/") or path == ".github/pull_request_template.md":
         return "intake templates"
@@ -155,16 +175,30 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
             errors.append("missing required section '{}'".format(name))
         elif not sections.get(name):
             errors.append("required section '{}' is empty".format(name))
+        elif is_bare_placeholder(sections[name]):
+            errors.append(
+                "required section '{}' uses a bare placeholder; add a reason".format(
+                    name
+                )
+            )
 
     present_required = [name for name in REQUIRED_SECTIONS if name in positions]
     ordered_positions = [positions[name] for name in present_required]
     if ordered_positions != sorted(ordered_positions):
         errors.append("required sections are out of order")
 
-    if not ISSUE_TRAILER.search(message):
+    trailer_block = terminal_trailer_block(message)
+    issue_declarations = [
+        line for line in trailer_block if ISSUE_TRAILER.fullmatch(line)
+    ]
+    if not issue_declarations:
         errors.append("missing governing issue trailer (Refs|Closes|Fixes: #N)")
+    elif len(issue_declarations) > 1:
+        errors.append("multiple governing issue trailers")
 
-    agent_declarations = AGENT_TRAILER.findall(message)
+    agent_declarations = [
+        line for line in trailer_block if AGENT_TRAILER.fullmatch(line)
+    ]
     if not agent_declarations:
         errors.append(
             "missing agent authorship declaration "
@@ -176,11 +210,7 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
     categories = concern_categories(paths)
     if len(categories) > 1:
         explanation = sections.get("Combined concerns", "").strip()
-        if len(explanation) < 15 or explanation.casefold() in {
-            "none",
-            "n/a",
-            "not applicable",
-        }:
+        if len(explanation) < 15 or is_bare_placeholder(explanation):
             errors.append(
                 "changes multiple concern categories ({}) without a substantive "
                 "'Combined concerns' explanation".format(", ".join(categories))

@@ -27,6 +27,11 @@ class GovernanceValidatorTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("passed for 1 commit", result.stdout)
 
+    def test_explained_non_applicability_passes(self):
+        result = run_fixture("explained-placeholder.json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("passed for 1 commit", result.stdout)
+
     def test_rejected_intakes_fail_for_the_expected_reason(self):
         cases = {
             "missing-issue.json": ["missing governing issue trailer"],
@@ -42,6 +47,15 @@ class GovernanceValidatorTests(unittest.TestCase):
             ],
             "unexplained-combined-commit.json": [
                 "changes multiple concern categories"
+            ],
+            "bare-placeholder-sections.json": [
+                "required section 'Compatibility' uses a bare placeholder",
+                "required section 'Verification' uses a bare placeholder",
+                "required section 'Source attribution' uses a bare placeholder",
+            ],
+            "misplaced-trailer-block.json": [
+                "missing governing issue trailer",
+                "missing agent authorship declaration",
             ],
         }
         for fixture, expected_messages in cases.items():
