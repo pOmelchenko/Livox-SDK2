@@ -12,6 +12,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from intake_contracts import (
     has_meaningful_text,
+    has_valid_upstream_disposition,
     is_placeholder_agent_name,
     is_substantive,
     validate_issue_body,
@@ -349,6 +350,15 @@ def validate_commit(commit: Dict[str, object]) -> List[str]:
             errors.append(
                 "required section '{}' is not substantive".format(name)
             )
+
+    upstream_disposition = sections.get("Upstream disposition", "")
+    if upstream_disposition and not has_valid_upstream_disposition(
+        upstream_disposition
+    ):
+        errors.append(
+            "Upstream disposition needs a PR, owner and trigger, "
+            "or final downstream-only rejection"
+        )
 
     present_required = [name for name in REQUIRED_SECTIONS if name in positions]
     ordered_positions = [positions[name] for name in present_required]

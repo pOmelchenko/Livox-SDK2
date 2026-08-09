@@ -170,6 +170,22 @@ Agent-Authored: OpenAI Codex
             sum("is not substantive" in error for error in errors), 7
         )
 
+    def test_upstream_disposition_requires_a_concrete_decision(self):
+        commit = dict(
+            VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")[0]
+        )
+        commit["message"] = str(commit["message"]).replace(
+            "The maintainer will prepare an upstream PR after sanitizer "
+            "qualification passes.",
+            "The upstream situation may be considered at some future time.",
+        )
+
+        errors = VALIDATOR_MODULE.validate_commit(commit)
+
+        self.assertTrue(
+            any("Upstream disposition needs a PR" in error for error in errors)
+        )
+
     def test_indented_declaration_lines_count_as_duplicates(self):
         commit = dict(
             VALIDATOR_MODULE.load_fixture(FIXTURES / "accepted.json")[0]

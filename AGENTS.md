@@ -71,7 +71,7 @@ Source attribution:
 <origin repository and full commit SHA, or project-owned origin>
 
 Upstream disposition:
-<upstream PR URL, or owner and trigger for not submitting yet>
+<upstream PR URL, deferred-submission owner and trigger, or final downstream-only rationale>
 
 Refs: #<issue>
 <one agent-authorship declaration>

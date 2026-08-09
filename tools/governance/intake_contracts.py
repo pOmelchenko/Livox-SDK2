@@ -31,6 +31,24 @@ DISPOSITION_LANGUAGE = re.compile(
 )
 CHECKBOX = re.compile(r"^\s*-\s+\[(?P<mark>[ xX])\]\s+\S", re.MULTILINE)
 ALPHANUMERIC_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
+UPSTREAM_PR_URL = re.compile(
+    r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
+    re.IGNORECASE,
+)
+FINAL_UPSTREAM_REJECTION = re.compile(
+    r"(?:\bdo\s+not\s+submit\b.*\bupstream\b|"
+    r"\bno\s+upstream\b.*\b(?:submission|pull\s+request)\b.*\bplanned\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+UPSTREAM_OWNER = re.compile(
+    r"\b(?:owner(?:ship)?|maintainer|owns?|owned)\b", re.IGNORECASE
+)
+UPSTREAM_TRIGGER = re.compile(
+    r"\b(?:after|when|once|if|revisit|trigger|upon)\b", re.IGNORECASE
+)
+UPSTREAM_ACTION = re.compile(
+    r"\b(?:upstream|submit|submission|pull\s+request|pr)\b", re.IGNORECASE
+)
 EVIDENCE_LANGUAGE = re.compile(
     r"\b(?:evidence|fail(?:s|ed|ure)?|missing|observ(?:e|ed|able)|"
     r"reproduc(?:e|ed|es|ible)|show(?:s|ed)?|unprotected)\b",
@@ -89,6 +107,15 @@ def is_substantive(value: str) -> bool:
     return (
         has_meaningful_text(value, minimum_length=15, minimum_alphanumeric=10)
         and normalized not in BARE_PLACEHOLDERS
+    )
+
+
+def has_valid_upstream_disposition(value: str) -> bool:
+    if UPSTREAM_PR_URL.search(value) or FINAL_UPSTREAM_REJECTION.search(value):
+        return True
+    return all(
+        pattern.search(value)
+        for pattern in (UPSTREAM_OWNER, UPSTREAM_TRIGGER, UPSTREAM_ACTION)
     )
 
 
@@ -217,6 +244,15 @@ def validate_issue_body(
         ) != 1:
             errors.append(
                 "issue agent authorship field must have exactly one canonical declaration"
+            )
+
+        upstream_disposition = sections.get("upstream disposition", "")
+        if upstream_disposition and not has_valid_upstream_disposition(
+            upstream_disposition
+        ):
+            errors.append(
+                "issue upstream disposition needs a PR, owner and trigger, "
+                "or final downstream-only rejection"
             )
 
         intake_checks = sections.get("intake checks", "")
@@ -397,4 +433,13 @@ def validate_pull_request_body(
                         ", ".join(sorted(pull_request_declarations)) or "none",
                     )
                 )
+
+    upstream_disposition = sections.get("upstream disposition", "")
+    if upstream_disposition and not has_valid_upstream_disposition(
+        upstream_disposition
+    ):
+        errors.append(
+            "pull-request upstream disposition needs a PR, owner and trigger, "
+            "or final downstream-only rejection"
+        )
     return errors

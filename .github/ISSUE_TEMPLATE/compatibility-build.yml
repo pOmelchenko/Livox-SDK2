@@ -91,7 +91,7 @@ body:
     id: upstream_disposition
     attributes:
       label: Upstream disposition
-      description: Link an upstream issue/PR, or name the owner and objective revisit trigger.
+      description: Link an upstream PR, name the deferred-submission owner and objective trigger, or give a final downstream-only rejection and rationale.
     validations:
       required: true
 

@@ -97,7 +97,7 @@ Repository-hosted workflow qualification remains pending with the maintainer.
 
 ## Upstream disposition
 
-Downstream-only policy; revisit if upstream requests the same tooling.
+Do not submit upstream. This policy applies only to downstream governance tooling.
 
 ## Rollback
 
@@ -329,6 +329,29 @@ Project-owned downstream governance work drafted with OpenAI Codex.
         self.assertIn(
             "pull-request agent authorship declarations conflict",
             validate_pull_request_body(conflicting),
+        )
+
+    def test_upstream_disposition_requires_a_concrete_decision(self):
+        vague_issue = VALID_ISSUE.replace(
+            "Maintainer pOmelchenko will revisit submission if upstream requests "
+            "this tooling.",
+            "The upstream situation may be considered at some future time.",
+        )
+        self.assertIn(
+            "issue upstream disposition needs a PR, owner and trigger, "
+            "or final downstream-only rejection",
+            validate_issue_body(vague_issue),
+        )
+
+        vague_pull_request = VALID_PULL_REQUEST.replace(
+            "Do not submit upstream. This policy applies only to downstream "
+            "governance tooling.",
+            "The upstream situation may be considered at some future time.",
+        )
+        self.assertIn(
+            "pull-request upstream disposition needs a PR, owner and trigger, "
+            "or final downstream-only rejection",
+            validate_pull_request_body(vague_pull_request),
         )
 
     def test_pr_agent_authorship_matches_commit_declarations(self):

@@ -30,7 +30,7 @@ Refs #
 
 ## Upstream disposition
 
-<!-- Link the upstream PR, or record why it is not being submitted yet, the owner, and an objective revisit trigger. -->
+<!-- Link the upstream PR; name the owner and objective trigger for a deferred submission; or record a final downstream-only rejection and concrete rationale. -->
 
 ## Rollback
 

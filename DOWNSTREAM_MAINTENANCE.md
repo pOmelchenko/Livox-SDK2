@@ -101,10 +101,13 @@ GitHub-generated merge commit is an administrative record linked to the pull
 request and is exempt from the content-commit message template; it may not be
 used to replace or rewrite the validated commits.
 
-Every general-purpose fix records either an upstream pull request URL or a
-documented reason for not submitting it, with an owner and revisit trigger.
-When upstream accepts an equivalent change, retire the downstream commit in a
-reviewed update while retaining its issue and attribution history.
+Every downstream change records one of three upstream dispositions: an upstream
+pull request URL; a deferred submission with its owner and objective revisit
+trigger; or a final downstream-only rejection with its concrete rationale. A
+final rejection is owned by the downstream maintainer and does not invent a
+speculative revisit trigger. When upstream accepts an equivalent change, retire
+the downstream commit in a reviewed update while retaining its issue and
+attribution history.
 
 ## Ownership And Review
 
