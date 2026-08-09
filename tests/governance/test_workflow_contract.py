@@ -60,6 +60,17 @@ class WorkflowContractTests(unittest.TestCase):
             WORKFLOW,
         )
 
+    def test_input_invalidation_pipeline_fails_closed(self):
+        invalidation_job = WORKFLOW.split(
+            "invalidate-after-governance-input-update:", 1
+        )[1]
+        self.assertIn("shell: bash", invalidation_job)
+        self.assertIn("set -o pipefail", invalidation_job)
+        self.assertLess(
+            invalidation_job.index("set -o pipefail"),
+            invalidation_job.index("gh pr list"),
+        )
+
     def test_every_open_pull_request_on_head_is_validated(self):
         self.assertIn("--json number,headRefOid", WORKFLOW)
         self.assertIn(
