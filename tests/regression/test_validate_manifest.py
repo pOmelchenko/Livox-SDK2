@@ -70,6 +70,38 @@ class RegressionManifestNegativeControls(unittest.TestCase):
     def test_checked_manifest_passes(self):
         self.assertEqual([], self.validate())
 
+    def test_untracked_build_artifacts_do_not_enter_fixture_scan(self):
+        with tempfile.TemporaryDirectory(prefix="livox_manifest_build_") as temp:
+            repository = Path(temp)
+            test_directory = repository / "tests"
+            build_directory = test_directory / "build-review"
+            build_directory.mkdir(parents=True)
+            tracked_fixture = test_directory / "tracked_fixture.txt"
+            tracked_fixture.write_text("public fixture\n", encoding="utf-8")
+            (build_directory / "compiler_abi.bin").write_bytes(b"build output")
+            (build_directory / "LastTest.log").write_text(
+                "ctest output\n", encoding="utf-8"
+            )
+            subprocess.run(
+                ["git", "-C", str(repository), "init", "--quiet"], check=True
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repository),
+                    "add",
+                    "--",
+                    tracked_fixture.relative_to(repository).as_posix(),
+                ],
+                check=True,
+            )
+            errors = []
+            validate_manifest._validate_fixtures(
+                copy.deepcopy(self.document), repository, errors
+            )
+            self.assertEqual([], errors)
+
     def test_fastcrc_header_crlf_checkout_passes(self):
         header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
         lf_content = header.read_bytes().replace(b"\r\n", b"\n")

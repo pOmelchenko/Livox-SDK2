@@ -178,6 +178,13 @@ def _source_files(repository, roots):
                 yield path
 
 
+def _tracked_files(repository, pathspec):
+    paths = _git(repository, "ls-files", "-z", "--", pathspec).split("\0")
+    for relative_path in paths:
+        if relative_path:
+            yield repository / relative_path
+
+
 def _validate_source_contracts(document, registered_tests, source_records, errors):
     contracts = document.get("source_contracts")
     if not isinstance(contracts, list) or not contracts:
@@ -392,7 +399,7 @@ def _validate_fixtures(document, repository, errors):
 
     forbidden_suffixes = {".bin", ".cap", ".fw", ".log", ".pcap", ".pcapng"}
     private_path_pattern = re.compile(r"(?:/home/[A-Za-z0-9._-]+/|[A-Za-z]:\\\\Users\\\\)")
-    for path in (repository / "tests").rglob("*"):
+    for path in _tracked_files(repository, "tests"):
         if not path.is_file():
             continue
         if path.suffix.lower() in forbidden_suffixes:
