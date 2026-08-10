@@ -91,11 +91,15 @@ then rechecks the live `master` identity. If an issue or base mutation raced
 with publication, that post-publication validation restores `pending` instead
 of leaving a stale success.
 
-Editing a governing issue or adding or removing one of its labels also marks
-the status pending on every open pull-request head. This deliberately fails
-closed without trusting mutable issue-to-pull-request indexing: the next
-configured pull-request event revalidates the current issue body and
-maintainer-acceptance label before restoring success.
+Editing a governing issue or adding or removing one of its labels marks the
+status pending only on unique open pull-request heads whose immutable commit
+trailers reference that issue. The trusted invalidator derives that mapping
+from GitHub's pull-request commit metadata rather than mutable descriptions.
+Repeated events do not append another status while the current governance
+state is already pending. The next configured pull-request event revalidates
+the current issue body and maintainer-acceptance label before restoring
+success. A `master` update still invalidates every unique open head because it
+changes the trusted base for every pull request.
 
 Accepted pull requests use GitHub's merge-commit strategy. Repository settings
 keep merge commits enabled and disable squash and rebase merges so the commits

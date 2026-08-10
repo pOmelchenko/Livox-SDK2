@@ -194,26 +194,44 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'issues'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: >-
+        downstream-governance-${{ github.repository }}-invalidate-${{ github.event_name }}-${{ github.event.issue.number || 'master' }}
+      cancel-in-progress: true
     steps:
+      - name: Check out trusted invalidation logic
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
       - name: Mark open pull-request heads pending
         env:
           GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
         shell: bash
         run: |
           set -o pipefail
           description="Base changed; governance revalidation required"
+          invalidation_arguments=(
+            --repository "${GITHUB_REPOSITORY}"
+            --base master
+          )
           if [[ "${GITHUB_EVENT_NAME}" == "issues" ]]; then
             description="Governing issue changed; governance revalidation required"
+            invalidation_arguments+=(--issue-number "${ISSUE_NUMBER}")
           fi
-          gh pr list \
-            --repo "${GITHUB_REPOSITORY}" \
-            --base master \
-            --state open \
-            --limit 1000 \
-            --json headRefOid \
-            --jq '.[].headRefOid' |
+          python3 tools/governance/list_invalidation_heads.py \
+            "${invalidation_arguments[@]}" |
           while IFS= read -r head_sha; do
             [[ -n "${head_sha}" ]] || continue
+            latest_governance_state="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/commits/${head_sha}/status" \
+                --jq '[.statuses[] | select(.context == "Downstream governance")][0].state // ""'
+            )"
+            if [[ "${latest_governance_state}" == "pending" ]]; then
+              continue
+            fi
             gh api --method POST \
               "repos/${GITHUB_REPOSITORY}/statuses/${head_sha}" \
               -f state=pending \

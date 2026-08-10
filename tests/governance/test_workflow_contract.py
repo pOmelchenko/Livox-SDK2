@@ -111,8 +111,26 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertIn("set -o pipefail", invalidation_job)
         self.assertLess(
             invalidation_job.index("set -o pipefail"),
-            invalidation_job.index("gh pr list"),
+            invalidation_job.index("list_invalidation_heads.py"),
         )
+
+    def test_issue_invalidation_is_scoped_deduplicated_and_idempotent(self):
+        invalidation_job = WORKFLOW.split(
+            "invalidate-after-governance-input-update:", 1
+        )[1]
+        self.assertIn(
+            'invalidation_arguments+=(--issue-number "${ISSUE_NUMBER}")',
+            invalidation_job,
+        )
+        self.assertIn(
+            "python3 tools/governance/list_invalidation_heads.py",
+            invalidation_job,
+        )
+        self.assertIn(
+            '[[ "${latest_governance_state}" == "pending" ]]',
+            invalidation_job,
+        )
+        self.assertNotIn("gh pr list", invalidation_job)
 
     def test_every_open_pull_request_on_head_is_validated(self):
         self.assertIn("--json number,headRefOid", WORKFLOW)
