@@ -221,6 +221,14 @@ by the governance status, and a `master` update invalidates success statuses on
 other open pull requests. The maintainer emergency bypass stays available only
 to repair a broken gate; ordinary changes use the reviewed path.
 
+Before activating the review requirement, the repository must have at least
+one eligible non-author human reviewer with write or administration access.
+The pull-request author cannot satisfy the independent approval, and a review
+from an account without sufficient repository permission does not satisfy the
+target control. Record the eligible reviewer or team and its effective
+permission in the bootstrap evidence without publishing private membership
+details.
+
 The workflow must first exist on `master`. Before opening the accepted
 synthetic pull request, create the `downstream:accepted` label if it does not
 exist, then capture its API identity. The accepted issue receives that label
@@ -238,6 +246,8 @@ gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection/required_status_c
 gh api repos/pOmelchenko/Livox-SDK2/rulesets
 gh api repos/pOmelchenko/Livox-SDK2/rules/branches/master
 gh api repos/pOmelchenko/Livox-SDK2/labels/downstream%3Aaccepted
+gh api repos/pOmelchenko/Livox-SDK2/collaborators --jq \
+  '[.[] | {login,permissions}]'
 gh api repos/pOmelchenko/Livox-SDK2 --jq \
   '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'
 ```
