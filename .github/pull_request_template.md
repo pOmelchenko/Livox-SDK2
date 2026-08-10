@@ -44,5 +44,6 @@ Refs #
 - [ ] Provenance and disposition are complete for project-owned and third-party work.
 - [ ] Agent authorship is explicitly disclosed without inventing a human co-author.
 - [ ] Verification completed and qualification still pending are separated honestly.
-- [ ] The upstream PR or owner-and-trigger rationale is recorded.
+- [ ] The upstream PR, deferred owner-and-trigger plan, or final downstream-only
+  rejection is recorded.
 - [ ] Rollback does not rewrite a published commit or tag.

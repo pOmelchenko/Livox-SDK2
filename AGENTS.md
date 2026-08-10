@@ -147,8 +147,10 @@ Refs: #<issue>
   exemption does not apply to squash commits, rebased commits, direct pushes,
   or any other commit that introduces content without preserving the validated
   pull-request commits.
-- A general-purpose fix must have an upstream pull request or a recorded reason,
-  owner, and revisit trigger before it is considered complete.
+- A general-purpose fix must record an upstream pull request, a deferred
+  submission with owner and objective revisit trigger, or a final
+  downstream-only rejection with concrete rationale before it is considered
+  complete.
 - Do not publish a consumer tag or ask a consumer to bump its gitlink until the
   exact commit has passed the qualification required by the affected behavior.
 
