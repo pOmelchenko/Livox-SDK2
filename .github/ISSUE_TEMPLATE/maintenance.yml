@@ -1,0 +1,60 @@
+name: Maintenance, governance, or documentation
+description: Propose one downstream process, automation, release, retention, or documentation concern.
+title: "[Maintenance]: "
+labels:
+  - "intake:maintenance"
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use this form when the concern is not an SDK defect or compatibility
+        change. Automation will capture the downstream base and add the
+        maintainer-owned qualification prompts after submission.
+
+  - type: dropdown
+    id: concern
+    attributes:
+      label: Primary concern
+      options:
+        - Governance policy
+        - GitHub automation or templates
+        - Documentation
+        - Release, retention, or rollback
+        - Other downstream maintenance
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_evidence
+    attributes:
+      label: Maintenance need and evidence
+      description: Describe the current-base problem, affected maintainer or consumer, and desired outcome.
+    validations:
+      required: true
+
+  - type: input
+    id: evaluated_revision
+    attributes:
+      label: Evaluated revision
+      description: Optionally give the tag, branch, or commit SHA you evaluated.
+      placeholder: Optional
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Optionally add links, constraints, non-goals, alternatives, or verification ideas.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Intake confirmation
+      options:
+        - label: This issue contains one independently reviewable maintenance concern.
+          required: true
+        - label: I removed credentials, private network details, logs, and local environment artifacts.
+          required: true
