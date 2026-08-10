@@ -221,10 +221,13 @@ by the governance status, and a `master` update invalidates success statuses on
 other open pull requests. The maintainer emergency bypass stays available only
 to repair a broken gate; ordinary changes use the reviewed path.
 
-The workflow must first exist on `master` and publish a successful
-`Downstream governance` status on a synthetic accepted pull request. A second
-synthetic pull request with a deliberately invalid fixture must show the status
-failing and must not merge. Only then may the maintainer make the status
+The workflow must first exist on `master`. Before opening the accepted
+synthetic pull request, create the `downstream:accepted` label if it does not
+exist, then capture its API identity. The accepted issue receives that label
+only after maintainer review; the rejected fixture does not. The accepted pull
+request must publish a successful `Downstream governance` status, while a
+second synthetic pull request with a deliberately invalid fixture must show the
+status failing and must not merge. Only then may the maintainer make the status
 required. Record the resulting API output from all of these queries in issue
 #5 or its pull request; a missing or empty response is evidence of no active
 control, not evidence of protection:
@@ -234,8 +237,19 @@ gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection
 gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection/required_status_checks
 gh api repos/pOmelchenko/Livox-SDK2/rulesets
 gh api repos/pOmelchenko/Livox-SDK2/rules/branches/master
+gh api repos/pOmelchenko/Livox-SDK2/labels/downstream%3Aaccepted
 gh api repos/pOmelchenko/Livox-SDK2 --jq \
   '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'
+```
+
+When the label lookup returns 404 during bootstrap, create it once and repeat
+the lookup before opening the synthetic pull request:
+
+```sh
+gh api --method POST repos/pOmelchenko/Livox-SDK2/labels \
+  -f name='downstream:accepted' \
+  -f color='1f883d' \
+  -f description='Maintainer accepted this downstream intake for implementation'
 ```
 
 PR #14 for issue #5 is the one-time bootstrap exception to the governance
