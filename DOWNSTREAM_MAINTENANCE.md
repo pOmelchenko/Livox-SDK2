@@ -210,12 +210,16 @@ qualification rechecks the settings through the governance status, which fails
 if GitHub could replace reviewed commits with a new, unvalidated identity.
 
 The target control for `master` requires a pull request, one approving human
-review, resolved conversations, and the `Downstream governance` status. It also
-blocks force pushes and branch deletion. Repository merge settings allow only
-merge commits, preserving the exact commits accepted by the governance status,
-and a `master` update invalidates success statuses on other open pull requests.
-The maintainer emergency bypass stays available only to repair a broken gate;
-ordinary changes use the reviewed path.
+review, resolved conversations, and the `Downstream governance` status. The
+required status is bound to the GitHub Actions application that runs this
+trusted workflow; an `any source` requirement is not acceptable because another
+writer or integration could publish the same context name. The active rule
+evidence must therefore show the non-null expected application or integration
+identity. The control also blocks force pushes and branch deletion. Repository
+merge settings allow only merge commits, preserving the exact commits accepted
+by the governance status, and a `master` update invalidates success statuses on
+other open pull requests. The maintainer emergency bypass stays available only
+to repair a broken gate; ordinary changes use the reviewed path.
 
 The workflow must first exist on `master` and publish a successful
 `Downstream governance` status on a synthetic accepted pull request. A second
@@ -227,6 +231,7 @@ control, not evidence of protection:
 
 ```sh
 gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection
+gh api repos/pOmelchenko/Livox-SDK2/branches/master/protection/required_status_checks
 gh api repos/pOmelchenko/Livox-SDK2/rulesets
 gh api repos/pOmelchenko/Livox-SDK2/rules/branches/master
 gh api repos/pOmelchenko/Livox-SDK2 --jq \
