@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "source_contracts": [
+    {
+      "id": "macos_native_discovery_bind",
+      "issues": [2],
+      "commits": [
+        "28c5e39325ff5276b32daa928e0aa4792d9abeea"
+      ],
+      "ownership": {
+        "kind": "platform_only",
+        "check": "macOS AppleClang discovery translation-unit build and native UDP bind qualification",
+        "owner": "pOmelchenko",
+        "trigger": "repeat for every macOS networking change and before qualifying a macOS consumer revision"
+      }
+    },
+    {
+      "id": "logger_path_portability",
+      "issues": [3],
+      "commits": [
+        "077bd0a98506cca26b07c05148c0f85d83680b15",
+        "40a709948d1fc86716fb1acf90d6bc7801193d90",
+        "e6b6ef3ad26c036baedc3b35c806575060986253"
+      ],
+      "ownership": {
+        "kind": "sdk_test",
+        "test": "livox_logger_path_tests",
+        "platform_trigger": "run natively on Windows and a Unix platform for logger path or filesystem changes"
+      }
+    },
+    {
+      "id": "fastcrc_livox_compatibility",
+      "issues": [6],
+      "commits": [
+        "9080bd15d0cd09999dda5987a9d90d3c6b9f75b3"
+      ],
+      "ownership": {
+        "kind": "sdk_test",
+        "test": "livox_fastcrc_tests",
+        "platform_trigger": "run the compatibility vectors on every supported compiler and data model affected by FastCRC changes"
+      }
+    },
+    {
+      "id": "firmware_header_checksum_fixture",
+      "issues": [11],
+      "commits": [],
+      "ownership": {
+        "kind": "pending",
+        "owner": "pOmelchenko",
+        "trigger": "issue #11 establishes stored checksum parameters and approves a redistributable synthetic or licensed fixture"
+      }
+    },
+    {
+      "id": "fastcrc_portable_bulk_loads",
+      "issues": [12],
+      "commits": [],
+      "ownership": {
+        "kind": "pending",
+        "owner": "pOmelchenko",
+        "trigger": "issue #12 lands its focused aliasing, endian, used-span, and performance regression"
+      }
+    }
+  ],
+  "crc_profiles": {
+    "fastcrc_livox_compatibility": {
+      "input_ascii": "123456789",
+      "ccitt_false": "0x29B1",
+      "mcrf4xx_seed": "0x0000",
+      "mcrf4xx": "0x2189",
+      "crc32_iso_hdlc": "0xCBF43926",
+      "firmware_authority": "compatibility vector only; the real firmware-header fixture remains pending on issue #11"
+    },
+    "fastcrc_standard_reference": {
+      "input_ascii": "123456789",
+      "mcrf4xx_seed": "0xFFFF",
+      "mcrf4xx": "0x6F91",
+      "firmware_authority": "textbook reference only; never implicit Livox firmware-file authority"
+    }
+  },
+  "fastcrc_usage": {
+    "header_sha256": "8a33e872e2a1426f6f3d69bb2c2872ee3402c70d8c6b1394f2c093f8ecc55c22",
+    "allowed_methods": [
+      "ccitt",
+      "crc32",
+      "mcrf4xx"
+    ],
+    "consumer_files": [
+      "samples/lidar_cmd_observer/main.cpp",
+      "sdk_core/comm/sdk_protocol.h",
+      "sdk_core/debug_point_cloud_handler/debug_point_cloud_handler.cpp",
+      "sdk_core/upgrade/firmware.h"
+    ],
+    "calls": [
+      {
+        "file": "sdk_core/comm/sdk_protocol.cpp",
+        "method": "ccitt",
+        "anchor": "crc_16_.ccitt(o_buf, 18)",
+        "span": "exactly 18 command-header bytes",
+        "object_lifetime": "FastCRC16 member of one SdkProtocol instance",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "sdk_core/comm/sdk_protocol.cpp",
+        "method": "crc32",
+        "anchor": "crc_32_.crc32(i_packet.data, i_packet.data_len)",
+        "span": "non-empty uint16_t data_len; repository command buffers intend at most 1376 payload bytes",
+        "object_lifetime": "FastCRC32 member of one SdkProtocol instance",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "sdk_core/comm/sdk_protocol.cpp",
+        "method": "ccitt",
+        "anchor": "crc_16_.ccitt(buf, 18)",
+        "span": "exactly 18 command-header bytes",
+        "object_lifetime": "FastCRC16 member of one SdkProtocol instance",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "sdk_core/comm/sdk_protocol.cpp",
+        "method": "crc32",
+        "anchor": "crc_32_.crc32(packet->data, packet->length - GetPacketWrapperLen())",
+        "span": "non-empty wire length minus the 24-byte wrapper; uint16_t representation bounds it to 65511 bytes",
+        "object_lifetime": "FastCRC32 member of one SdkProtocol instance",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "sdk_core/upgrade/firmware.cpp",
+        "method": "mcrf4xx",
+        "anchor": "crc16_.mcrf4xx((uint8_t *)(&header_), (uint16_t)(sizeof(header_) - sizeof(uint16_t)))",
+        "span": "exactly 284 bytes before the stored header checksum",
+        "object_lifetime": "FastCRC16 member of one Firmware instance",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "sdk_core/debug_point_cloud_handler/debug_point_cloud_handler.cpp",
+        "method": "ccitt",
+        "anchor": "crc_16.ccitt(reinterpret_cast<const uint8_t*>(&file_header), offsetof(LivoxLidarDebugPointCloudFileHeader, crc16))",
+        "span": "exactly 126 bytes before the debug-file header crc16 field",
+        "object_lifetime": "local FastCRC16 for one debug-file header creation",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "samples/lidar_cmd_observer/main.cpp",
+        "method": "ccitt",
+        "anchor": "crc_16.ccitt(reinterpret_cast<const uint8_t*>(data), offset_of_crc16)",
+        "span": "exactly 18 bytes through offsetof(LivoxLidarCmdPacket, crc16_h)",
+        "object_lifetime": "function-local static FastCRC16 shared by observer callback invocations",
+        "owner": "fastcrc_livox_compatibility"
+      },
+      {
+        "file": "samples/lidar_cmd_observer/main.cpp",
+        "method": "crc32",
+        "anchor": "crc_32.crc32(reinterpret_cast<const uint8_t*>(data) + offset_of_data, data->length - offset_of_data)",
+        "span": "wire length minus the 24-byte data offset; uint16_t representation bounds it to 65511 bytes",
+        "object_lifetime": "function-local static FastCRC32 shared by observer callback invocations",
+        "owner": "fastcrc_livox_compatibility"
+      }
+    ]
+  },
+  "fixture_conventions": [
+    {
+      "category": "packet_bytes",
+      "state": "convention_only",
+      "rule": "use bounded literal or deterministically generated byte arrays; never commit raw captures or device identifiers"
+    },
+    {
+      "category": "crc_vectors",
+      "state": "implemented",
+      "rule": "name the algorithm profile, seed, input bytes, and expected result; a textbook vector cannot become firmware authority"
+    },
+    {
+      "category": "callback_counters",
+      "state": "convention_only",
+      "rule": "use test-owned counters and deterministic barriers; wall-clock sleeps are not completion evidence"
+    },
+    {
+      "category": "configuration",
+      "state": "convention_only",
+      "rule": "generate minimal files below a test-owned temporary directory with documentation-only addresses and no credentials"
+    },
+    {
+      "category": "abi_layout",
+      "state": "convention_only",
+      "rule": "check sizeof, alignof, and offsetof against an explicitly named compiler, platform, and data model"
+    },
+    {
+      "category": "sockets",
+      "state": "convention_only",
+      "rule": "bind loopback with test-assigned ephemeral ports; never embed private network identities or infer physical qualification"
+    },
+    {
+      "category": "logger_debug_paths",
+      "state": "implemented",
+      "rule": "create unique paths below the platform temporary directory, assert cleanup, and never embed a developer absolute path"
+    },
+    {
+      "category": "lifecycle_observer",
+      "state": "convention_only",
+      "rule": "use fakes and explicit barriers to prove registration, removal, shutdown, and callback counts without hardware"
+    },
+    {
+      "category": "time_helpers",
+      "state": "convention_only",
+      "rule": "inject fixed clocks and explicit zones; do not depend on the host clock, locale, or timezone"
+    }
+  ]
+}

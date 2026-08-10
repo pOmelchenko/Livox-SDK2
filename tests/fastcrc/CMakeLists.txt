@@ -12,6 +12,7 @@ option(FASTCRC_ENABLE_SANITIZERS
 get_filename_component(
   LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
 )
+include("${LIVOX_SDK_ROOT}/tests/cmake/RegisterSdkTest.cmake")
 
 add_executable(livox_fastcrc_tests
   fastcrc_tests.cpp
@@ -30,6 +31,7 @@ else()
 endif()
 
 add_test(NAME livox_fastcrc_tests COMMAND livox_fastcrc_tests)
+livox_register_sdk_test(livox_fastcrc_tests)
 
 if(FASTCRC_ENABLE_SANITIZERS)
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -64,6 +66,7 @@ if(FASTCRC_ENABLE_SANITIZERS)
       "-DPROGRAM=$<TARGET_FILE:fastcrc_sanitizer_negative_control>"
       -P "${CMAKE_CURRENT_LIST_DIR}/expect_sanitizer_failure.cmake"
   )
+  livox_register_sdk_test(fastcrc_sanitizer_fail_closed)
 
   set(FASTCRC_SANITIZER_ENVIRONMENT
     "ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:detect_leaks=0"

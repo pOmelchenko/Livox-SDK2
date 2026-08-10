@@ -12,3 +12,4 @@ endif()
 
 add_subdirectory(logger_path)
 add_subdirectory(fastcrc)
+add_subdirectory(regression)

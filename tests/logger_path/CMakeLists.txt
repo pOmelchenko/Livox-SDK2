@@ -7,6 +7,7 @@ enable_testing()
 get_filename_component(
   LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
 )
+include("${LIVOX_SDK_ROOT}/tests/cmake/RegisterSdkTest.cmake")
 
 add_executable(livox_logger_path_tests
   file_manager_path_tests.cpp
@@ -34,3 +35,4 @@ else()
 endif()
 
 add_test(NAME livox_logger_path_tests COMMAND livox_logger_path_tests)
+livox_register_sdk_test(livox_logger_path_tests)

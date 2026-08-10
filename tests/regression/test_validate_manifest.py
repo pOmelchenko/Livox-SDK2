@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+
+import copy
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+TEST_DIRECTORY = Path(__file__).resolve().parent
+REPOSITORY = TEST_DIRECTORY.parents[1]
+sys.path.insert(0, str(TEST_DIRECTORY))
+
+import validate_manifest
+
+
+class RegressionManifestNegativeControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.document = json.loads(
+            (TEST_DIRECTORY / "ownership_manifest.json").read_text(encoding="utf-8")
+        )
+        cls.source_records = validate_manifest.collect_required_sources(REPOSITORY)
+        cls.registered_tests = {
+            "livox_fastcrc_tests",
+            "livox_logger_path_tests",
+        }
+
+    def validate(self, document=None, registered_tests=None):
+        return validate_manifest.validate_document(
+            copy.deepcopy(document if document is not None else self.document),
+            REPOSITORY,
+            set(
+                registered_tests
+                if registered_tests is not None
+                else self.registered_tests
+            ),
+            copy.deepcopy(self.source_records),
+        )
+
+    def run_cli(self, document, registered_tests):
+        with tempfile.TemporaryDirectory(prefix="livox_manifest_negative_") as temp:
+            temp_path = Path(temp)
+            manifest_path = temp_path / "ownership_manifest.json"
+            registry_path = temp_path / "registered_sdk_tests.txt"
+            manifest_path.write_text(json.dumps(document), encoding="utf-8")
+            registry_path.write_text(
+                "\n".join(sorted(registered_tests)) + "\n", encoding="utf-8"
+            )
+            return subprocess.run(
+                [
+                    sys.executable,
+                    str(TEST_DIRECTORY / "validate_manifest.py"),
+                    "--repository",
+                    str(REPOSITORY),
+                    "--manifest",
+                    str(manifest_path),
+                    "--test-registry",
+                    str(registry_path),
+                ],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+    def test_checked_manifest_passes(self):
+        self.assertEqual([], self.validate())
+
+    def test_absent_required_mapping_fails(self):
+        document = copy.deepcopy(self.document)
+        document["source_contracts"] = [
+            contract
+            for contract in document["source_contracts"]
+            if contract["id"] != "fastcrc_livox_compatibility"
+        ]
+        errors = self.validate(document=document)
+        self.assertTrue(
+            any("9080bd15d0cd" in error and "no ownership mapping" in error for error in errors),
+            errors,
+        )
+        completed = self.run_cli(document, self.registered_tests)
+        self.assertEqual(1, completed.returncode, completed.stderr)
+        self.assertIn("no ownership mapping", completed.stderr)
+
+    def test_skipped_required_test_fails(self):
+        errors = self.validate(registered_tests={"livox_fastcrc_tests"})
+        self.assertTrue(
+            any(
+                "required SDK test is not registered: livox_logger_path_tests" in error
+                for error in errors
+            ),
+            errors,
+        )
+        completed = self.run_cli(self.document, {"livox_fastcrc_tests"})
+        self.assertEqual(1, completed.returncode, completed.stderr)
+        self.assertIn("required SDK test is not registered", completed.stderr)
+
+    def test_duplicate_authority_fails(self):
+        document = copy.deepcopy(self.document)
+        duplicate = copy.deepcopy(document["source_contracts"][1])
+        duplicate["id"] = "logger_path_duplicate_authority"
+        document["source_contracts"].append(duplicate)
+        errors = self.validate(document=document)
+        self.assertTrue(any("duplicate authorities" in error for error in errors), errors)
+        self.assertTrue(any("duplicate mappings" in error for error in errors), errors)
+
+    def test_standard_profile_cannot_become_livox_profile(self):
+        document = copy.deepcopy(self.document)
+        document["crc_profiles"]["fastcrc_standard_reference"]["mcrf4xx"] = "0x2189"
+        errors = self.validate(document=document)
+        self.assertTrue(
+            any(
+                "fastcrc_standard_reference.mcrf4xx must be 0x6F91" in error
+                for error in errors
+            ),
+            errors,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
