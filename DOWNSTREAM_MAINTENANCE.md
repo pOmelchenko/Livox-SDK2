@@ -238,6 +238,13 @@ gh api repos/pOmelchenko/Livox-SDK2 --jq \
   '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'
 ```
 
+PR #14 for issue #5 is the one-time bootstrap exception to the governance
+status itself because the trusted workflow is not present on `master` before
+that merge. It still requires independent human approval, resolved review
+findings, all local governance validators, identity-preserving merge settings,
+and a merge commit. The exception expires with that merge and does not apply to
+either synthetic qualification pull request or any later change.
+
 If the new gate locks out valid changes, first capture the same API evidence
 and link it from issue #5. The maintainer then removes only the required
 `Downstream governance` status, or changes only its owning ruleset from active

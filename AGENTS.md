@@ -139,6 +139,11 @@ Refs: #<issue>
   base and issue invalidation independently so they cannot be discarded by
   pull-request traffic, and confirms that `master` still matches the validated
   base before publishing success.
+- PR #14 for issue #5 is the sole bootstrap exception to the status requirement
+  because this workflow does not exist on `master` until that pull request
+  lands. The exception does not waive independent human review, resolved review
+  findings, local validators, merge-commit identity preservation, or the ban on
+  production SDK changes. It expires when PR #14 lands and may not be reused.
 - Merge accepted pull requests with GitHub's merge-commit strategy. Keep merge
   commits enabled and disable squash and rebase merges so the exact validated
   commit identities and messages land on `master` without rewriting.
