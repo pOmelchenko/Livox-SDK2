@@ -1,0 +1,91 @@
+name: Third-party candidate
+description: Evaluate one immutable third-party commit for one downstream problem.
+title: "[Candidate]: "
+body:
+  - type: textarea
+    id: source_provenance
+    attributes:
+      label: Immutable source provenance
+      description: Give the repository URL, full 40-character commit SHA, original author, license, attribution, and notice requirements.
+    validations:
+      required: true
+
+  - type: input
+    id: downstream_base
+    attributes:
+      label: Downstream base
+      description: Give the exact 40-character downstream commit SHA used for re-evaluation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_evidence
+    attributes:
+      label: Problem and current-base re-evaluation
+      description: Show whether the problem and candidate still apply, conflict, duplicate work, or are upstreamed.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: disposition
+    attributes:
+      label: Proposed disposition
+      options:
+        - Accept unchanged
+        - Accept with adaptation
+        - Defer
+        - Reject
+        - Duplicate
+        - Already upstreamed
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Selected scope, non-goals, value, and alternatives
+      description: List selected files or hunks, excluded neighbors, supported consumer value, alternatives, and decision.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risk
+      description: Cover API, ABI, wire, concurrency, memory safety, platforms, consumers, and rollback.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: List focused regressions and sanitizer, platform, or hardware qualification.
+    validations:
+      required: true
+
+  - type: textarea
+    id: agent_authorship
+    attributes:
+      label: Agent authorship disclosure
+      description: Use Agent-Authored, Agent-Assisted, or Agent-Authorship with the actual identity.
+    validations:
+      required: true
+
+  - type: textarea
+    id: upstream
+    attributes:
+      label: Upstream disposition
+      description: Link an upstream PR, give a deferred owner and trigger, or explain a downstream-only decision.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Intake confirmation
+      options:
+        - label: I verified the repository, immutable commit, original author, license, and notices.
+          required: true
+        - label: This is one candidate for one problem, not a branch or patch-series import.
+          required: true
