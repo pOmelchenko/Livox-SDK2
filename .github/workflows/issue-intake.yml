@@ -1,0 +1,66 @@
+name: Enrich issue intake
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: issue-intake-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  enrich:
+    name: Add maintainer triage context
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      EVENT_SHA: ${{ github.sha }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      EXISTING_COMMENTS_FILE: ${{ runner.temp }}/issue-comments.txt
+      COMMENT_FILE: ${{ runner.temp }}/issue-intake-context.md
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Check out the trusted event revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EVENT_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Read existing automation comments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | .body' \
+            > "${EXISTING_COMMENTS_FILE}"
+
+      - name: Render deterministic context
+        shell: bash
+        run: |
+          python3 tools/governance/render_issue_context.py \
+            --event "${GITHUB_EVENT_PATH}" \
+            --base-sha "${EVENT_SHA}" \
+            --run-url "${RUN_URL}" \
+            --existing-comments "${EXISTING_COMMENTS_FILE}" \
+            --output "${COMMENT_FILE}"
+
+      - name: Post context without editing reporter content
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [[ ! -s "${COMMENT_FILE}" ]]; then
+            echo "No issue intake context needs to be posted."
+            exit 0
+          fi
+          gh issue comment "${ISSUE_NUMBER}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --body-file "${COMMENT_FILE}"
