@@ -86,9 +86,10 @@ group, so pull-request traffic cannot discard an invalidation run. A successful
 validation requires the fetched pull-request ref to equal the event head and
 rechecks the live pull-request head, base SHA, base branch, and `master`
 identity before publishing. A successful publication is provisional until the
-same run revalidates every governing issue and its maintainer-acceptance label.
-If an issue mutation raced with publication, that post-publication validation
-restores `pending` instead of leaving a stale success.
+same run revalidates every governing issue and its maintainer-acceptance label,
+then rechecks the live `master` identity. If an issue or base mutation raced
+with publication, that post-publication validation restores `pending` instead
+of leaving a stale success.
 
 Editing a governing issue or adding or removing one of its labels also marks
 the status pending on every open pull-request head. This deliberately fails

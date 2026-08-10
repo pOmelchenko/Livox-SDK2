@@ -57,6 +57,21 @@ class WorkflowContractTests(unittest.TestCase):
             publisher.index("python3 tools/governance/validate_commits.py"),
         )
 
+    def test_published_success_is_rechecked_against_live_master(self):
+        publisher = WORKFLOW.split(
+            "Publish the required status on the pull-request head", 1
+        )[1].split("invalidate-after-governance-input-update:", 1)[0]
+        master_query = '"repos/${GITHUB_REPOSITORY}/git/ref/heads/master"'
+        self.assertEqual(publisher.count(master_query), 2)
+        self.assertIn(
+            '"${post_publish_base_sha}" != "${BASE_SHA}"',
+            publisher,
+        )
+        self.assertLess(
+            publisher.index('-f state="${state}"'),
+            publisher.rindex(master_query),
+        )
+
     def test_fetched_and_live_pull_request_identities_match_event(self):
         self.assertIn(
             'git fetch --no-tags origin \\\n'
