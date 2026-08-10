@@ -33,7 +33,10 @@ DISPOSITION_LANGUAGE = re.compile(
     r"already[- ]upstreamed|project-owned)\b",
     re.IGNORECASE,
 )
-CHECKBOX = re.compile(r"^\s*-\s+\[(?P<mark>[ xX])\]\s+\S", re.MULTILINE)
+CHECKBOX = re.compile(
+    r"^\s*-\s+\[(?P<mark>[ xX])\]\s+(?P<label>\S.*)\s*$",
+    re.MULTILINE,
+)
 ALPHANUMERIC_TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 UPSTREAM_PR_URL = re.compile(
     r"https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/pull/[1-9][0-9]*",
@@ -223,6 +226,39 @@ THIRD_PARTY_HEADINGS = {
     for _, headings in THIRD_PARTY_REQUIREMENTS
     for heading in headings
 } | {"full source commit sha"}
+COMPATIBILITY_HEADINGS = {
+    "primary concern",
+    "affected matrix entry",
+    "compatibility analysis",
+}
+DEFECT_INTAKE_CHECKS = frozenset(
+    (
+        "I searched the downstream and upstream issue trackers for equivalent "
+        "work.",
+        "This issue contains one independently reviewable problem.",
+        "I removed credentials, private network details, raw captures, logs, "
+        "and build artifacts.",
+    )
+)
+COMPATIBILITY_INTAKE_CHECKS = frozenset(
+    (
+        "I checked the current official upstream branch and releases for "
+        "equivalent support.",
+        "This issue contains one independently reviewable compatibility or "
+        "build concern.",
+        "The verification plan distinguishes local evidence from still-pending "
+        "platform qualification.",
+    )
+)
+THIRD_PARTY_INTAKE_CHECKS = frozenset(
+    (
+        "I verified the source repository, immutable commit, author, and license.",
+        "I compared this candidate with the current downstream and official "
+        "upstream bases.",
+        "I am proposing one candidate for one independently reviewable problem, "
+        "not a branch import.",
+    )
+)
 
 
 def validate_issue_body(
@@ -286,14 +322,24 @@ def validate_issue_body(
             )
 
         intake_checks = sections.get("intake checks", "")
-        checkbox_marks = [
-            match.group("mark") for match in CHECKBOX.finditer(intake_checks)
-        ]
+        checkbox_matches = list(CHECKBOX.finditer(intake_checks))
+        checkbox_marks = [match.group("mark") for match in checkbox_matches]
+        checkbox_labels = frozenset(
+            match.group("label").strip() for match in checkbox_matches
+        )
+        expected_intake_checks = DEFECT_INTAKE_CHECKS
+        if THIRD_PARTY_HEADINGS.intersection(sections):
+            expected_intake_checks = THIRD_PARTY_INTAKE_CHECKS
+        elif COMPATIBILITY_HEADINGS.intersection(sections):
+            expected_intake_checks = COMPATIBILITY_INTAKE_CHECKS
         if intake_checks and (
             len(checkbox_marks) != 3
             or any(mark.casefold() != "x" for mark in checkbox_marks)
+            or checkbox_labels != expected_intake_checks
         ):
-            errors.append("issue intake checks are not all checked")
+            errors.append(
+                "issue intake checks do not match the selected intake form"
+            )
 
         if THIRD_PARTY_HEADINGS.intersection(sections):
             errors.extend(

@@ -61,9 +61,9 @@ Agent-Authored: OpenAI Codex
 
 ## Intake checks
 
-- [x] I searched downstream and upstream for equivalent work.
+- [x] I searched the downstream and upstream issue trackers for equivalent work.
 - [x] This issue contains one independently reviewable problem.
-- [x] I removed private and generated artifacts.
+- [x] I removed credentials, private network details, raw captures, logs, and build artifacts.
 """
 
 
@@ -200,7 +200,7 @@ class IntakeContractTests(unittest.TestCase):
 
         unchecked = VALID_ISSUE.replace("- [x]", "- [ ]", 1)
         self.assertIn(
-            "issue intake checks are not all checked",
+            "issue intake checks do not match the selected intake form",
             validate_issue_body(unchecked),
         )
 
@@ -231,15 +231,45 @@ class IntakeContractTests(unittest.TestCase):
                 )
 
         missing_check = VALID_ISSUE.replace(
-            "- [x] I removed private and generated artifacts.\n", ""
+            "- [x] I removed credentials, private network details, raw captures, "
+            "logs, and build artifacts.\n",
+            "",
         )
         self.assertIn(
-            "issue intake checks are not all checked",
+            "issue intake checks do not match the selected intake form",
             validate_issue_body(missing_check),
         )
 
+        rewritten_checks = VALID_ISSUE
+        for statement in (
+            "I searched the downstream and upstream issue trackers for "
+            "equivalent work.",
+            "This issue contains one independently reviewable problem.",
+            "I removed credentials, private network details, raw captures, "
+            "logs, and build artifacts.",
+        ):
+            rewritten_checks = rewritten_checks.replace(
+                statement, "placeholder checklist item"
+            )
+        self.assertIn(
+            "issue intake checks do not match the selected intake form",
+            validate_issue_body(rewritten_checks),
+        )
+
     def test_third_party_intake_requires_exact_source_identity(self):
-        third_party = VALID_ISSUE + """
+        third_party = VALID_ISSUE.replace(
+            "- [x] I searched the downstream and upstream issue trackers for "
+            "equivalent work.\n"
+            "- [x] This issue contains one independently reviewable problem.\n"
+            "- [x] I removed credentials, private network details, raw captures, "
+            "logs, and build artifacts.\n",
+            "- [x] I verified the source repository, immutable commit, author, "
+            "and license.\n"
+            "- [x] I compared this candidate with the current downstream and "
+            "official upstream bases.\n"
+            "- [x] I am proposing one candidate for one independently reviewable "
+            "problem, not a branch import.\n",
+        ) + """
 
 ## Source repository
 

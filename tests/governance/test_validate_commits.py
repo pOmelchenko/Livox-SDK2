@@ -64,9 +64,9 @@ Agent-Authored: OpenAI Codex
 
 ## Intake checks
 
-- [x] I searched downstream and upstream for equivalent work.
+- [x] I searched the downstream and upstream issue trackers for equivalent work.
 - [x] This issue contains one independently reviewable problem.
-- [x] I removed private and generated artifacts.
+- [x] I removed credentials, private network details, raw captures, logs, and build artifacts.
 """
 
 
