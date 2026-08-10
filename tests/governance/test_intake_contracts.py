@@ -196,6 +196,24 @@ class IntakeContractTests(unittest.TestCase):
             validate_issue_body(informal_agent),
         )
 
+        for placeholder in (
+            "none",
+            "**none**",
+            "`none`",
+            '"none"',
+            "[none](https://example.com)",
+            "n&#111;ne",
+        ):
+            with self.subTest(issue_agent_placeholder=placeholder):
+                invalid_agent = VALID_ISSUE.replace(
+                    "OpenAI Codex", placeholder
+                )
+                self.assertIn(
+                    "Agent-Authored and Agent-Assisted require a "
+                    "non-placeholder agent name in the issue description",
+                    validate_issue_body(invalid_agent),
+                )
+
         missing_check = VALID_ISSUE.replace(
             "- [x] I removed private and generated artifacts.\n", ""
         )
@@ -313,14 +331,17 @@ Project-owned downstream governance work drafted with OpenAI Codex.
         )
 
     def test_pr_named_agent_rejects_placeholders_and_conflicting_none(self):
-        placeholder = VALID_PULL_REQUEST.replace(
-            "Agent-Authored: OpenAI Codex", "Agent-Authored: none"
-        )
-        self.assertIn(
-            "Agent-Authored and Agent-Assisted require a non-placeholder "
-            "agent name in the pull-request description",
-            validate_pull_request_body(placeholder),
-        )
+        for agent in ("none", "**none**", "`none`", '"none"'):
+            with self.subTest(pull_request_agent_placeholder=agent):
+                placeholder = VALID_PULL_REQUEST.replace(
+                    "Agent-Authored: OpenAI Codex",
+                    "Agent-Authored: {}".format(agent),
+                )
+                self.assertIn(
+                    "Agent-Authored and Agent-Assisted require a non-placeholder "
+                    "agent name in the pull-request description",
+                    validate_pull_request_body(placeholder),
+                )
 
         conflicting = VALID_PULL_REQUEST.replace(
             "Agent-Authored: OpenAI Codex",

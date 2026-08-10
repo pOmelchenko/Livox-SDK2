@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pure Markdown intake-contract validation for issues and pull requests."""
 
+import html
 import re
 from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
@@ -24,6 +25,8 @@ NAMED_AGENT_DISCLOSURE = re.compile(
 )
 NO_AGENT_DISCLOSURE = re.compile(r"^Agent-Authorship:\s+none\s*$", re.MULTILINE)
 BARE_PLACEHOLDERS = {"none", "n/a", "not applicable"}
+MARKDOWN_LINK = re.compile(r"^\[(?P<label>.+)\]\([^)]+\)$")
+HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
 DISPOSITION_LANGUAGE = re.compile(
     r"\b(?:accept(?:ed)?|adapt(?:ed)?|defer(?:red)?|reject(?:ed)?|duplicate|"
     r"already[- ]upstreamed|project-owned)\b",
@@ -120,7 +123,13 @@ def has_valid_upstream_disposition(value: str) -> bool:
 
 
 def is_placeholder_agent_name(value: str) -> bool:
-    normalized = value.strip().casefold()
+    normalized = html.unescape(value).strip().casefold()
+    markdown_link = MARKDOWN_LINK.fullmatch(normalized)
+    if markdown_link:
+        normalized = markdown_link.group("label")
+    normalized = HTML_TAG.sub("", normalized)
+    normalized = re.sub(r"[*_`~]", "", normalized)
+    normalized = normalized.strip(" \t\r\n'\"“”‘’")
     for placeholder in BARE_PLACEHOLDERS:
         if normalized == placeholder:
             return True
@@ -239,6 +248,15 @@ def validate_issue_body(
             )
 
         agent_authorship = sections.get("agent authorship disclosure", "")
+        named_agents = [
+            match.group("agent")
+            for match in NAMED_AGENT_DISCLOSURE.finditer(agent_authorship)
+        ]
+        if any(is_placeholder_agent_name(agent) for agent in named_agents):
+            errors.append(
+                "Agent-Authored and Agent-Assisted require a non-placeholder "
+                "agent name in the issue description"
+            )
         if agent_authorship and len(
             canonical_agent_declarations(agent_authorship)
         ) != 1:
