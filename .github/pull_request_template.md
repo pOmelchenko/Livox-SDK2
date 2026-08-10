@@ -16,6 +16,10 @@ Refs #
 
 <!-- Cover public API, ABI, wire behavior, platforms, packaging, migration, and pinned consumers. -->
 
+## Regression ownership
+
+<!-- For every SDK behavior change, name the exact source-contract id from tests/regression/ownership_manifest.json and its exact CTest test name. For external integration, platform-only, physical, or pending qualification, name the owner and objective trigger. If there is no SDK behavior change, state that with the scope rationale. -->
+
 ## Verification completed
 
 <!-- Give exact commands, environments, and results. -->
@@ -42,6 +46,7 @@ Refs #
 
 - [ ] The pull request remains draft until its scope and evidence are ready for review.
 - [ ] Every commit follows the immutable commit contract and contains one concern.
+- [ ] Every SDK behavior names its ownership-manifest contract, exact regression, and any external/platform/physical owner and trigger.
 - [ ] Provenance, compatibility, completed/pending verification, and upstream disposition were reviewed for substance.
 - [ ] Actionable findings are fixed or explicitly rejected with rationale.
 - [ ] All current inline discussions are resolved before merge.
