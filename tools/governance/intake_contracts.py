@@ -10,6 +10,7 @@ HEADING = re.compile(
     r"^\s{0,3}(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$"
 )
 FENCE = re.compile(r"^\s{0,3}(?P<marker>`{3,}|~{3,})")
+FENCE_CLOSE = re.compile(r"^\s{0,3}(?P<marker>`{3,}|~{3,})\s*$")
 HTML_COMMENT = re.compile(r"<!--(?:.*?-->|.*\Z)", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
 EXACT_FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
@@ -72,8 +73,15 @@ def parse_markdown_sections(
             marker = fence.group("marker")
             if not fence_marker:
                 fence_marker = marker
-            elif marker[0] == fence_marker[0] and len(marker) >= len(fence_marker):
-                fence_marker = ""
+            else:
+                closing_fence = FENCE_CLOSE.fullmatch(line)
+                if closing_fence:
+                    closing_marker = closing_fence.group("marker")
+                    if (
+                        closing_marker[0] == fence_marker[0]
+                        and len(closing_marker) >= len(fence_marker)
+                    ):
+                        fence_marker = ""
             continue
         if fence_marker or line.startswith(("    ", "\t")):
             continue

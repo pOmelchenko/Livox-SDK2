@@ -144,6 +144,15 @@ class IntakeContractTests(unittest.TestCase):
         self.assertGreaterEqual(len(validate_issue_body(hidden_issue)), 6)
         self.assertEqual(len(validate_pull_request_body(hidden_pull_request)), 9)
 
+    def test_code_fence_with_trailing_content_is_not_a_closer(self):
+        hidden_issue = "```markdown\n```still-code\n{}\n```".format(VALID_ISSUE)
+        hidden_pull_request = "```markdown\n```still-code\n{}\n```".format(
+            VALID_PULL_REQUEST
+        )
+
+        self.assertGreaterEqual(len(validate_issue_body(hidden_issue)), 6)
+        self.assertEqual(len(validate_pull_request_body(hidden_pull_request)), 9)
+
     def test_issue_form_requires_exact_downstream_base_sha(self):
         invalid = VALID_ISSUE.replace(
             "606f33353a31b9bdabe827d168a32fdb1c7c4057\n\n"
