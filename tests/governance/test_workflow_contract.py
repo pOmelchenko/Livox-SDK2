@@ -11,6 +11,13 @@ WORKFLOW = (
 
 
 class WorkflowContractTests(unittest.TestCase):
+    def test_trusted_checkout_is_pinned_to_an_immutable_revision(self):
+        checkout = (
+            "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+        )
+        self.assertEqual(WORKFLOW.count(checkout), 2)
+        self.assertNotIn("actions/checkout@v", WORKFLOW)
+
     def test_latest_head_validation_cannot_cancel_input_invalidation(self):
         self.assertIn(
             "downstream-governance-${{ github.repository }}-head-"

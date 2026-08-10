@@ -52,17 +52,19 @@ the imperative subject contract.
 The `Downstream governance` status validates every commit between the pull
 request merge base and head. The workflow runs the validator from the trusted
 base revision, reads commit messages and changed paths from the pull request,
-and never executes pull-request code. It resolves the normalized governing
-issue reference through the GitHub API and rejects missing, inaccessible,
-cross-repository, pull-request-only, or structurally incomplete intake. It also
-validates the pull-request description for the governing issue, independently
-reviewable concern, provenance, agent authorship, compatibility, completed and
-pending verification, upstream disposition, and rollback. The pull-request
-governing-issue and agent declaration sets must exactly match the corresponding
-trailers in the validated commits; a summary that contradicts or omits a
-commit declaration fails. Pull requests keep commits independently reviewable
-and pass both this governance status and the checks required by the affected
-behavior.
+and never executes pull-request code. Every external action used by this
+trusted path is pinned to a reviewed full commit SHA; moving major-version tags
+are not part of the trust boundary. The validator resolves the normalized
+governing issue reference through the GitHub API and rejects missing,
+inaccessible, cross-repository, pull-request-only, or structurally incomplete
+intake. It also validates the pull-request description for the governing issue,
+independently reviewable concern, provenance, agent authorship, compatibility,
+completed and pending verification, upstream disposition, and rollback. The
+pull-request governing-issue and agent declaration sets must exactly match the
+corresponding trailers in the validated commits; a summary that contradicts or
+omits a commit declaration fails. Pull requests keep commits independently
+reviewable and pass both this governance status and the checks required by the
+affected behavior.
 
 Because GitHub commit statuses are scoped to a head SHA rather than to one pull
 request, success requires every open pull request into `master` that shares the
