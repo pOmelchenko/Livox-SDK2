@@ -266,6 +266,12 @@ Accept with adaptation
             validate_issue_body(third_party),
         )
 
+        valid_third_party = third_party.replace(
+            "## Full source commit SHA\n\nx\n",
+            "## Full source commit SHA\n\n{}\n".format("a" * 40),
+        )
+        self.assertEqual(validate_issue_body(valid_third_party), [])
+
     def test_legacy_bootstrap_requires_explicit_acceptance_and_attribution(self):
         legacy = """## Problem
 

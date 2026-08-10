@@ -214,7 +214,6 @@ LEGACY_BOOTSTRAP_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
 
 THIRD_PARTY_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("source repository", ("Source repository",)),
-    ("full source commit SHA", ("Full source commit SHA",)),
     ("original author", ("Original author",)),
     ("source license", ("Source license",)),
     ("proposed disposition", ("Proposed disposition",)),
@@ -298,7 +297,11 @@ def validate_issue_body(
                 if not has_substantive_section(sections, headings)
             )
             source_commit = sections.get("full source commit sha", "").strip()
-            if source_commit and not EXACT_FULL_SHA.fullmatch(source_commit):
+            if not source_commit:
+                errors.append(
+                    "missing substantive issue field 'full source commit SHA'"
+                )
+            elif not EXACT_FULL_SHA.fullmatch(source_commit):
                 errors.append(
                     "issue full source commit SHA must be exactly 40 hexadecimal characters"
                 )
