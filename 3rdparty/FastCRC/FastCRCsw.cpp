@@ -39,13 +39,16 @@
 #if !defined(ARDUINO)
 #define PROGMEM
 #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
+
+#include <stdint.h>
+
 template <typename T>
-static constexpr unsigned short pgm_read_word(T addr) noexcept {
-	return *(const unsigned short *)(addr);
+static constexpr uint16_t pgm_read_word(T addr) noexcept {
+	return *(const uint16_t *)(addr);
 };
 template <typename T>
-static constexpr unsigned long pgm_read_dword(T addr) noexcept {
-	return *(const unsigned long *)(addr);
+static constexpr uint32_t pgm_read_dword(T addr) noexcept {
+	return *(const uint32_t *)(addr);
 };
 #endif
 
