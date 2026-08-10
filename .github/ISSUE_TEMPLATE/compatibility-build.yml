@@ -1,7 +1,15 @@
 name: Compatibility or build work
-description: Propose one compiler, platform, dependency, packaging, API/ABI, or consumer change.
+description: Report one compiler, platform, dependency, packaging, API/ABI, or consumer concern.
 title: "[Compatibility]: "
+labels:
+  - "intake:compatibility"
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        Record the evidence you have now. After submission, automation captures
+        the downstream base and adds the maintainer-owned qualification prompts.
+
   - type: dropdown
     id: concern
     attributes:
@@ -16,72 +24,38 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: downstream_base
+  - type: textarea
+    id: problem_evidence
     attributes:
-      label: Downstream base
-      description: Give the exact 40-character downstream commit SHA evaluated.
+      label: Problem and consumer evidence
+      description: Describe the observed result, expected result, affected consumer, and why downstream work may be needed.
     validations:
       required: true
 
   - type: textarea
     id: environment_evidence
     attributes:
-      label: Environment and current-base evidence
-      description: Identify toolchain, OS, architecture, dependencies, exact commands, and observed result.
+      label: Environment and command
+      description: Give the toolchain, OS, architecture, dependencies, configuration, and exact command details you know.
     validations:
       required: true
+
+  - type: input
+    id: tested_revision
+    attributes:
+      label: Tested revision
+      description: Optionally give the tag, branch, or commit SHA you actually tested.
+      placeholder: Optional
+    validations:
+      required: false
 
   - type: textarea
-    id: scope
+    id: additional_context
     attributes:
-      label: Scope, non-goals, value, and alternatives
-      description: State the smallest change, affected matrix entry, excluded concerns, consumer value, alternatives, and decision.
+      label: Additional context
+      description: Optionally add safe logs, links, constraints, alternatives, or verification ideas.
     validations:
-      required: true
-
-  - type: dropdown
-    id: disposition
-    attributes:
-      label: Proposed disposition
-      options:
-        - Accept
-        - Defer
-        - Reject
-    validations:
-      required: true
-
-  - type: textarea
-    id: provenance
-    attributes:
-      label: Source attribution and agent disclosure
-      description: State project-owned or immutable source provenance, license/notices, and Agent-Authored, Agent-Assisted, or Agent-Authorship identity.
-    validations:
-      required: true
-
-  - type: textarea
-    id: compatibility
-    attributes:
-      label: Compatibility analysis
-      description: Cover source, binary, wire, platform, packaging, migration, and consumer impact.
-    validations:
-      required: true
-
-  - type: textarea
-    id: verification
-    attributes:
-      label: Required verification
-      description: List the focused regression and supported build/platform matrix.
-    validations:
-      required: true
-
-  - type: textarea
-    id: upstream
-    attributes:
-      label: Upstream disposition
-      description: Link an upstream PR, give a deferred owner and trigger, or explain a downstream-only decision.
-    validations:
-      required: true
+      required: false
 
   - type: checkboxes
     id: checks
@@ -90,5 +64,5 @@ body:
       options:
         - label: This issue contains one independently reviewable compatibility or build concern.
           required: true
-        - label: Completed local evidence is separated from pending platform qualification.
+        - label: I separated completed evidence from assumptions and removed sensitive data.
           required: true

@@ -9,17 +9,31 @@ until equivalent work is available upstream.
 ## Intake And Ownership
 
 Every change starts with a GitHub issue for one independently reviewable
-problem or inseparable maintenance concern. The issue records current-base
-evidence, user value and alternatives, scope and non-goals, provenance and
-license, compatibility risk, required verification, and upstream disposition.
-Third-party candidates are identified by repository and full commit SHA and
-are re-evaluated against the current downstream and upstream bases.
+problem or inseparable maintenance concern. Initial forms require the evidence
+owned by the reporter: observable behavior or maintenance need, the relevant
+environment, immutable third-party provenance when applicable, and the
+single-concern and safety confirmations. Tested revisions and supplementary
+context are optional when the reporter does not know them. A dedicated form
+covers governance, automation, release, retention, and documentation work.
 
-The defect, compatibility/build, and third-party candidate forms make the
-important intake prompts natively required. GitHub issue and pull-request
-bodies can be edited after creation, so they remain reviewer-readable evidence,
-not machine-enforced state. A reviewer checks their substance. The downstream
-maintainer owns final accept, defer, reject, upstream, and merge disposition.
+Each form applies exactly one existing classification label:
+`intake:defect`, `intake:compatibility`, `intake:third-party`, or
+`intake:maintenance`. On the `issues: opened` event, the trusted intake workflow
+checks out the event's default-branch SHA, ignores unclassified issues, and
+posts one marked `github-actions[bot]` comment containing the captured facts
+and maintainer checklist. The workflow reads only prior bot comments for
+idempotency, never expands reporter prose in shell, and never edits the issue
+body. Its permissions are limited to `contents: read` and `issues: write`.
+
+Before implementation begins, the maintainer completes the issue record with
+current-base evidence, user value and alternatives, scope and non-goals,
+provenance and license, compatibility risk, required verification, agent
+disclosure, and upstream disposition. Third-party candidates retain repository,
+full commit SHA, author, license, selected scope, and disposition requirements.
+GitHub issue bodies, bot comments, and pull-request bodies can be edited, so
+they remain reviewer-readable evidence rather than machine-enforced state. A
+reviewer checks their substance. The downstream maintainer owns final accept,
+defer, reject, upstream, and merge disposition.
 
 Do not bulk-import branches or combine unrelated behavior, formatting, public
 API, build, dependency, packaging, sample, and documentation work. A combined
