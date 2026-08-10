@@ -1,0 +1,94 @@
+name: Downstream defect
+description: Report one reproducible defect in the maintained downstream SDK.
+title: "[Defect]: "
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use this form for one independently reviewable defect. A reviewer and
+        the maintainer decide whether the evidence and disposition are adequate.
+
+  - type: input
+    id: downstream_base
+    attributes:
+      label: Downstream base
+      description: Give the exact 40-character commit SHA where the defect reproduces.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_evidence
+    attributes:
+      label: Problem and current-base evidence
+      description: Describe the observable behavior, affected consumer, reproduction, and retained evidence.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope, non-goals, value, and alternatives
+      description: State the smallest change, excluded concerns, supported consumer value, alternatives, and decision.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: disposition
+    attributes:
+      label: Proposed disposition
+      options:
+        - Accept
+        - Defer
+        - Reject
+    validations:
+      required: true
+
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Source attribution
+      description: State project-owned origin or repository, full commit SHA, author, license, and retained notices.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and risk
+      description: Cover API, ABI, wire behavior, platforms, consumers, and rollback risk.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: List focused tests and any compiler, sanitizer, platform, or device qualification.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authorship
+    attributes:
+      label: Agent authorship disclosure
+      description: Use Agent-Authored, Agent-Assisted, or Agent-Authorship with the actual identity.
+    validations:
+      required: true
+
+  - type: textarea
+    id: upstream
+    attributes:
+      label: Upstream disposition
+      description: Link an upstream PR, give a deferred owner and trigger, or explain a downstream-only decision.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Intake confirmation
+      options:
+        - label: This issue contains one independently reviewable defect and no unrelated churn.
+          required: true
+        - label: I removed credentials, private network details, raw captures, and build artifacts.
+          required: true
