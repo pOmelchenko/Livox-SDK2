@@ -18,9 +18,15 @@ requirement.
 - Open or identify a GitHub issue before changing source, tests, build files,
   public API/ABI, release metadata, or maintenance policy.
 - Keep one independently reviewable problem or one inseparable maintenance
-  concern per issue and per commit. The issue records current-base evidence,
-  intended scope, non-goals, user value, alternatives, provenance,
-  compatibility risk, required verification, and upstream disposition.
+  concern per issue and per commit. Initial intake requires reporter-owned
+  problem evidence, the relevant environment or immutable third-party
+  provenance, and the single-concern and safety confirmations. A tested
+  revision and supporting context remain optional when the reporter does not
+  know them.
+- Before implementation begins, the maintainer brings the issue record to the
+  full qualification boundary: current-base evidence, intended scope,
+  non-goals, user value, alternatives, provenance, compatibility risk,
+  required verification, agent disclosure, and upstream disposition.
 - Re-evaluate third-party work against the current base. Record its repository,
   full commit SHA, author, license, selected scope, and accept, adapt, defer,
   reject, duplicate, or already-upstreamed disposition.
@@ -28,10 +34,14 @@ requirement.
   multiple concerns cannot build and qualify independently, explain why in the
   issue and in each affected commit.
 
-Issue forms use GitHub's native required fields as intake guidance. Their
-rendered Markdown remains editable, so automation must not treat an issue or
-pull-request body as immutable evidence. The maintainer and reviewer assess the
-substance of intake, provenance, compatibility, verification, and disposition.
+Issue forms use GitHub's native required fields only for the reporter-owned
+intake boundary and apply one `intake:*` classification label. The trusted
+opened-issue workflow may append the event default-branch SHA and a
+maintainer-triage checklist as a bot comment. It does not edit reporter content
+or decide qualification. Form bodies, bot comments, and pull-request bodies
+remain editable, so automation must not treat them as immutable evidence. The
+maintainer and reviewer assess the substance of intake, provenance,
+compatibility, verification, and disposition before implementation and merge.
 
 ## Exact Commit Contract
 
