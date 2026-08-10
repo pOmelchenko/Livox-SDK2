@@ -47,6 +47,19 @@ class IssueIntakeWorkflowTests(unittest.TestCase):
         self.assertIn("          fetch-depth: 1\n", self.text)
         self.assertIn("          persist-credentials: false\n", self.text)
 
+    def test_step_only_contexts_are_not_used_in_job_environment(self):
+        job_environment = re.search(
+            r"^    env:\n(?P<body>(?:^      [A-Z][A-Z0-9_]*:.*\n)+)",
+            self.text,
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(job_environment)
+        self.assertNotIn("${{ runner.", job_environment.group("body"))
+        self.assertEqual(self.text.count("${RUNNER_TEMP}/issue-comments.txt"), 2)
+        self.assertEqual(
+            self.text.count("${RUNNER_TEMP}/issue-intake-context.md"), 3
+        )
+
     def test_only_bot_comments_participate_in_idempotency(self):
         self.assertIn("gh api --paginate", self.text)
         self.assertIn("comments?per_page=100", self.text)
@@ -63,7 +76,9 @@ class IssueIntakeWorkflowTests(unittest.TestCase):
 
     def test_workflow_posts_a_comment_without_editing_the_issue(self):
         self.assertEqual(self.text.count("gh issue comment"), 1)
-        self.assertIn('--body-file "${COMMENT_FILE}"', self.text)
+        self.assertIn(
+            '--body-file "${RUNNER_TEMP}/issue-intake-context.md"', self.text
+        )
         self.assertNotIn("gh issue edit", self.text)
         self.assertNotIn("--method PATCH", self.text)
 
