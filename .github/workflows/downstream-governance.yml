@@ -158,6 +158,19 @@ jobs:
             -f description="${description}" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+          if [[ "${state}" == "success" ]] &&
+             ! python3 tools/governance/validate_commits.py \
+               --base "${BASE_SHA}" \
+               --head refs/remotes/governance/pr-head \
+               --issue-repository "${GITHUB_REPOSITORY}"; then
+            gh api --method POST \
+              "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" \
+              -f state=pending \
+              -f context="Downstream governance" \
+              -f description="Governing issue changed; governance revalidation required" \
+              -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          fi
+
   invalidate-after-governance-input-update:
     name: Require open pull-request revalidation
     if: github.event_name == 'push' || github.event_name == 'issues'

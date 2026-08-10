@@ -36,6 +36,27 @@ class WorkflowContractTests(unittest.TestCase):
             WORKFLOW,
         )
 
+    def test_published_success_is_revalidated_against_live_issues(self):
+        publisher = WORKFLOW.split(
+            "Publish the required status on the pull-request head", 1
+        )[1].split("invalidate-after-governance-input-update:", 1)[0]
+        self.assertEqual(
+            publisher.count("python3 tools/governance/validate_commits.py"),
+            1,
+        )
+        self.assertIn(
+            'if [[ "${state}" == "success" ]] &&',
+            publisher,
+        )
+        self.assertIn(
+            'description="Governing issue changed; governance revalidation required"',
+            publisher,
+        )
+        self.assertLess(
+            publisher.index('-f state="${state}"'),
+            publisher.index("python3 tools/governance/validate_commits.py"),
+        )
+
     def test_fetched_and_live_pull_request_identities_match_event(self):
         self.assertIn(
             'fetched_head_sha="$(git rev-parse refs/remotes/governance/pr-head)"',
