@@ -21,8 +21,6 @@ jobs:
     env:
       EVENT_SHA: ${{ github.sha }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
-      EXISTING_COMMENTS_FILE: ${{ runner.temp }}/issue-comments.txt
-      COMMENT_FILE: ${{ runner.temp }}/issue-intake-context.md
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Check out the trusted event revision
@@ -40,7 +38,7 @@ jobs:
           gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments?per_page=100" \
             --jq '.[] | select(.user.login == "github-actions[bot]") | .body' \
-            > "${EXISTING_COMMENTS_FILE}"
+            > "${RUNNER_TEMP}/issue-comments.txt"
 
       - name: Render deterministic context
         shell: bash
@@ -49,18 +47,18 @@ jobs:
             --event "${GITHUB_EVENT_PATH}" \
             --base-sha "${EVENT_SHA}" \
             --run-url "${RUN_URL}" \
-            --existing-comments "${EXISTING_COMMENTS_FILE}" \
-            --output "${COMMENT_FILE}"
+            --existing-comments "${RUNNER_TEMP}/issue-comments.txt" \
+            --output "${RUNNER_TEMP}/issue-intake-context.md"
 
       - name: Post context without editing reporter content
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if [[ ! -s "${COMMENT_FILE}" ]]; then
+          if [[ ! -s "${RUNNER_TEMP}/issue-intake-context.md" ]]; then
             echo "No issue intake context needs to be posted."
             exit 0
           fi
           gh issue comment "${ISSUE_NUMBER}" \
             --repo "${GITHUB_REPOSITORY}" \
-            --body-file "${COMMENT_FILE}"
+            --body-file "${RUNNER_TEMP}/issue-intake-context.md"
