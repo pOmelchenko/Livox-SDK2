@@ -113,6 +113,23 @@ class RegressionManifestNegativeControls(unittest.TestCase):
                     validate_manifest._contains_private_path(private_path)
                 )
 
+    def test_pointer_fastcrc_call_requires_inventory_entry(self):
+        consumer = REPOSITORY / "sdk_core/comm/sdk_protocol.cpp"
+        original_read_text = Path.read_text
+
+        def inject_pointer_call(path, *args, **kwargs):
+            text = original_read_text(path, *args, **kwargs)
+            if path == consumer:
+                return text + "\ncrc_ptr->crc32(data, length);\n"
+            return text
+
+        with mock.patch.object(Path, "read_text", new=inject_pointer_call):
+            errors = self.validate()
+        self.assertTrue(
+            any("FastCRC call-site inventory differs" in error for error in errors),
+            errors,
+        )
+
     def test_fastcrc_header_crlf_checkout_passes(self):
         header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
         lf_content = header.read_bytes().replace(b"\r\n", b"\n")

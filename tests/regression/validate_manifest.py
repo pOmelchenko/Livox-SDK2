@@ -373,7 +373,9 @@ def _validate_fastcrc(document, repository, contract_ids, errors):
             )
 
     method_pattern = re.compile(
-        r"\.\s*(" + "|".join(sorted(FASTCRC_METHODS, key=len, reverse=True)) + r")\s*\("
+        r"(?:\.|->)\s*("
+        + "|".join(sorted(FASTCRC_METHODS, key=len, reverse=True))
+        + r")\s*\("
     )
     actual_calls = Counter()
     for path in _source_files(repository, ("sdk_core", "samples")):
