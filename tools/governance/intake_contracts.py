@@ -10,7 +10,7 @@ HEADING = re.compile(
     r"^\s{0,3}(?P<marks>#{2,3})\s+(?P<label>.+?)\s*$"
 )
 FENCE = re.compile(r"^\s{0,3}(?P<marker>`{3,}|~{3,})")
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+HTML_COMMENT = re.compile(r"<!--(?:.*?-->|.*\Z)", re.DOTALL)
 FULL_SHA = re.compile(r"\b[0-9a-fA-F]{40}\b")
 EXACT_FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
 ISSUE_LINK = re.compile(
