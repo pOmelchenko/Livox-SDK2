@@ -77,6 +77,12 @@
       "firmware_authority": "textbook reference only; never implicit Livox firmware-file authority"
     }
   },
+  "sanitizer_contract": {
+    "negative_control": "fastcrc_sanitizer_fail_closed",
+    "compile": "address,undefined with no recovery and frame pointers",
+    "asan_options": "halt_on_error=1:abort_on_error=1:detect_leaks=0",
+    "ubsan_options": "halt_on_error=1:print_stacktrace=1"
+  },
   "fastcrc_usage": {
     "header_sha256": "8a33e872e2a1426f6f3d69bb2c2872ee3402c70d8c6b1394f2c093f8ecc55c22",
     "allowed_methods": [

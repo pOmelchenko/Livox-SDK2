@@ -17,6 +17,13 @@ file(GENERATE
   CONTENT "${LIVOX_SDK_TEST_REGISTRY}\n"
 )
 
+set(LIVOX_SDK_MANIFEST_SANITIZER_ARGUMENT)
+if(LIVOX_SDK_TESTS_ENABLE_SANITIZERS)
+  set(LIVOX_SDK_MANIFEST_SANITIZER_ARGUMENT
+    --require-sanitizer-control
+  )
+endif()
+
 add_test(
   NAME livox_regression_manifest_contract
   COMMAND "${Python3_EXECUTABLE}"
@@ -24,6 +31,7 @@ add_test(
     --repository "${CMAKE_CURRENT_LIST_DIR}/../.."
     --manifest "${CMAKE_CURRENT_LIST_DIR}/ownership_manifest.json"
     --test-registry "${LIVOX_SDK_TEST_REGISTRY_FILE}"
+    ${LIVOX_SDK_MANIFEST_SANITIZER_ARGUMENT}
 )
 set_tests_properties(livox_regression_manifest_contract PROPERTIES
   LABELS "sdk;manifest"

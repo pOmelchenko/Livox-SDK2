@@ -8,6 +8,7 @@ get_filename_component(
   LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
 )
 include("${LIVOX_SDK_ROOT}/tests/cmake/RegisterSdkTest.cmake")
+include("${LIVOX_SDK_ROOT}/tests/cmake/EnableSanitizers.cmake")
 
 add_executable(livox_logger_path_tests
   file_manager_path_tests.cpp
@@ -35,4 +36,8 @@ else()
 endif()
 
 add_test(NAME livox_logger_path_tests COMMAND livox_logger_path_tests)
+livox_enable_suite_sanitizers(
+  livox_logger_path_tests
+  livox_logger_path_tests
+)
 livox_register_sdk_test(livox_logger_path_tests)

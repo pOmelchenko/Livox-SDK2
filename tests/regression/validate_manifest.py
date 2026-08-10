@@ -80,6 +80,12 @@ PROFILE_CONTRACT = {
         "mcrf4xx": "0x6F91",
     },
 }
+SANITIZER_CONTRACT = {
+    "negative_control": "fastcrc_sanitizer_fail_closed",
+    "compile": "address,undefined with no recovery and frame pointers",
+    "asan_options": "halt_on_error=1:abort_on_error=1:detect_leaks=0",
+    "ubsan_options": "halt_on_error=1:print_stacktrace=1",
+}
 
 
 def _git(repository, *arguments):
@@ -265,6 +271,22 @@ def _validate_profiles(document, errors):
             errors.append(f"{profile_name} requires an explicit firmware_authority")
 
 
+def _validate_sanitizer_contract(
+    document, registered_tests, require_sanitizer_control, errors
+):
+    actual = document.get("sanitizer_contract")
+    if actual != SANITIZER_CONTRACT:
+        errors.append("sanitizer_contract must retain strict compile, runtime, and negative-control settings")
+    if (
+        require_sanitizer_control
+        and SANITIZER_CONTRACT["negative_control"] not in registered_tests
+    ):
+        errors.append(
+            "sanitizer mode requires registered negative control: "
+            + SANITIZER_CONTRACT["negative_control"]
+        )
+
+
 def _validate_fastcrc(document, repository, contract_ids, errors):
     usage = document.get("fastcrc_usage", {})
     header = repository / "3rdparty/FastCRC/FastCRC.h"
@@ -376,7 +398,13 @@ def _validate_fixtures(document, repository, errors):
                 errors.append(f"private absolute path in public test file: {path.relative_to(repository)}")
 
 
-def validate_document(document, repository, registered_tests, source_records=None):
+def validate_document(
+    document,
+    repository,
+    registered_tests,
+    source_records=None,
+    require_sanitizer_control=False,
+):
     repository = Path(repository).resolve()
     errors = []
     if document.get("schema_version") != 1:
@@ -387,6 +415,9 @@ def validate_document(document, repository, registered_tests, source_records=Non
         document, set(registered_tests), source_records, errors
     )
     _validate_profiles(document, errors)
+    _validate_sanitizer_contract(
+        document, set(registered_tests), require_sanitizer_control, errors
+    )
     _validate_fastcrc(document, repository, contract_ids, errors)
     _validate_fixtures(document, repository, errors)
     return errors
@@ -397,6 +428,7 @@ def _parse_args(argv):
     parser.add_argument("--repository", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--test-registry", required=True, type=Path)
+    parser.add_argument("--require-sanitizer-control", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -411,7 +443,11 @@ def main(argv=None):
         }
         source_records = collect_required_sources(args.repository.resolve())
         errors = validate_document(
-            document, args.repository, registered_tests, source_records
+            document,
+            args.repository,
+            registered_tests,
+            source_records,
+            args.require_sanitizer_control,
         )
     except (OSError, RuntimeError, ValueError, KeyError) as error:
         print(f"manifest validation could not run: {error}", file=sys.stderr)

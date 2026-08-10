@@ -119,6 +119,19 @@ class RegressionManifestNegativeControls(unittest.TestCase):
             errors,
         )
 
+    def test_sanitizer_mode_requires_negative_control(self):
+        errors = validate_manifest.validate_document(
+            copy.deepcopy(self.document),
+            REPOSITORY,
+            copy.deepcopy(self.registered_tests),
+            copy.deepcopy(self.source_records),
+            require_sanitizer_control=True,
+        )
+        self.assertTrue(
+            any("sanitizer mode requires registered negative control" in error for error in errors),
+            errors,
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
