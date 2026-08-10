@@ -68,7 +68,7 @@ jobs:
 
       - name: Fetch pull-request metadata without checking out its code
         run: |
-          git fetch --no-tags origin
+          git fetch --no-tags origin \
           "+refs/pull/${PR_NUMBER}/head:refs/remotes/governance/pr-head"
           fetched_head_sha="$(git rev-parse refs/remotes/governance/pr-head)"
           [[ "${fetched_head_sha}" == "${HEAD_SHA}" ]]

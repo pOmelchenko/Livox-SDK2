@@ -59,6 +59,12 @@ class WorkflowContractTests(unittest.TestCase):
 
     def test_fetched_and_live_pull_request_identities_match_event(self):
         self.assertIn(
+            'git fetch --no-tags origin \\\n'
+            '          "+refs/pull/${PR_NUMBER}/head:'
+            'refs/remotes/governance/pr-head"',
+            WORKFLOW,
+        )
+        self.assertIn(
             'fetched_head_sha="$(git rev-parse refs/remotes/governance/pr-head)"',
             WORKFLOW,
         )
