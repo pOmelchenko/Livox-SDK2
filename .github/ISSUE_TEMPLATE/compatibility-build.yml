@@ -51,7 +51,15 @@ body:
     id: decision
     attributes:
       label: Intended change and alternatives
-      description: State the smallest proposed change, alternatives considered, and why the downstream should own it.
+      description: State the smallest proposed change and the alternatives considered.
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User value and alternatives
+      description: Explain the affected consumer outcome and why downstream ownership is preferable to no change or upstream-only support.
     validations:
       required: true
 

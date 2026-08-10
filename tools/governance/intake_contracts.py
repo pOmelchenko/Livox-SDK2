@@ -199,7 +199,7 @@ ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
 STRICT_ISSUE_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     (
         "user value and alternatives",
-        ("User value and alternatives", "Intended change and alternatives"),
+        ("User value and alternatives",),
     ),
     (
         "source attribution and disposition",
@@ -231,6 +231,10 @@ COMPATIBILITY_HEADINGS = {
     "affected matrix entry",
     "compatibility analysis",
 }
+COMPATIBILITY_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
+    ("primary concern", ("Primary concern",)),
+    ("affected matrix entry", ("Affected matrix entry",)),
+)
 DEFECT_INTAKE_CHECKS = frozenset(
     (
         "I searched the downstream and upstream issue trackers for equivalent "
@@ -339,6 +343,13 @@ def validate_issue_body(
         ):
             errors.append(
                 "issue intake checks do not match the selected intake form"
+            )
+
+        if COMPATIBILITY_HEADINGS.intersection(sections):
+            errors.extend(
+                "missing substantive issue field '{}'".format(label)
+                for label, headings in COMPATIBILITY_REQUIREMENTS
+                if not has_substantive_section(sections, headings)
             )
 
         if THIRD_PARTY_HEADINGS.intersection(sections):

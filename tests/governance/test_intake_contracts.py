@@ -331,6 +331,55 @@ Accept with adaptation
             errors,
         )
 
+    def test_compatibility_intake_requires_matrix_and_separate_user_value(self):
+        compatibility_issue = VALID_ISSUE.replace(
+            "## Intended scope\n\n"
+            "Change the smallest implementation and regression necessary.",
+            "## Primary concern\n\n"
+            "Operating system or architecture\n\n"
+            "## Affected matrix entry\n\n"
+            "macOS arm64 with Clang 18 and CMake Debug builds.\n\n"
+            "## Intended change and alternatives\n\n"
+            "Change the smallest implementation and regression necessary.",
+        ).replace(
+            "## Compatibility and risk", "## Compatibility analysis"
+        )
+        compatibility_issue = compatibility_issue.replace(
+            "- [x] I searched the downstream and upstream issue trackers for "
+            "equivalent work.\n"
+            "- [x] This issue contains one independently reviewable problem.\n"
+            "- [x] I removed credentials, private network details, raw captures, "
+            "logs, and build artifacts.\n",
+            "- [x] I checked the current official upstream branch and releases "
+            "for equivalent support.\n"
+            "- [x] This issue contains one independently reviewable compatibility "
+            "or build concern.\n"
+            "- [x] The verification plan distinguishes local evidence from "
+            "still-pending platform qualification.\n",
+        )
+        self.assertEqual(validate_issue_body(compatibility_issue), [])
+
+        missing_matrix = compatibility_issue.replace(
+            "## Affected matrix entry\n\n"
+            "macOS arm64 with Clang 18 and CMake Debug builds.\n\n",
+            "",
+        )
+        self.assertIn(
+            "missing substantive issue field 'affected matrix entry'",
+            validate_issue_body(missing_matrix),
+        )
+
+        missing_user_value = compatibility_issue.replace(
+            "## User value and alternatives\n\n"
+            "Preserve the supported consumer; alternatives were upstream-only "
+            "use or no change.\n\n",
+            "",
+        )
+        self.assertIn(
+            "missing substantive issue field 'user value and alternatives'",
+            validate_issue_body(missing_user_value),
+        )
+
     def test_legacy_bootstrap_requires_explicit_acceptance_and_attribution(self):
         legacy = """## Problem
 
