@@ -272,6 +272,35 @@ Accept with adaptation
         )
         self.assertEqual(validate_issue_body(valid_third_party), [])
 
+    def test_partial_third_party_schema_cannot_disable_provenance_checks(self):
+        partial_third_party = VALID_ISSUE + """
+
+## Full source commit SHA
+
+not-a-sha
+
+## Original author
+
+Example Contributor with a public source identity.
+
+## Source license
+
+BSD-3-Clause with the original notices retained.
+
+## Proposed disposition
+
+Accept with adaptation
+"""
+        errors = validate_issue_body(partial_third_party)
+        self.assertIn(
+            "missing substantive issue field 'source repository'",
+            errors,
+        )
+        self.assertIn(
+            "issue full source commit SHA must be exactly 40 hexadecimal characters",
+            errors,
+        )
+
     def test_legacy_bootstrap_requires_explicit_acceptance_and_attribution(self):
         legacy = """## Problem
 

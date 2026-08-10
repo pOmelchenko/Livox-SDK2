@@ -218,6 +218,11 @@ THIRD_PARTY_REQUIREMENTS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("source license", ("Source license",)),
     ("proposed disposition", ("Proposed disposition",)),
 )
+THIRD_PARTY_HEADINGS = {
+    heading.casefold()
+    for _, headings in THIRD_PARTY_REQUIREMENTS
+    for heading in headings
+} | {"full source commit sha"}
 
 
 def validate_issue_body(
@@ -290,7 +295,7 @@ def validate_issue_body(
         ):
             errors.append("issue intake checks are not all checked")
 
-        if "source repository" in sections:
+        if THIRD_PARTY_HEADINGS.intersection(sections):
             errors.extend(
                 "missing substantive issue field '{}'".format(label)
                 for label, headings in THIRD_PARTY_REQUIREMENTS
