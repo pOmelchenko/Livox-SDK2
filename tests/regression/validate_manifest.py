@@ -162,6 +162,11 @@ def _normalize_space(value):
     return re.sub(r"\s+", "", value)
 
 
+def _canonical_text_sha256(path):
+    content = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()
+
+
 def _source_files(repository, roots):
     suffixes = {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp"}
     for root_name in roots:
@@ -290,7 +295,7 @@ def _validate_sanitizer_contract(
 def _validate_fastcrc(document, repository, contract_ids, errors):
     usage = document.get("fastcrc_usage", {})
     header = repository / "3rdparty/FastCRC/FastCRC.h"
-    actual_hash = hashlib.sha256(header.read_bytes()).hexdigest()
+    actual_hash = _canonical_text_sha256(header)
     if usage.get("header_sha256") != actual_hash:
         errors.append(
             "FastCRC public method surface changed; update requires a focused issue "

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 TEST_DIRECTORY = Path(__file__).resolve().parent
@@ -68,6 +69,23 @@ class RegressionManifestNegativeControls(unittest.TestCase):
 
     def test_checked_manifest_passes(self):
         self.assertEqual([], self.validate())
+
+    def test_fastcrc_header_crlf_checkout_passes(self):
+        header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
+        lf_content = header.read_bytes().replace(b"\r\n", b"\n")
+        crlf_content = lf_content.replace(b"\n", b"\r\n")
+        with mock.patch.object(Path, "read_bytes", return_value=crlf_content):
+            self.assertEqual([], self.validate())
+
+    def test_fastcrc_header_content_change_fails(self):
+        header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
+        changed_content = header.read_bytes() + b"\n// changed method surface\n"
+        with mock.patch.object(Path, "read_bytes", return_value=changed_content):
+            errors = self.validate()
+        self.assertTrue(
+            any("FastCRC public method surface changed" in error for error in errors),
+            errors,
+        )
 
     def test_absent_required_mapping_fails(self):
         document = copy.deepcopy(self.document)
