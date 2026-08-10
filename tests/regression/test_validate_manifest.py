@@ -102,6 +102,17 @@ class RegressionManifestNegativeControls(unittest.TestCase):
             )
             self.assertEqual([], errors)
 
+    def test_windows_user_paths_with_native_separators_fail(self):
+        # Compose the private path so this tracked negative-control source stays public.
+        for separator in (chr(92), "/"):
+            with self.subTest(separator=separator):
+                private_path = separator.join(
+                    ("C:", "Users", "Alice", "capture.txt")
+                )
+                self.assertTrue(
+                    validate_manifest._contains_private_path(private_path)
+                )
+
     def test_fastcrc_header_crlf_checkout_passes(self):
         header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
         lf_content = header.read_bytes().replace(b"\r\n", b"\n")

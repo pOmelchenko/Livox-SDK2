@@ -86,6 +86,10 @@ SANITIZER_CONTRACT = {
     "asan_options": "halt_on_error=1:abort_on_error=1:detect_leaks=0",
     "ubsan_options": "halt_on_error=1:print_stacktrace=1",
 }
+PRIVATE_PATH_PATTERN = re.compile(
+    r"(?:/home/[A-Za-z0-9._-]+/|[A-Za-z]:[\\/]+Users[\\/]+)",
+    re.IGNORECASE,
+)
 
 
 def _git(repository, *arguments):
@@ -165,6 +169,10 @@ def _normalize_space(value):
 def _canonical_text_sha256(path):
     content = path.read_bytes().replace(b"\r\n", b"\n")
     return hashlib.sha256(content).hexdigest()
+
+
+def _contains_private_path(text):
+    return PRIVATE_PATH_PATTERN.search(text) is not None
 
 
 def _source_files(repository, roots):
@@ -398,7 +406,6 @@ def _validate_fixtures(document, repository, errors):
             errors.append(f"{category}: fixture convention requires a rule")
 
     forbidden_suffixes = {".bin", ".cap", ".fw", ".log", ".pcap", ".pcapng"}
-    private_path_pattern = re.compile(r"(?:/home/[A-Za-z0-9._-]+/|[A-Za-z]:\\\\Users\\\\)")
     for path in _tracked_files(repository, "tests"):
         if not path.is_file():
             continue
@@ -406,7 +413,7 @@ def _validate_fixtures(document, repository, errors):
             errors.append(f"forbidden fixture artifact: {path.relative_to(repository)}")
         if path.suffix.lower() in {".cmake", ".cpp", ".h", ".json", ".md", ".py", ".txt"}:
             text = path.read_text(encoding="utf-8", errors="replace")
-            if private_path_pattern.search(text):
+            if _contains_private_path(text):
                 errors.append(f"private absolute path in public test file: {path.relative_to(repository)}")
 
 
