@@ -242,6 +242,23 @@ class RegressionManifestNegativeControls(unittest.TestCase):
             errors,
         )
 
+    def test_source_relative_fastcrc_include_requires_inventory_entry(self):
+        consumer = REPOSITORY / "sdk_core/base/logging.h"
+        original_read_text = Path.read_text
+
+        def inject_source_relative_include(path, *args, **kwargs):
+            text = original_read_text(path, *args, **kwargs)
+            if path == consumer:
+                return text + '\n#include "../../3rdparty/FastCRC/FastCRC.h"\n'
+            return text
+
+        with mock.patch.object(Path, "read_text", new=inject_source_relative_include):
+            errors = self.validate()
+        self.assertTrue(
+            any("FastCRC consumer inventory differs" in error for error in errors),
+            errors,
+        )
+
     def test_fastcrc_header_crlf_checkout_passes(self):
         header = REPOSITORY / "3rdparty/FastCRC/FastCRC.h"
         lf_content = header.read_bytes().replace(b"\r\n", b"\n")

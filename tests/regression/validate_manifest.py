@@ -341,13 +341,21 @@ def _validate_fastcrc(document, repository, contract_ids, errors):
         errors.append("FastCRC allowed_methods must remain ccitt, crc32, and mcrf4xx")
 
     include_pattern = re.compile(
-        r"^\s*#\s*include\s*[<\"]FastCRC(?:/FastCRC\.h|\.h)[>\"]",
+        r"^\s*#\s*include\s*[<\"](?P<path>[^>\"\r\n]+)[>\"]",
         re.MULTILINE,
     )
     actual_consumers = set()
     for path in _source_files(repository, ("sdk_core", "samples", "include")):
         text = path.read_text(encoding="utf-8", errors="replace")
-        if include_pattern.search(text):
+        include_paths = (
+            match.group("path").replace("\\", "/")
+            for match in include_pattern.finditer(text)
+        )
+        if any(
+            include_path in {"FastCRC.h", "FastCRC/FastCRC.h"}
+            or include_path.endswith("/FastCRC/FastCRC.h")
+            for include_path in include_paths
+        ):
             actual_consumers.add(path.relative_to(repository).as_posix())
     expected_consumers = set(usage.get("consumer_files", []))
     if actual_consumers != expected_consumers:
