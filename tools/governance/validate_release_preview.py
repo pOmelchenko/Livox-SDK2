@@ -33,7 +33,11 @@ class ContractViolation(ValueError):
 
 
 def git_process(repository: Path, *arguments: str) -> subprocess.CompletedProcess:
-    environment = os.environ.copy()
+    environment = {
+        name: value
+        for name, value in os.environ.items()
+        if not name.startswith("GIT_")
+    }
     environment.update(
         {
             "GIT_NO_LAZY_FETCH": "1",
@@ -42,7 +46,15 @@ def git_process(repository: Path, *arguments: str) -> subprocess.CompletedProces
     )
     try:
         return subprocess.run(
-            ["git", "--no-replace-objects", "-C", str(repository), *arguments],
+            [
+                "git",
+                "--no-replace-objects",
+                "-c",
+                "core.commitGraph=false",
+                "-C",
+                str(repository),
+                *arguments,
+            ],
             check=False,
             env=environment,
             stdin=subprocess.DEVNULL,
@@ -81,6 +93,36 @@ def safe_repository_path(value: str) -> bool:
     return not path.is_absolute() and all(
         part not in {"", ".", ".."} for part in path.parts
     )
+
+
+def reject_active_grafts(repository: Path) -> None:
+    common_directory = Path(
+        git(
+            repository,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-common-dir",
+        ).strip()
+    )
+    grafts = common_directory / "info" / "grafts"
+    try:
+        contents = grafts.read_bytes()
+    except FileNotFoundError:
+        return
+    except OSError as error:
+        raise ContractViolation(
+            "cannot inspect legacy Git grafts: {}".format(error)
+        ) from error
+    active = any(
+        line.strip() and not line.startswith(b"#")
+        for line in contents.splitlines()
+    )
+    require(not active, "repository contains active legacy Git grafts")
+
+
+def reject_shallow_repository(repository: Path) -> None:
+    shallow = git(repository, "rev-parse", "--is-shallow-repository").strip()
+    require(shallow == "false", "repository is shallow; complete history is required")
 
 
 def read_record(repository: Path, control: str, path: str) -> Any:
@@ -266,8 +308,12 @@ def validate_evidence(repository: Path, source: str, value: Any) -> None:
         string_list(evidence["claims"], path + ".claims")
 
 
-def validate_record(repository: Path, control: str, value: Any) -> List[str]:
+def validate_record(
+    repository: Path, control: str, manifest: str, value: Any
+) -> List[str]:
     try:
+        reject_active_grafts(repository)
+        reject_shallow_repository(repository)
         record = exact_object(
             value,
             "record",
@@ -336,6 +382,11 @@ def validate_record(repository: Path, control: str, value: Any) -> List[str]:
         require(
             is_ancestor(repository, base_commit, source_commit),
             "upstream.base_commit must be an ancestor of source.commit",
+        )
+        expected_manifest = "releases/previews/{}.json".format(source_commit)
+        require(
+            manifest == expected_manifest,
+            "manifest path must be '{}'".format(expected_manifest),
         )
 
         history = exact_object(
@@ -460,7 +511,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
         control = resolve_commit(arguments.repository, arguments.control)
         record = read_record(arguments.repository, control, arguments.manifest)
-        errors = validate_record(arguments.repository, control, record)
+        errors = validate_record(
+            arguments.repository, control, arguments.manifest, record
+        )
     except ContractViolation as error:
         errors = [str(error)]
     except (GitFailure, UnicodeDecodeError) as error:

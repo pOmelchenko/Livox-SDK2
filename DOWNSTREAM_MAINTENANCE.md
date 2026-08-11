@@ -142,11 +142,14 @@ python3 tools/governance/validate_release_preview.py \
 
 `--control` defaults to `HEAD` for an ordinary clean checkout, but automation
 should pass the immutable commit it checked out. The validator reads the
-record from that Git commit, not from the worktree. It accepts only full
-lowercase object IDs, ignores local replacement objects, disables lazy object
-fetching and prompts, and verifies object types, ancestry, trees, ordered
-history, workflow blobs, evidence shape, preview-only publication fields, and
-the rollback anchor using local Git objects. Exit status `0` means the local
+record from that Git commit, not from the worktree. It treats the selected
+repository's local content-addressed object database as its trust root, clears
+inherited Git overrides, accepts only full lowercase object IDs, binds the
+record path to its source commit, ignores local replacement objects, disables
+commit-graph caches, rejects active legacy grafts and shallow history, disables
+lazy object fetching and prompts, and verifies object types, ancestry, trees,
+ordered history, workflow blobs, evidence shape, preview-only publication
+fields, and the rollback anchor. Exit status `0` means the local
 contract passed, `1` means the record violated it, and `2` means Git or the
 invocation could not run.
 

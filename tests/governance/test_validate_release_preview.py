@@ -3,11 +3,13 @@
 import copy
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -16,7 +18,6 @@ SPEC = importlib.util.spec_from_file_location("validate_release_preview", VALIDA
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
-MANIFEST = "releases/previews/synthetic.json"
 
 
 def run_git(repository, *arguments):
@@ -40,6 +41,14 @@ def write_and_commit(repository, relative_path, content, message):
 
 def tree(repository, commit):
     return run_git(repository, "rev-parse", commit + "^{tree}").stdout.strip()
+
+
+def commit_tree(repository, tree_id, parents, message):
+    arguments = ["commit-tree", tree_id]
+    for parent in parents:
+        arguments.extend(("-p", parent))
+    arguments.extend(("-m", message))
+    return run_git(repository, *arguments).stdout.strip()
 
 
 def preview_record(repository, base, source):
@@ -146,13 +155,51 @@ def create_repository():
         "fix: add second downstream change",
     )
     record = preview_record(repository, base, source)
+    manifest = "releases/previews/{}.json".format(source)
     control = write_and_commit(
         repository,
-        MANIFEST,
+        manifest,
         json.dumps(record, indent=2) + "\n",
         "chore: record release preview",
     )
-    return temporary, repository, base, source, control, record
+    return temporary, repository, base, source, control, manifest, record
+
+
+def create_merge_repository():
+    temporary, repository, base, main, _, _, _ = create_repository()
+    base_tree = tree(repository, base)
+    hidden_side = commit_tree(
+        repository, base_tree, (base,), "test: create hidden side change"
+    )
+    side_tip = commit_tree(
+        repository, base_tree, (hidden_side,), "test: create side tip"
+    )
+    source = commit_tree(
+        repository,
+        tree(repository, main),
+        (main, side_tip),
+        "test: merge side history",
+    )
+    run_git(repository, "switch", "--detach", source)
+    record = preview_record(repository, base, source)
+    manifest = "releases/previews/{}.json".format(source)
+    control = write_and_commit(
+        repository,
+        manifest,
+        json.dumps(record, indent=2) + "\n",
+        "chore: record merge release preview",
+    )
+    return (
+        temporary,
+        repository,
+        base,
+        source,
+        control,
+        manifest,
+        record,
+        hidden_side,
+        side_tip,
+    )
 
 
 class ReleasePreviewContractTests(unittest.TestCase):
@@ -164,6 +211,7 @@ class ReleasePreviewContractTests(unittest.TestCase):
             cls.base,
             cls.source,
             cls.control,
+            cls.manifest,
             cls.record,
         ) = create_repository()
 
@@ -174,13 +222,125 @@ class ReleasePreviewContractTests(unittest.TestCase):
     def errors_for(self, mutate):
         candidate = copy.deepcopy(self.record)
         mutate(candidate)
-        return MODULE.validate_record(self.repository, self.control, candidate)
+        return MODULE.validate_record(
+            self.repository, self.control, self.manifest, candidate
+        )
 
     def test_valid_checked_preview_passes(self):
-        checked = MODULE.read_record(self.repository, self.control, MANIFEST)
-        self.assertEqual(
-            MODULE.validate_record(self.repository, self.control, checked), []
+        checked = MODULE.read_record(
+            self.repository, self.control, self.manifest
         )
+        self.assertEqual(
+            MODULE.validate_record(
+                self.repository, self.control, self.manifest, checked
+            ),
+            [],
+        )
+
+    def test_git_process_scrubs_inherited_git_environment(self):
+        completed = subprocess.CompletedProcess([], 0, b"", b"")
+        with mock.patch.dict(
+            os.environ,
+            {"GIT_DIR": "hostile", "GIT_TEST_COMMIT_GRAPH": "1"},
+            clear=False,
+        ), mock.patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ) as runner:
+            MODULE.git_process(self.repository, "rev-parse", "HEAD")
+
+        command = runner.call_args.args[0]
+        environment = runner.call_args.kwargs["env"]
+        self.assertEqual(
+            command[:5],
+            [
+                "git",
+                "--no-replace-objects",
+                "-c",
+                "core.commitGraph=false",
+                "-C",
+            ],
+        )
+        self.assertEqual(
+            {name for name in environment if name.startswith("GIT_")},
+            {"GIT_NO_LAZY_FETCH", "GIT_TERMINAL_PROMPT"},
+        )
+
+    def test_poisoned_git_environment_cannot_redirect_validation(self):
+        external_grafts = self.repository / "external-grafts"
+        external_grafts.write_text(
+            "{} {}\n".format(self.source, self.base), encoding="ascii"
+        )
+        external_shallow = self.repository / "external-shallow"
+        external_shallow.write_text(self.source + "\n", encoding="ascii")
+        missing = str(self.repository / "missing-git-state")
+        poisoned = {
+            "GIT_DIR": missing,
+            "GIT_COMMON_DIR": missing,
+            "GIT_OBJECT_DIRECTORY": missing,
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES": missing,
+            "GIT_NAMESPACE": "hostile",
+            "GIT_GRAFT_FILE": str(external_grafts),
+            "GIT_SHALLOW_FILE": str(external_shallow),
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "core.commitGraph",
+            "GIT_CONFIG_VALUE_0": "true",
+            "GIT_TEST_COMMIT_GRAPH": "1",
+        }
+
+        with mock.patch.dict(os.environ, poisoned, clear=False):
+            errors = MODULE.validate_record(
+                self.repository, self.control, self.manifest, self.record
+            )
+
+        self.assertEqual(errors, [])
+
+    def test_manifest_path_must_match_source_commit(self):
+        errors = MODULE.validate_record(
+            self.repository,
+            self.control,
+            "releases/previews/not-the-source.json",
+            self.record,
+        )
+        self.assertIn("manifest path must be", errors[0])
+
+    def test_cli_rejects_valid_record_at_a_misnamed_path(self):
+        (
+            temporary,
+            repository,
+            _,
+            _,
+            _,
+            _,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        wrong_path = "releases/previews/not-the-source.json"
+        control = write_and_commit(
+            repository,
+            wrong_path,
+            json.dumps(record, indent=2) + "\n",
+            "test: misname release preview",
+        )
+
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATOR),
+                "--repository",
+                str(repository),
+                "--manifest",
+                wrong_path,
+                "--control",
+                control,
+            ],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        self.assertEqual(completed.returncode, 1, completed.stderr)
+        self.assertIn("manifest path must be", completed.stderr)
 
     def test_moving_abbreviated_and_uppercase_identities_fail(self):
         candidates = ("master", self.source[:12], self.source.upper())
@@ -254,11 +414,81 @@ class ReleasePreviewContractTests(unittest.TestCase):
         )
 
     def test_git_replace_cannot_change_the_checked_identity(self):
-        temporary, repository, base, source, control, record = create_repository()
+        (
+            temporary,
+            repository,
+            base,
+            source,
+            control,
+            manifest,
+            record,
+        ) = create_repository()
         self.addCleanup(temporary.cleanup)
         run_git(repository, "replace", source, base)
 
-        self.assertEqual(MODULE.validate_record(repository, control, record), [])
+        self.assertEqual(
+            MODULE.validate_record(repository, control, manifest, record), []
+        )
+
+    def test_legacy_grafts_are_rejected(self):
+        (
+            temporary,
+            repository,
+            base,
+            source,
+            control,
+            manifest,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        grafts = repository / ".git" / "info" / "grafts"
+        grafts.parent.mkdir(parents=True, exist_ok=True)
+        grafts.write_text("{} {}\n".format(source, base), encoding="ascii")
+        record["history"]["ordered_non_merge_commits"] = run_git(
+            repository,
+            "rev-list",
+            "--reverse",
+            "--topo-order",
+            "--no-merges",
+            base + ".." + source,
+        ).stdout.splitlines()
+
+        errors = MODULE.validate_record(repository, control, manifest, record)
+
+        self.assertEqual(errors, ["repository contains active legacy Git grafts"])
+
+    def test_shallow_repository_cannot_hide_side_history(self):
+        (
+            temporary,
+            repository,
+            base,
+            source,
+            control,
+            manifest,
+            record,
+            hidden_side,
+            side_tip,
+        ) = create_merge_repository()
+        self.addCleanup(temporary.cleanup)
+        shallow = repository / ".git" / "shallow"
+        shallow.write_text(side_tip + "\n", encoding="ascii")
+        truncated = run_git(
+            repository,
+            "rev-list",
+            "--reverse",
+            "--topo-order",
+            "--no-merges",
+            base + ".." + source,
+        ).stdout.splitlines()
+        run_git(repository, "merge-base", "--is-ancestor", base, source)
+        self.assertNotIn(hidden_side, truncated)
+        record["history"]["ordered_non_merge_commits"] = truncated
+
+        errors = MODULE.validate_record(repository, control, manifest, record)
+
+        self.assertEqual(
+            errors, ["repository is shallow; complete history is required"]
+        )
 
     def test_incomplete_duplicated_extra_and_reordered_history_fail(self):
         original = self.record["history"]["ordered_non_merge_commits"]
@@ -334,7 +564,7 @@ class ReleasePreviewContractTests(unittest.TestCase):
                 "--repository",
                 str(self.repository),
                 "--manifest",
-                MANIFEST,
+                self.manifest,
                 "--control",
                 self.control,
             ],
@@ -350,7 +580,7 @@ class ReleasePreviewContractTests(unittest.TestCase):
                 "--repository",
                 str(self.repository),
                 "--manifest",
-                MANIFEST,
+                self.manifest,
                 "--control",
                 "missing",
             ],
@@ -360,12 +590,12 @@ class ReleasePreviewContractTests(unittest.TestCase):
             text=True,
         )
 
-        temporary, repository, _, _, _, record = create_repository()
+        temporary, repository, _, _, _, manifest, record = create_repository()
         self.addCleanup(temporary.cleanup)
         record["publication"]["published_tag"] = "downstream-v1.4.3-r1"
         violation_control = write_and_commit(
             repository,
-            MANIFEST,
+            manifest,
             json.dumps(record, indent=2) + "\n",
             "test: create invalid preview",
         )
@@ -376,7 +606,7 @@ class ReleasePreviewContractTests(unittest.TestCase):
                 "--repository",
                 str(repository),
                 "--manifest",
-                MANIFEST,
+                manifest,
                 "--control",
                 violation_control,
             ],
