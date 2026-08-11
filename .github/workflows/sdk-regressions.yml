@@ -1,0 +1,112 @@
+name: SDK regressions
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  regressions:
+    name: Regressions (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux GCC
+            os: ubuntu-24.04
+            cxx: g++
+          - name: Linux Clang
+            os: ubuntu-24.04
+            cxx: clang++
+          - name: macOS AppleClang
+            os: macos-15
+            cxx: clang++
+          - name: Windows MSVC
+            os: windows-2025
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Record source and CMake
+        run: |
+          git rev-parse HEAD
+          cmake --version
+
+      - name: Configure regressions
+        if: runner.os != 'Windows'
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: >-
+          cmake -S tests -B build/sdk-regressions
+          -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure regressions
+        if: runner.os == 'Windows'
+        run: cmake -S tests -B build/sdk-regressions -A x64
+
+      - name: Build regressions
+        run: >-
+          cmake --build build/sdk-regressions
+          --config Release --parallel
+
+      - name: List regressions
+        run: >-
+          ctest --test-dir build/sdk-regressions
+          -C Release --show-only --no-tests=error
+
+      - name: Run regressions
+        run: >-
+          ctest --test-dir build/sdk-regressions
+          -C Release --output-on-failure --no-tests=error
+
+  fastcrc-sanitizers:
+    name: FastCRC sanitizers
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          cmake --version
+          g++ --version
+
+      - name: Configure FastCRC sanitizers
+        env:
+          CXX: g++
+        run: >-
+          cmake -S tests/fastcrc -B build/fastcrc-sanitizers
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DFASTCRC_ENABLE_SANITIZERS=ON
+
+      - name: Build FastCRC sanitizers
+        run: >-
+          cmake --build build/fastcrc-sanitizers
+          --config RelWithDebInfo --parallel
+
+      - name: List sanitizer tests
+        run: >-
+          ctest --test-dir build/fastcrc-sanitizers
+          -C RelWithDebInfo --show-only --no-tests=error
+
+      - name: Run sanitizer tests
+        run: >-
+          ctest --test-dir build/fastcrc-sanitizers
+          -C RelWithDebInfo --output-on-failure --no-tests=error
