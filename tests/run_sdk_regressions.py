@@ -18,8 +18,14 @@ def _parse_args(argv):
         default=Path("build/sdk-regressions"),
         help="out-of-source CMake build directory",
     )
-    parser.add_argument("--cmake", default="cmake", help="CMake executable")
-    parser.add_argument("--ctest", help="CTest executable; defaults beside CMake")
+    parser.add_argument(
+        "--cmake",
+        help="CMake executable; must be provided together with --ctest",
+    )
+    parser.add_argument(
+        "--ctest",
+        help="CTest executable; must be provided together with --cmake",
+    )
     parser.add_argument(
         "--configuration",
         choices=("Debug", "Release", "RelWithDebInfo", "MinSizeRel"),
@@ -30,16 +36,12 @@ def _parse_args(argv):
         action="store_true",
         help="enable strict AddressSanitizer and UndefinedBehaviorSanitizer execution",
     )
-    return parser.parse_args(argv)
-
-
-def _ctest_for(cmake, explicit_ctest):
-    if explicit_ctest:
-        return explicit_ctest
-    cmake_path = Path(cmake)
-    if cmake_path.parent != Path("."):
-        return str(cmake_path.with_name("ctest"))
-    return "ctest"
+    args = parser.parse_args(argv)
+    if (args.cmake is None) != (args.ctest is None):
+        parser.error("--cmake and --ctest must be provided together")
+    args.cmake = args.cmake or "cmake"
+    args.ctest = args.ctest or "ctest"
+    return args
 
 
 def _run(command, environment):
@@ -54,7 +56,7 @@ def main(argv=None):
     repository = tests_root.parent
     build_dir = args.build_dir.resolve()
     configuration = args.configuration or ("Debug" if args.sanitizers else "Release")
-    ctest = _ctest_for(args.cmake, args.ctest)
+    ctest = args.ctest
 
     sanitizer_value = "ON" if args.sanitizers else "OFF"
     commands = [

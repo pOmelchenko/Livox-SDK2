@@ -45,3 +45,12 @@ add_test(
 set_tests_properties(livox_regression_manifest_negative_controls PROPERTIES
   LABELS "sdk;manifest;negative-control"
 )
+
+add_test(
+  NAME livox_regression_runner_controls
+  COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_LIST_DIR}/../test_run_sdk_regressions.py"
+)
+set_tests_properties(livox_regression_runner_controls PROPERTIES
+  LABELS "sdk;runner;negative-control"
+)

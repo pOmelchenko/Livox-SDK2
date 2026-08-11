@@ -24,5 +24,7 @@ The common entrypoint adopts the focused logger-path and FastCRC regressions.
 Their standalone entrypoints remain available for focused platform work.
 
 The runner accepts `--build-dir`, `--cmake`, `--ctest`, and `--configuration`
-for isolated qualification environments. It never removes an existing build
-directory or downloads dependencies.
+for isolated qualification environments. Custom `--cmake` and `--ctest`
+executables must be supplied together so the runner never guesses a companion
+tool from an unrelated installation or renamed executable. It never removes an
+existing build directory or downloads dependencies.
