@@ -118,6 +118,11 @@ class RegressionManifestNegativeControls(unittest.TestCase):
         private_path = "/".join(("", "Users", "Alice", "capture.txt"))
         self.assertTrue(validate_manifest._contains_private_path(private_path))
 
+    def test_root_home_paths_fail(self):
+        # Compose the private path so this tracked negative-control source stays public.
+        private_path = "/".join(("", "root", "work", "capture.txt"))
+        self.assertTrue(validate_manifest._contains_private_path(private_path))
+
     def test_private_path_scan_covers_header_extensions(self):
         with tempfile.TemporaryDirectory(prefix="livox_manifest_header_") as temp:
             repository = Path(temp)

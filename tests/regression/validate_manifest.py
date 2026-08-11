@@ -87,7 +87,7 @@ SANITIZER_CONTRACT = {
     "ubsan_options": "halt_on_error=1:print_stacktrace=1",
 }
 PRIVATE_PATH_PATTERN = re.compile(
-    r"(?:(?:/home|/Users)/[A-Za-z0-9._-]+/|[A-Za-z]:[\\/]+Users[\\/]+)",
+    r"(?:(?:/home|/Users)/[A-Za-z0-9._-]+/|/root(?=/)|[A-Za-z]:[\\/]+Users[\\/]+)",
     re.IGNORECASE,
 )
 
