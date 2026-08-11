@@ -113,6 +113,11 @@ class RegressionManifestNegativeControls(unittest.TestCase):
                     validate_manifest._contains_private_path(private_path)
                 )
 
+    def test_macos_user_paths_fail(self):
+        # Compose the private path so this tracked negative-control source stays public.
+        private_path = "/".join(("", "Users", "Alice", "capture.txt"))
+        self.assertTrue(validate_manifest._contains_private_path(private_path))
+
     def test_pointer_fastcrc_call_requires_inventory_entry(self):
         consumer = REPOSITORY / "sdk_core/comm/sdk_protocol.cpp"
         original_read_text = Path.read_text
