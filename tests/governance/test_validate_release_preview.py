@@ -457,6 +457,45 @@ class ReleasePreviewContractTests(unittest.TestCase):
 
         self.assertEqual(errors, ["repository contains active legacy Git grafts"])
 
+    @unittest.skipIf(os.name == "nt", "Win32 trims trailing ASCII spaces")
+    def test_bare_common_directory_preserves_trailing_space(self):
+        (
+            temporary,
+            repository,
+            base,
+            source,
+            control,
+            manifest,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        bare_temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(bare_temporary.cleanup)
+        bare_repository = Path(bare_temporary.name) / "repository "
+        run_git(
+            repository,
+            "clone",
+            "--bare",
+            str(repository),
+            str(bare_repository),
+        )
+        grafts = bare_repository / "info" / "grafts"
+        grafts.write_text("{} {}\n".format(source, base), encoding="ascii")
+        record["history"]["ordered_non_merge_commits"] = run_git(
+            bare_repository,
+            "rev-list",
+            "--reverse",
+            "--topo-order",
+            "--no-merges",
+            base + ".." + source,
+        ).stdout.splitlines()
+
+        errors = MODULE.validate_record(
+            bare_repository, control, manifest, record
+        )
+
+        self.assertEqual(errors, ["repository contains active legacy Git grafts"])
+
     def test_shallow_repository_cannot_hide_side_history(self):
         (
             temporary,

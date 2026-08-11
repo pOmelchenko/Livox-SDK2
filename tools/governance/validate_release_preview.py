@@ -96,14 +96,15 @@ def safe_repository_path(value: str) -> bool:
 
 
 def reject_active_grafts(repository: Path) -> None:
-    common_directory = Path(
-        git(
-            repository,
-            "rev-parse",
-            "--path-format=absolute",
-            "--git-common-dir",
-        ).strip()
+    common_directory_output = git(
+        repository,
+        "rev-parse",
+        "--path-format=absolute",
+        "--git-common-dir",
     )
+    if not common_directory_output.endswith("\n"):
+        raise GitFailure("git rev-parse returned an unterminated common directory")
+    common_directory = Path(common_directory_output[:-1])
     grafts = common_directory / "info" / "grafts"
     try:
         contents = grafts.read_bytes()
