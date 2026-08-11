@@ -6,7 +6,8 @@ it does not download dependencies, require credentials, contact devices, or
 infer platform and physical qualification from a unit-test result.
 
 Configure, build, list, and run the suite from a clean checkout with one
-command:
+command. The common runner requires CMake and CTest 3.20 or newer; the focused
+subprojects retain their independently declared minimum versions.
 
 ```sh
 python3 tests/run_sdk_regressions.py
