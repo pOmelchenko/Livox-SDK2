@@ -22,6 +22,8 @@ HISTORY_ALGORITHM = (
 OBJECT_ID = re.compile(r"^[0-9a-f]{40}$")
 POSITIVE_DECIMAL = re.compile(r"^[1-9][0-9]*$")
 WORKFLOW_PATH = re.compile(r"^\.github/workflows/[^/]+\.ya?ml$")
+TREE_MODE = re.compile(r"^[0-7]{6}$")
+TreeEntry = Tuple[str, str, str]
 
 
 class GitFailure(RuntimeError):
@@ -124,6 +126,101 @@ def reject_active_grafts(repository: Path) -> None:
 def reject_shallow_repository(repository: Path) -> None:
     shallow = git(repository, "rev-parse", "--is-shallow-repository").strip()
     require(shallow == "false", "repository is shallow; complete history is required")
+
+
+def commit_parent_graph(repository: Path, control: str) -> Dict[str, Tuple[str, ...]]:
+    graph: Dict[str, Tuple[str, ...]] = {}
+    for line in git(repository, "rev-list", "--parents", control).splitlines():
+        identities = line.split()
+        if not identities or any(
+            OBJECT_ID.fullmatch(identity) is None for identity in identities
+        ):
+            raise GitFailure("git rev-list returned a malformed commit graph")
+        commit, parents = identities[0], tuple(identities[1:])
+        if commit in graph:
+            raise GitFailure("git rev-list returned a duplicate commit")
+        graph[commit] = parents
+
+    if control not in graph:
+        raise GitFailure("git rev-list did not return the control commit")
+    if any(parent not in graph for parents in graph.values() for parent in parents):
+        raise GitFailure("git rev-list returned an incomplete commit graph")
+    return graph
+
+
+def manifest_tree_entry(
+    repository: Path, commit: str, manifest: str
+) -> Optional[TreeEntry]:
+    raw = git_bytes(
+        repository,
+        "ls-tree",
+        "-z",
+        "--full-tree",
+        commit,
+        "--",
+        manifest,
+    )
+    if not raw:
+        return None
+    if not raw.endswith(b"\0") or raw[:-1].count(b"\0") != 0:
+        raise GitFailure("git ls-tree returned malformed manifest entries")
+    try:
+        metadata, returned_path = raw[:-1].split(b"\t", 1)
+        mode_bytes, type_bytes, identity_bytes = metadata.split(b" ")
+        mode = mode_bytes.decode("ascii")
+        object_type_name = type_bytes.decode("ascii")
+        identity = identity_bytes.decode("ascii")
+    except (UnicodeDecodeError, ValueError) as error:
+        raise GitFailure("git ls-tree returned a malformed manifest entry") from error
+
+    if (
+        returned_path != manifest.encode("utf-8")
+        or TREE_MODE.fullmatch(mode) is None
+        or object_type_name not in {"blob", "tree", "commit"}
+        or OBJECT_ID.fullmatch(identity) is None
+    ):
+        raise GitFailure("git ls-tree returned an unexpected manifest entry")
+    return mode, object_type_name, identity
+
+
+def require_add_only_manifest(
+    repository: Path, control: str, source: str, manifest: str
+) -> None:
+    graph = commit_parent_graph(repository, control)
+    entries = {
+        commit: manifest_tree_entry(repository, commit, manifest)
+        for commit in graph
+    }
+    current = entries[control]
+    require(current is not None, "manifest must exist at the control commit")
+    require(current[1] == "blob", "manifest must be a Git blob")
+    require(
+        all(entry == current for entry in entries.values() if entry is not None),
+        "manifest tree entry changed in the control history",
+    )
+    require(
+        not any(
+            entries[commit] is None
+            and any(entries[parent] is not None for parent in parents)
+            for commit, parents in graph.items()
+        ),
+        "manifest was removed after its introduction",
+    )
+    introductions = [
+        commit
+        for commit, parents in graph.items()
+        if entries[commit] is not None
+        and not any(entries[parent] is not None for parent in parents)
+    ]
+    require(
+        len(introductions) == 1,
+        "manifest must have exactly one introduction in the control history",
+    )
+    introduction = introductions[0]
+    require(
+        source != introduction and is_ancestor(repository, source, introduction),
+        "source.commit must be a strict ancestor of the manifest introduction",
+    )
 
 
 def read_record(repository: Path, control: str, path: str) -> Any:
@@ -388,6 +485,9 @@ def validate_record(
         require(
             manifest == expected_manifest,
             "manifest path must be '{}'".format(expected_manifest),
+        )
+        require_add_only_manifest(
+            repository, control, source_commit, expected_manifest
         )
 
         history = exact_object(

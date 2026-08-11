@@ -237,6 +237,256 @@ class ReleasePreviewContractTests(unittest.TestCase):
             [],
         )
 
+    def test_unchanged_descendant_and_merge_control_pass(self):
+        (
+            temporary,
+            repository,
+            _,
+            source,
+            _,
+            manifest,
+            _,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        descendant = write_and_commit(
+            repository,
+            "unrelated.txt",
+            "unchanged manifest\n",
+            "test: add unrelated descendant",
+        )
+        side = commit_tree(
+            repository,
+            tree(repository, source),
+            (source,),
+            "test: create manifest-free side branch",
+        )
+        merged = commit_tree(
+            repository,
+            tree(repository, descendant),
+            (descendant, side),
+            "test: merge manifest-free side branch",
+        )
+
+        for candidate in (descendant, merged):
+            with self.subTest(control=candidate):
+                checked = MODULE.read_record(repository, candidate, manifest)
+                self.assertEqual(
+                    MODULE.validate_record(
+                        repository, candidate, manifest, checked
+                    ),
+                    [],
+                )
+
+    def test_modified_and_reverted_preview_fails_add_only_history(self):
+        (
+            temporary,
+            repository,
+            _,
+            _,
+            _,
+            manifest,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        modified_record = copy.deepcopy(record)
+        modified_record["compatibility"]["api"] = "Revised API statement."
+        modified = write_and_commit(
+            repository,
+            manifest,
+            json.dumps(modified_record, indent=2) + "\n",
+            "test: modify release preview",
+        )
+        modified_checked = MODULE.read_record(repository, modified, manifest)
+        self.assertEqual(
+            MODULE.validate_record(
+                repository, modified, manifest, modified_checked
+            ),
+            ["manifest tree entry changed in the control history"],
+        )
+
+        reverted = write_and_commit(
+            repository,
+            manifest,
+            json.dumps(record, indent=2) + "\n",
+            "test: revert release preview",
+        )
+        reverted_checked = MODULE.read_record(repository, reverted, manifest)
+        self.assertEqual(
+            MODULE.validate_record(
+                repository, reverted, manifest, reverted_checked
+            ),
+            ["manifest tree entry changed in the control history"],
+        )
+
+    def test_merge_cannot_hide_modified_side_history(self):
+        (
+            temporary,
+            repository,
+            _,
+            _,
+            control,
+            manifest,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        main = commit_tree(
+            repository,
+            tree(repository, control),
+            (control,),
+            "test: preserve preview on main",
+        )
+        modified_record = copy.deepcopy(record)
+        modified_record["compatibility"]["api"] = "Side-branch API statement."
+        modified_side = write_and_commit(
+            repository,
+            manifest,
+            json.dumps(modified_record, indent=2) + "\n",
+            "test: modify preview on side branch",
+        )
+        merged = commit_tree(
+            repository,
+            tree(repository, main),
+            (main, modified_side),
+            "test: merge side branch with original preview",
+        )
+
+        checked = MODULE.read_record(repository, merged, manifest)
+        self.assertEqual(
+            MODULE.validate_record(repository, merged, manifest, checked),
+            ["manifest tree entry changed in the control history"],
+        )
+
+    def test_deleted_and_readded_preview_fails_add_only_history(self):
+        (
+            temporary,
+            repository,
+            _,
+            _,
+            _,
+            manifest,
+            record,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        run_git(repository, "rm", "--", manifest)
+        run_git(repository, "commit", "-m", "test: delete release preview")
+        readded = write_and_commit(
+            repository,
+            manifest,
+            json.dumps(record, indent=2) + "\n",
+            "test: readd release preview",
+        )
+
+        checked = MODULE.read_record(repository, readded, manifest)
+        self.assertEqual(
+            MODULE.validate_record(repository, readded, manifest, checked),
+            ["manifest was removed after its introduction"],
+        )
+
+    def test_merge_cannot_hide_an_independent_preview_introduction(self):
+        (
+            temporary,
+            repository,
+            _,
+            source,
+            control,
+            manifest,
+            _,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        duplicate = commit_tree(
+            repository,
+            tree(repository, control),
+            (source,),
+            "test: independently introduce release preview",
+        )
+        merged = commit_tree(
+            repository,
+            tree(repository, control),
+            (control, duplicate),
+            "test: merge duplicate release preview introduction",
+        )
+
+        checked = MODULE.read_record(repository, merged, manifest)
+        self.assertEqual(
+            MODULE.validate_record(repository, merged, manifest, checked),
+            ["manifest must have exactly one introduction in the control history"],
+        )
+
+    def test_merge_only_introduction_ignores_unrelated_refs(self):
+        (
+            temporary,
+            repository,
+            _,
+            source,
+            unrelated_control,
+            manifest,
+            _,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        left = commit_tree(
+            repository,
+            tree(repository, source),
+            (source,),
+            "test: create left manifest-free parent",
+        )
+        right = commit_tree(
+            repository,
+            tree(repository, source),
+            (source,),
+            "test: create right manifest-free parent",
+        )
+        merged = commit_tree(
+            repository,
+            tree(repository, unrelated_control),
+            (left, right),
+            "test: introduce release preview in merge",
+        )
+
+        checked = MODULE.read_record(repository, merged, manifest)
+        self.assertEqual(
+            MODULE.validate_record(repository, merged, manifest, checked),
+            [],
+        )
+
+    def test_manifest_introduction_must_descend_from_source(self):
+        (
+            temporary,
+            repository,
+            base,
+            source,
+            control,
+            manifest,
+            _,
+        ) = create_repository()
+        self.addCleanup(temporary.cleanup)
+        main = commit_tree(
+            repository,
+            tree(repository, source),
+            (source,),
+            "test: create manifest-free source descendant",
+        )
+        side_introduction = commit_tree(
+            repository,
+            tree(repository, control),
+            (base,),
+            "test: introduce preview outside source ancestry",
+        )
+        merged = commit_tree(
+            repository,
+            tree(repository, control),
+            (main, side_introduction),
+            "test: merge preview from unrelated ancestry",
+        )
+
+        checked = MODULE.read_record(repository, merged, manifest)
+        self.assertEqual(
+            MODULE.validate_record(repository, merged, manifest, checked),
+            [
+                "source.commit must be a strict ancestor of the manifest "
+                "introduction"
+            ],
+        )
+
     def test_git_process_scrubs_inherited_git_environment(self):
         completed = subprocess.CompletedProcess([], 0, b"", b"")
         with mock.patch.dict(
