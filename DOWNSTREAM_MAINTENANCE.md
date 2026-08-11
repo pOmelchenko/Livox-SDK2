@@ -109,6 +109,60 @@ Tag messages record the exact source commit, upstream base, ordered downstream
 commits, supported consumers, qualification summary, and rollback target.
 Published commits and tags are never moved, reused, or silently deleted.
 
+### Unsupported Release Previews
+
+`DOWNSTREAM_REVISION.json` is the historical source-bearing baseline recorded
+before issue #5. Do not overwrite it to represent a later candidate. A current
+identity starts as a versioned JSON record in `releases/previews/`, named for
+the full source commit it describes.
+
+A preview is deliberately not a release. Its source commit is a strict
+ancestor of the commit containing the record, avoiding a self-reference
+between a JSON file and its own commit or tree. Schema version 1 records:
+
+- the canonical upstream repository and exact base commit/tree;
+- the downstream repository and exact source commit/tree;
+- the complete ordered non-merge inventory produced by
+  `git rev-list --reverse --topo-order --no-merges <base>..<source>`;
+- GitHub Actions run IDs, attempts, workflow paths, source commit, declared
+  result, CI-only claims, and explicit qualification limits;
+- null tag, GitHub Release, and source-archive identities, plus an empty
+  supported-consumer list;
+- compatibility statements, the upstream disposition, and a rollback
+  commit/tree equal to the upstream base.
+
+Validate a committed record with:
+
+```sh
+python3 tools/governance/validate_release_preview.py \
+  --repository . \
+  --manifest releases/previews/<full-source-commit>.json \
+  --control <full-commit-containing-the-record>
+```
+
+`--control` defaults to `HEAD` for an ordinary clean checkout, but automation
+should pass the immutable commit it checked out. The validator reads the
+record from that Git commit, not from the worktree. It accepts only full
+lowercase object IDs, ignores local replacement objects, disables lazy object
+fetching and prompts, and verifies object types, ancestry, trees, ordered
+history, workflow blobs, evidence shape, preview-only publication fields, and
+the rollback anchor using local Git objects. Exit status `0` means the local
+contract passed, `1` means the record violated it, and `2` means Git or the
+invocation could not run.
+
+The validator makes no network or GitHub API call. In particular, a declared
+Actions result, run attempt, or platform claim is review-owned evidence: the
+tool binds its shape, workflow blob, and source commit locally but does not
+authenticate the remote run. A preview makes no hardware, device, packaging,
+Intel macOS, archive-reproducibility, or consumer-support claim.
+
+Preview records are add-only audit evidence. Correct a superseded preview with
+a new reviewed record rather than silently changing its meaning. Before the
+first supported release, a separate governing issue must qualify the exact tag
+name, annotated tag object, canonical archive bytes and digest, remote
+non-retag control, release notes, approval, consumer mapping, backup, and
+withdrawal procedure. No preview authorizes creating any of those objects.
+
 ## Upstream Retirement
 
 When upstream publishes equivalent work, the maintainer records the upstream
