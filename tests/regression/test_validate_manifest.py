@@ -67,6 +67,51 @@ class RegressionManifestNegativeControls(unittest.TestCase):
                 text=True,
             )
 
+    def validate_isolated_test_file(self, filename, content, as_symlink=False):
+        with tempfile.TemporaryDirectory(prefix="livox_manifest_fixture_") as temp:
+            repository = Path(temp)
+            fixture = repository / "tests" / filename
+            fixture.parent.mkdir(parents=True)
+            fixture.write_bytes(content)
+            subprocess.run(
+                ["git", "-C", str(repository), "init", "--quiet"], check=True
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repository),
+                    "add",
+                    "--",
+                    fixture.relative_to(repository).as_posix(),
+                ],
+                check=True,
+            )
+            if as_symlink:
+                blob = subprocess.run(
+                    ["git", "-C", str(repository), "hash-object", "-w", "--stdin"],
+                    check=True,
+                    input="../public-target\n",
+                    stdout=subprocess.PIPE,
+                    text=True,
+                ).stdout.strip()
+                subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(repository),
+                        "update-index",
+                        "--cacheinfo",
+                        f"120000,{blob},{fixture.relative_to(repository).as_posix()}",
+                    ],
+                    check=True,
+                )
+            errors = []
+            validate_manifest._validate_fixtures(
+                copy.deepcopy(self.document), repository, errors
+            )
+            return errors
+
     def test_checked_manifest_passes(self):
         self.assertEqual([], self.validate())
 
@@ -101,6 +146,34 @@ class RegressionManifestNegativeControls(unittest.TestCase):
                 copy.deepcopy(self.document), repository, errors
             )
             self.assertEqual([], errors)
+
+    def test_sdk_capture_artifact_type_fails(self):
+        errors = self.validate_isolated_test_file(
+            "device_logger.dat", b"device capture"
+        )
+        self.assertTrue(
+            any("unapproved tracked test file type" in error for error in errors),
+            errors,
+        )
+
+    def test_binary_content_in_allowed_fixture_type_fails(self):
+        errors = self.validate_isolated_test_file("fixture.txt", b"public\0binary")
+        self.assertTrue(any("contains NUL bytes" in error for error in errors), errors)
+
+    def test_non_utf8_content_in_allowed_fixture_type_fails(self):
+        errors = self.validate_isolated_test_file(
+            "fixture.txt", bytes((255, 254))
+        )
+        self.assertTrue(any("not UTF-8 text" in error for error in errors), errors)
+
+    def test_tracked_test_symlinks_fail(self):
+        errors = self.validate_isolated_test_file(
+            "fixture.txt", b"public fixture\n", as_symlink=True
+        )
+        self.assertTrue(
+            any("tracked test symlink is not permitted" in error for error in errors),
+            errors,
+        )
 
     def test_windows_user_paths_with_native_separators_fail(self):
         # Compose the private path so this tracked negative-control source stays public.

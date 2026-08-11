@@ -90,6 +90,20 @@ PRIVATE_PATH_PATTERN = re.compile(
     r"(?:(?:/home|/Users)/[A-Za-z0-9._-]+/|/root(?=/)|[A-Za-z]:[\\/]+Users[\\/]+)",
     re.IGNORECASE,
 )
+PUBLIC_TEST_SOURCE_SUFFIXES = {
+    ".c",
+    ".cc",
+    ".cmake",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".json",
+    ".md",
+    ".py",
+    ".txt",
+}
 
 
 def _git(repository, *arguments):
@@ -187,10 +201,15 @@ def _source_files(repository, roots):
 
 
 def _tracked_files(repository, pathspec):
-    paths = _git(repository, "ls-files", "-z", "--", pathspec).split("\0")
-    for relative_path in paths:
-        if relative_path:
-            yield repository / relative_path
+    records = _git(
+        repository, "ls-files", "-z", "--stage", "--", pathspec
+    ).split("\0")
+    for record in records:
+        if not record:
+            continue
+        metadata, relative_path = record.split("\t", 1)
+        mode = metadata.split(" ", 1)[0]
+        yield repository / relative_path, mode
 
 
 def _validate_source_contracts(document, registered_tests, source_records, errors):
@@ -407,15 +426,29 @@ def _validate_fixtures(document, repository, errors):
         if not isinstance(item.get("rule"), str) or not item["rule"].strip():
             errors.append(f"{category}: fixture convention requires a rule")
 
-    forbidden_suffixes = {".bin", ".cap", ".fw", ".log", ".pcap", ".pcapng"}
-    for path in _tracked_files(repository, "tests"):
+    for path, mode in _tracked_files(repository, "tests"):
+        relative = path.relative_to(repository)
+        if mode == "120000":
+            errors.append(f"tracked test symlink is not permitted: {relative}")
+            continue
+        if mode not in {"100644", "100755"}:
+            errors.append(f"tracked test entry is not a regular file: {relative}")
+            continue
         if not path.is_file():
             continue
-        if path.suffix.lower() in forbidden_suffixes:
-            errors.append(f"forbidden fixture artifact: {path.relative_to(repository)}")
-        text = path.read_text(encoding="utf-8", errors="replace")
+        if path.suffix.lower() not in PUBLIC_TEST_SOURCE_SUFFIXES:
+            errors.append(f"unapproved tracked test file type: {relative}")
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            errors.append(f"tracked test source is not UTF-8 text: {relative}")
+            continue
+        if "\0" in text:
+            errors.append(f"tracked test source contains NUL bytes: {relative}")
+            continue
         if _contains_private_path(text):
-            errors.append(f"private absolute path in public test file: {path.relative_to(repository)}")
+            errors.append(f"private absolute path in public test file: {relative}")
 
 
 def validate_document(
