@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "record_type": "unsupported-release-preview",
+  "upstream": {
+    "repository": "https://github.com/Livox-SDK/Livox-SDK2.git",
+    "base_commit": "08f523c930b2f0ba1e98a6afaa8d7476bf479908",
+    "base_tree": "06631c2f5ac44740c0928e48c54e1ff540c1f5b3"
+  },
+  "source": {
+    "repository": "https://github.com/pOmelchenko/Livox-SDK2.git",
+    "commit": "51c6c8c54978702eeefdaffdcb4cf4270011ad85",
+    "tree": "fdcdeaca3fb522cfe1739284b9b3421c54c523eb"
+  },
+  "history": {
+    "algorithm": "git rev-list --reverse --topo-order --no-merges <upstream.base_commit>..<source.commit>",
+    "ordered_non_merge_commits": [
+      "fc3143bc91b6f5e40c9c1dc13b9d49959eecd66e",
+      "ae9bdbfa0feb5abc960285f7f617ce318caeedb2",
+      "28c5e39325ff5276b32daa928e0aa4792d9abeea",
+      "077bd0a98506cca26b07c05148c0f85d83680b15",
+      "40a709948d1fc86716fb1acf90d6bc7801193d90",
+      "e6b6ef3ad26c036baedc3b35c806575060986253",
+      "e218809dcf77cdcc75ca009d3210c18812409e3c",
+      "b996b4e21d463a31070efb91f8160194861f1be0",
+      "3beb3c924cab934015bb332e3300630e0ba5c74e",
+      "2ca4201eef248f44460158d112c92919bd048e65",
+      "ea9867efa9f9976672901e09be248ea529363cd1",
+      "129371bbc17a5b2564dd8a9e433c928e72e053eb",
+      "59a6fadf261f7e7348fbc685bcc8c9cba936dfa9",
+      "7cdc90d355a3c60e53f8375c931f8fdd716e4bbc",
+      "9080bd15d0cd09999dda5987a9d90d3c6b9f75b3",
+      "30667d91c5983b7c3aa403b3a4ed293138d26f82",
+      "a0b0d80275f9e2c4033d024438fc2b56e4d2cb0c",
+      "00eb1b0590685ffd3070716fe3cdc1ba5110ae2f"
+    ]
+  },
+  "qualification": {
+    "evidence": [
+      {
+        "provider": "github-actions",
+        "repository": "https://github.com/pOmelchenko/Livox-SDK2.git",
+        "workflow": ".github/workflows/sdk-regressions.yml",
+        "run_id": "31533396922",
+        "run_attempt": "1",
+        "url": "https://github.com/pOmelchenko/Livox-SDK2/actions/runs/31533396922",
+        "source_commit": "51c6c8c54978702eeefdaffdcb4cf4270011ad85",
+        "result": "success",
+        "scope": "ci-only",
+        "hardware_qualification": false,
+        "claims": [
+          "The standalone regression suite passed on Ubuntu 24.04 with GCC.",
+          "The standalone regression suite passed on Ubuntu 24.04 with Clang.",
+          "The standalone regression suite passed on macOS 15 ARM64 with AppleClang.",
+          "The standalone regression suite passed on Windows 2025 with MSVC.",
+          "The FastCRC sanitizer job passed on Ubuntu 24.04 with GCC."
+        ]
+      },
+      {
+        "provider": "github-actions",
+        "repository": "https://github.com/pOmelchenko/Livox-SDK2.git",
+        "workflow": ".github/workflows/windows-logger-paths.yml",
+        "run_id": "31533396932",
+        "run_attempt": "1",
+        "url": "https://github.com/pOmelchenko/Livox-SDK2/actions/runs/31533396932",
+        "source_commit": "51c6c8c54978702eeefdaffdcb4cf4270011ad85",
+        "result": "success",
+        "scope": "ci-only",
+        "hardware_qualification": false,
+        "claims": [
+          "The focused logger-path tests passed on Windows 2025 with MSVC.",
+          "The full SDK configured and built on Windows 2025 with MSVC."
+        ]
+      }
+    ],
+    "limitations": [
+      "The offline validator does not authenticate GitHub Actions results or claims.",
+      "No physical-device or hardware behavior is qualified.",
+      "No Intel macOS, sample, package, install, or consumer configuration is qualified.",
+      "The Linux and macOS jobs build the standalone regression suite, not the full SDK."
+    ]
+  },
+  "publication": {
+    "status": "unsupported-preview",
+    "published_tag": null,
+    "github_release": null,
+    "source_archive": null,
+    "supported_consumers": []
+  },
+  "compatibility": {
+    "api": "The preview record changes no public API and makes no new API support claim.",
+    "abi": "The preview record changes no ABI and makes no ABI qualification claim.",
+    "wire": "The preview record changes no wire behavior and makes no device qualification claim.",
+    "platform": "Only the CI-only platform evidence and limitations above are recorded.",
+    "packaging": "No source archive, binary package, installer, or release asset was produced.",
+    "consumers": "No consumer is supported or asked to update from this preview."
+  },
+  "rollback": {
+    "commit": "08f523c930b2f0ba1e98a6afaa8d7476bf479908",
+    "tree": "06631c2f5ac44740c0928e48c54e1ff540c1f5b3",
+    "status": "baseline-fallback-only",
+    "qualification": "This upstream base is the recorded fallback anchor, not a supported downstream release."
+  },
+  "upstream_disposition": {
+    "status": "downstream-only",
+    "rationale": "This preview describes fork-local commits, CI evidence, and release governance rather than an upstream SDK behavior change."
+  }
+}
