@@ -118,6 +118,35 @@ class RegressionManifestNegativeControls(unittest.TestCase):
         private_path = "/".join(("", "Users", "Alice", "capture.txt"))
         self.assertTrue(validate_manifest._contains_private_path(private_path))
 
+    def test_private_path_scan_covers_header_extensions(self):
+        with tempfile.TemporaryDirectory(prefix="livox_manifest_header_") as temp:
+            repository = Path(temp)
+            private_fixture = repository / "tests" / "private_fixture.hpp"
+            private_fixture.parent.mkdir(parents=True)
+            private_path = "/".join(("", "home", "Alice", "capture.txt"))
+            private_fixture.write_text(private_path + "\n", encoding="utf-8")
+            subprocess.run(
+                ["git", "-C", str(repository), "init", "--quiet"], check=True
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repository),
+                    "add",
+                    "--",
+                    private_fixture.relative_to(repository).as_posix(),
+                ],
+                check=True,
+            )
+            errors = []
+            validate_manifest._validate_fixtures(
+                copy.deepcopy(self.document), repository, errors
+            )
+        self.assertTrue(
+            any("private absolute path" in error for error in errors), errors
+        )
+
     def test_pointer_fastcrc_call_requires_inventory_entry(self):
         consumer = REPOSITORY / "sdk_core/comm/sdk_protocol.cpp"
         original_read_text = Path.read_text

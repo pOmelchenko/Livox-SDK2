@@ -413,10 +413,9 @@ def _validate_fixtures(document, repository, errors):
             continue
         if path.suffix.lower() in forbidden_suffixes:
             errors.append(f"forbidden fixture artifact: {path.relative_to(repository)}")
-        if path.suffix.lower() in {".cmake", ".cpp", ".h", ".json", ".md", ".py", ".txt"}:
-            text = path.read_text(encoding="utf-8", errors="replace")
-            if _contains_private_path(text):
-                errors.append(f"private absolute path in public test file: {path.relative_to(repository)}")
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if _contains_private_path(text):
+            errors.append(f"private absolute path in public test file: {path.relative_to(repository)}")
 
 
 def validate_document(
