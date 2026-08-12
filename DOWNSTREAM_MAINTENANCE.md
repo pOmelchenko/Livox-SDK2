@@ -166,6 +166,40 @@ name, annotated tag object, canonical archive bytes and digest, remote
 non-retag control, release notes, approval, consumer mapping, backup, and
 withdrawal procedure. No preview authorizes creating any of those objects.
 
+## Upstream Drift Observation
+
+Before planning an upstream refresh, read the recorded base from its immutable
+control commit and ask Git to report the exact canonical upstream ref:
+
+```sh
+GIT_NO_LAZY_FETCH=1 git --no-replace-objects show \
+  58a181850e7e35420433df5761277cee2b20c454:DOWNSTREAM_REVISION.json
+
+git ls-remote --exit-code --refs \
+  https://github.com/Livox-SDK/Livox-SDK2.git \
+  refs/heads/master
+```
+
+The record printed by the first command identifies the expected commit in
+`upstream.base_commit`. The second command must return exactly one line with a
+full object ID and `refs/heads/master`. If the IDs are equal, record only that
+no ref drift was observed at the time of the query. This point-in-time
+observation does not prove that the mutable remote ref remains unchanged or
+that no other synchronization work exists.
+
+The immutable control object must already exist locally; the command disables
+lazy object fetching. If the advertised ID differs, record both full IDs and
+open a new issue before fetching or integrating. Establish ancestry and the
+exact candidate range in that issue. If either command fails, the ref is
+missing, or the response is malformed, make no upstream-drift conclusion.
+These commands do not write refs, tags, objects, the index, the worktree, or
+remote configuration in the maintained checkout.
+
+Do not add a preflight program, output schema, disposable clone, or persistent
+report until a concrete automation caller or repeated operational need is
+qualified. Patch equivalence, conflicts, API, ABI, behavior, retirement,
+integration, release, and publication remain separate issue-owned decisions.
+
 ## Upstream Retirement
 
 When upstream publishes equivalent work, the maintainer records the upstream
