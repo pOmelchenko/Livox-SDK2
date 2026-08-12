@@ -188,12 +188,14 @@ observation does not prove that the mutable remote ref remains unchanged or
 that no other synchronization work exists.
 
 The immutable control object must already exist locally; the command disables
-lazy object fetching. If the advertised ID differs, record both full IDs and
-open a new issue before fetching or integrating. Establish ancestry and the
-exact candidate range in that issue. If either command fails, the ref is
-missing, or the response is malformed, make no upstream-drift conclusion.
-These commands do not write refs, tags, objects, the index, the worktree, or
-remote configuration in the maintained checkout.
+lazy object fetching. The observation relies on the maintainer's trusted Git
+and HTTPS configuration. If a URL rewrite applies or the contacted endpoint is
+uncertain, make no upstream-drift conclusion. If the advertised ID differs,
+record both full IDs and open a new issue before fetching or integrating.
+Establish ancestry and the exact candidate range in that issue. If either
+command fails, the ref is missing, or the response is malformed, make no
+upstream-drift conclusion. These commands do not write refs, tags, objects,
+the index, the worktree, or remote configuration in the maintained checkout.
 
 Do not add a preflight program, output schema, disposable clone, or persistent
 report until a concrete automation caller or repeated operational need is
