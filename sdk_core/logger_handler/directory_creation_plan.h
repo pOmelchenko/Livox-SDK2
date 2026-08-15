@@ -21,6 +21,7 @@ enum class DirectoryPathStyle {
 struct DirectoryCreationPlan {
   std::string normalized_path;
   std::string required_existing_root;
+  std::string creation_prefix;
   std::vector<std::string> components;
 };
 
@@ -32,6 +33,7 @@ inline bool BuildDirectoryCreationPlan(
 
   plan->normalized_path.clear();
   plan->required_existing_root.clear();
+  plan->creation_prefix.clear();
   plan->components.clear();
 
   const bool windows = style == DirectoryPathStyle::kWindows;
@@ -75,6 +77,7 @@ inline bool BuildDirectoryCreationPlan(
     current = "/";
     position = 1;
   }
+  plan->creation_prefix = current;
 
   while (position < path.size()) {
     while (position < path.size() && path[position] == '/') {
@@ -89,12 +92,7 @@ inline bool BuildDirectoryCreationPlan(
         path.substr(position, separator == std::string::npos
                                   ? std::string::npos
                                   : separator - position);
-    if (!current.empty() && current.back() != '/' &&
-        !(windows && current.back() == ':')) {
-      current.push_back('/');
-    }
-    current.append(component);
-    plan->components.push_back(current);
+    plan->components.push_back(component);
 
     if (separator == std::string::npos) {
       break;
