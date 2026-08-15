@@ -1,5 +1,8 @@
 # Public API
 
+The glossary defines the repository's [public API](../glossary/public-api.md)
+and [ABI](../glossary/abi.md) boundaries.
+
 The installed interface is the set of headers listed as public by
 [`sdk_core/CMakeLists.txt`](../../sdk_core/CMakeLists.txt):
 

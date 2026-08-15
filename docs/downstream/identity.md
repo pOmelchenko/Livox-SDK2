@@ -1,8 +1,10 @@
 # Downstream identity and authority
 
-This repository is the maintained downstream
+This [repository](../glossary/repository.md) is the maintained
+[downstream](../glossary/downstream.md)
 [`pOmelchenko/Livox-SDK2`](https://github.com/pOmelchenko/Livox-SDK2) of the
-official [`Livox-SDK/Livox-SDK2`](https://github.com/Livox-SDK/Livox-SDK2).
+official [`Livox-SDK/Livox-SDK2`](https://github.com/Livox-SDK/Livox-SDK2)
+[upstream](../glossary/upstream.md).
 It carries independently qualified fixes until equivalent work is accepted
 upstream or the downstream work is retired through a new reviewed change.
 

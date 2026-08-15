@@ -1,7 +1,9 @@
 # Contribution workflow
 
-This page is the canonical human-facing contract for preparing, committing,
-reviewing, and merging downstream changes.
+This page is the canonical human-facing contract for preparing
+[commits](../glossary/commit.md), conducting
+[human review](../glossary/human-review.md), and
+[merging](../glossary/merge.md) downstream changes.
 
 ## Topic preparation
 

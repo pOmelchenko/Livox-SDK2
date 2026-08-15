@@ -25,6 +25,11 @@ firmware, and the communication protocol.
 - [Upstream sync and retirement](downstream/upstream-sync-and-retirement.md)
 - [Rollback and recovery](downstream/rollback-and-recovery.md)
 
+## Shared terminology
+
+- [Glossary](glossary/index.md) — one canonical term and one normative
+  definition per page.
+
 ## Repository records
 
 - [Downstream source identity](../DOWNSTREAM_REVISION.json)

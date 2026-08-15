@@ -1,9 +1,10 @@
 # SDK overview
 
-Livox SDK2 is a C++11 software development kit with C-style public functions.
-It connects an application to supported Livox LiDAR devices so the application
+[Livox SDK2](../glossary/sdk.md) provides C++11 libraries with C-style public
+functions. It connects an application to supported [LiDAR](../glossary/lidar.md)
+devices so the application
 can discover devices, send control commands, and receive point-cloud, IMU,
-status, debug, and logger data.
+status, debug, and [logger](../glossary/logger.md) data.
 
 ## Repository boundary
 
