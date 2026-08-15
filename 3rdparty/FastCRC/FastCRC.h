@@ -142,7 +142,7 @@ class FastCRC16
 public:
   FastCRC16();
   uint16_t ccitt(const uint8_t *data, const size_t datalen);      // Alias "false CCITT"
-  uint16_t mcrf4xx(const uint8_t *data,const size_t datalen);     // Equivalent to _crc_ccitt_update() in crc16.h from avr_libc
+  uint16_t mcrf4xx(const uint8_t *data,const size_t datalen);     // Software build uses the legacy Livox seed-0 variant
   uint16_t kermit(const uint8_t *data, const size_t datalen);     // Alias CRC-16/CCITT, CRC-16/CCITT-TRUE, CRC-CCITT
   uint16_t modbus(const uint8_t *data, const size_t datalen);     // Equivalent to _crc_16_update() in crc16.h from avr_libc
   uint16_t xmodem(const uint8_t *data, const size_t datalen);     // Alias ZMODEM, CRC-16/ACORN

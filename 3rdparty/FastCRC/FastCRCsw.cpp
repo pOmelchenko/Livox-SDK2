@@ -217,8 +217,9 @@ uint16_t FastCRC16::ccitt(const uint8_t *data,const size_t datalen)
   return ccitt_upd(data, datalen);
 }
 
-/** MCRF4XX
- * equivalent to _crc_ccitt_update() in crc16.h from avr_libc
+/** Livox reflected CCITT compatibility profile.
+ * The legacy method name says MCRF4XX, but Livox firmware uses init=0x0000
+ * instead of the standard CRC-16/MCRF4XX init=0xffff.
  * @param data Pointer to Data
  * @param datalen Length of Data
  * @return CRC value
@@ -253,7 +254,7 @@ uint16_t FastCRC16::mcrf4xx_upd(const uint8_t *data, size_t len)
 
 uint16_t FastCRC16::mcrf4xx(const uint8_t *data,const size_t datalen)
 {
- // poly=0x1021 init=0xffff refin=true refout=true xorout=0x0000 check=0x6f91
+ // poly=0x1021 init=0x0000 refin=true refout=true xorout=0x0000 check=0x2189
   seed = 0;
   return mcrf4xx_upd(data, datalen);
 }

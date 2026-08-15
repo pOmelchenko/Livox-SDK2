@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -85,6 +86,93 @@ void FillDeterministic(std::vector<std::uint8_t>* bytes) {
 std::uint32_t NextDeterministic(std::uint32_t* state) {
   *state = *state * 1664525u + 1013904223u;
   return *state;
+}
+
+int HexNibble(char value) {
+  if (value >= '0' && value <= '9') {
+    return value - '0';
+  }
+  if (value >= 'a' && value <= 'f') {
+    return value - 'a' + 10;
+  }
+  if (value >= 'A' && value <= 'F') {
+    return value - 'A' + 10;
+  }
+  return -1;
+}
+
+std::vector<std::uint8_t> ReadHexFixture(const std::string& filename) {
+  const std::string path =
+      std::string(LIVOX_FASTCRC_FIXTURE_DIR) + "/" + filename;
+  std::ifstream input(path.c_str());
+  if (!input) {
+    std::cerr << "cannot open firmware-header fixture: " << path << '\n';
+    ++failures;
+    return std::vector<std::uint8_t>();
+  }
+
+  std::string hex;
+  std::string token;
+  while (input >> token) {
+    hex += token;
+  }
+  if ((hex.size() & 1u) != 0) {
+    std::cerr << filename << ": odd number of hexadecimal digits\n";
+    ++failures;
+    return std::vector<std::uint8_t>();
+  }
+
+  std::vector<std::uint8_t> bytes;
+  bytes.reserve(hex.size() / 2u);
+  for (std::size_t i = 0; i < hex.size(); i += 2u) {
+    const int high = HexNibble(hex[i]);
+    const int low = HexNibble(hex[i + 1u]);
+    if (high < 0 || low < 0) {
+      std::cerr << filename << ": invalid hexadecimal digit at offset "
+                << i << '\n';
+      ++failures;
+      return std::vector<std::uint8_t>();
+    }
+    bytes.push_back(static_cast<std::uint8_t>((high << 4) | low));
+  }
+  return bytes;
+}
+
+void CheckFirmwareHeaderFixture(const char* family, const char* filename,
+                                std::uint16_t expected_stored,
+                                std::uint16_t expected_standard) {
+  const std::vector<std::uint8_t> header = ReadHexFixture(filename);
+  const std::size_t checksum_offset = 284u;
+  const std::size_t header_size = 286u;
+  if (header.size() != header_size) {
+    std::cerr << family << " firmware-header fixture: expected "
+              << header_size << " bytes, got " << header.size() << '\n';
+    ++failures;
+    return;
+  }
+
+  const std::uint16_t stored = static_cast<std::uint16_t>(
+      header[checksum_offset] |
+      (static_cast<std::uint16_t>(header[checksum_offset + 1u]) << 8));
+  ExpectEqual(std::string(family) + " firmware-header little-endian checksum",
+              stored, expected_stored);
+
+  FastCRC16 crc16;
+  ExpectEqual(std::string(family) + " firmware-header Livox seed-0 profile",
+              crc16.mcrf4xx(header.data(), checksum_offset), expected_stored);
+  ExpectEqual(std::string(family) + " firmware-header seed-0 reference",
+              ReferenceMcrf4xx(header.data(), checksum_offset, 0x0000u),
+              expected_stored);
+  ExpectEqual(std::string(family) + " firmware-header standard MCRF4XX control",
+              ReferenceMcrf4xx(header.data(), checksum_offset, 0xFFFFu),
+              expected_standard);
+}
+
+void CheckFirmwareHeaderCompatibility() {
+  CheckFirmwareHeaderFixture("Mid-360", "mid360-v13.18.0244-header.hex",
+                             0x402Eu, 0x461Bu);
+  CheckFirmwareHeaderFixture("HAP", "hap-v15.05.01.21-header.hex",
+                             0xCD67u, 0xCB52u);
 }
 
 void CheckCanonicalProfiles() {
@@ -226,6 +314,7 @@ void CheckIncrementalUpdates() {
 
 int main() {
   CheckCanonicalProfiles();
+  CheckFirmwareHeaderCompatibility();
   CheckCrc16BoundariesAndSdkSizes();
   CheckCrc32SdkPayloadRange();
   CheckDeterministicRandomizedCorpus();
