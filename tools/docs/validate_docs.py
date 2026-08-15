@@ -317,6 +317,7 @@ def validate_glossary(
         return [f"{index.as_posix()}: glossary index is missing"]
 
     pages = sorted(path for path in glossary.glob("*.md") if path.name != "index.md")
+    page_names = {page.name for page in pages}
     terms: List[Term] = []
     for page in pages:
         term = parse_term_page(page, errors)
@@ -351,7 +352,7 @@ def validate_glossary(
     for row in rows:
         row_by_link.setdefault(row[2], []).append(row)
         row_names[row[0].casefold()] = row_names.get(row[0].casefold(), 0) + 1
-        if not (glossary / row[2]).is_file():
+        if row[2] not in page_names:
             errors.append(f"{index.as_posix()}: index entry has no page: {row[2]}")
     for name, count in row_names.items():
         if count > 1:

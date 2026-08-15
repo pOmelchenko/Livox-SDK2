@@ -2,4 +2,4 @@
 
 | Canonical term | Aliases | Link |
 | --- | --- | --- |
-| Ghost | missing | [Ghost](ghost.md) |
+| Ghost | missing | [Ghost](../outside.md) |
