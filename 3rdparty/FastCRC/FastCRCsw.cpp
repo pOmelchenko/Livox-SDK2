@@ -59,6 +59,16 @@ static constexpr uint32_t pgm_read_dword(T addr) noexcept {
 
 
 static inline
+uint32_t load_u32_le(const uint8_t *data)
+{
+	return static_cast<uint32_t>(data[0]) |
+		(static_cast<uint32_t>(data[1]) << 8) |
+		(static_cast<uint32_t>(data[2]) << 16) |
+		(static_cast<uint32_t>(data[3]) << 24);
+}
+
+
+static inline
 uint32_t REV16( uint32_t value)
 {
 	return (value >> 8) | ((value & 0xff) << 8);
@@ -184,10 +194,10 @@ uint16_t FastCRC16::ccitt_upd(const uint8_t *data, size_t len)
 
 	while (len >= 16) {
 		len -= 16;
-		crc_n4(crc, ((uint32_t *)data)[0], crc_table_ccitt);
-		crc_n4(crc, ((uint32_t *)data)[1], crc_table_ccitt);
-		crc_n4(crc, ((uint32_t *)data)[2], crc_table_ccitt);
-		crc_n4(crc, ((uint32_t *)data)[3], crc_table_ccitt);
+		crc_n4(crc, load_u32_le(data), crc_table_ccitt);
+		crc_n4(crc, load_u32_le(data + 4), crc_table_ccitt);
+		crc_n4(crc, load_u32_le(data + 8), crc_table_ccitt);
+		crc_n4(crc, load_u32_le(data + 12), crc_table_ccitt);
 		data += 16;
 	}
 
@@ -226,10 +236,10 @@ uint16_t FastCRC16::mcrf4xx_upd(const uint8_t *data, size_t len)
 
 	while (len >= 16) {
 		len -= 16;
-		crc_n4(crc, ((uint32_t *)data)[0], crc_table_mcrf4xx);
-		crc_n4(crc, ((uint32_t *)data)[1], crc_table_mcrf4xx);
-		crc_n4(crc, ((uint32_t *)data)[2], crc_table_mcrf4xx);
-		crc_n4(crc, ((uint32_t *)data)[3], crc_table_mcrf4xx);
+		crc_n4(crc, load_u32_le(data), crc_table_mcrf4xx);
+		crc_n4(crc, load_u32_le(data + 4), crc_table_mcrf4xx);
+		crc_n4(crc, load_u32_le(data + 8), crc_table_mcrf4xx);
+		crc_n4(crc, load_u32_le(data + 12), crc_table_mcrf4xx);
 		data += 16;
 	}
 
@@ -458,15 +468,15 @@ uint32_t FastCRC32::crc32_upd(const uint8_t *data, size_t len)
 	while (len >= 16) {
 		len -= 16;
 		#if CRC_BIGTABLES
-		crc_n4d(crc, ((uint32_t *)data)[0], CRC_TABLE_CRC32);
-		crc_n4d(crc, ((uint32_t *)data)[1], CRC_TABLE_CRC32);
-		crc_n4d(crc, ((uint32_t *)data)[2], CRC_TABLE_CRC32);
-		crc_n4d(crc, ((uint32_t *)data)[3], CRC_TABLE_CRC32);
+		crc_n4d(crc, load_u32_le(data), CRC_TABLE_CRC32);
+		crc_n4d(crc, load_u32_le(data + 4), CRC_TABLE_CRC32);
+		crc_n4d(crc, load_u32_le(data + 8), CRC_TABLE_CRC32);
+		crc_n4d(crc, load_u32_le(data + 12), CRC_TABLE_CRC32);
 		#else
-		crcsm_n4d(crc, ((uint32_t *)data)[0], CRC_TABLE_CRC32);
-		crcsm_n4d(crc, ((uint32_t *)data)[1], CRC_TABLE_CRC32);
-		crcsm_n4d(crc, ((uint32_t *)data)[2], CRC_TABLE_CRC32);
-		crcsm_n4d(crc, ((uint32_t *)data)[3], CRC_TABLE_CRC32);
+		crcsm_n4d(crc, load_u32_le(data), CRC_TABLE_CRC32);
+		crcsm_n4d(crc, load_u32_le(data + 4), CRC_TABLE_CRC32);
+		crcsm_n4d(crc, load_u32_le(data + 8), CRC_TABLE_CRC32);
+		crcsm_n4d(crc, load_u32_le(data + 12), CRC_TABLE_CRC32);
 		#endif
 		data += 16;
 	}
