@@ -2,6 +2,8 @@
 #include "parse_lidar_state_info.h"
 #include "base/logging.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <sstream>
 
@@ -9,8 +11,20 @@ namespace livox {
 
 namespace lidar {
 
+namespace {
+
+std::size_t BoundedStringLength(const char* value, std::size_t capacity) {
+  std::size_t length = 0;
+  while (length < capacity && value[length] != '\0') {
+    ++length;
+  }
+  return length;
+}
+
+}  // namespace
+
 bool ParseLidarStateInfo::Parse(const CommPacket& packet, std::string& info_str) {
-  DirectLidarStateInfo info;
+  DirectLidarStateInfo info = {};
   std::set<ParamKeyName> key_mask;
   
   if (!ParseStateInfo(packet, info, key_mask)) {
@@ -24,209 +38,249 @@ bool ParseLidarStateInfo::Parse(const CommPacket& packet, std::string& info_str)
 bool ParseLidarStateInfo::ParseStateInfo(const CommPacket& packet,
                                          DirectLidarStateInfo& info,
                                          std::set<ParamKeyName>& key_mask) {  
-  uint16_t offset = 0;
+  const uint32_t state_info_header_size = sizeof(uint16_t) * 2u;
+  const uint32_t tlv_header_size = sizeof(uint16_t) * 2u;
+  if (packet.data == nullptr || packet.data_len < state_info_header_size) {
+    return false;
+  }
+
+  uint32_t offset = 0;
   uint16_t key_num = 0;
   memcpy(&key_num, &packet.data[offset], sizeof(uint16_t));
-  offset += sizeof(uint16_t) * 2;  
+  offset += state_info_header_size;
 
   for (uint16_t i = 0; i < key_num; ++i) {
-    if (offset + sizeof(LivoxLidarKeyValueParam) > packet.data_len) {
+    if (offset > packet.data_len ||
+        packet.data_len - offset < tlv_header_size) {
       return false;
     }
 
-    LivoxLidarKeyValueParam* kv = (LivoxLidarKeyValueParam*)&packet.data[offset];
+    uint16_t key = 0;
+    memcpy(&key, &packet.data[offset], sizeof(uint16_t));
     offset += sizeof(uint16_t);
 
     uint16_t val_len = 0;
     memcpy(&val_len, &packet.data[offset], sizeof(uint16_t));
     offset += sizeof(uint16_t);
+
+    if (offset > packet.data_len ||
+        val_len > packet.data_len - offset) {
+      return false;
+    }
+
+    const auto copy_value = [&](void* destination,
+                                std::size_t destination_size) {
+      memcpy(destination, &packet.data[offset],
+             std::min(destination_size, static_cast<std::size_t>(val_len)));
+    };
   
-    switch (kv->key) {
+    switch (key) {
       case static_cast<uint16_t>(kKeyPclDataType) :
         key_mask.insert(kKeyPclDataType);
-        memcpy(&info.pcl_data_type, &packet.data[offset], val_len);
+        copy_value(&info.pcl_data_type, sizeof(info.pcl_data_type));
         break;
       case static_cast<uint16_t>(kKeyPatternMode) :
         key_mask.insert(kKeyPatternMode);
-        memcpy(&info.pattern_mode, &packet.data[offset], val_len);
+        copy_value(&info.pattern_mode, sizeof(info.pattern_mode));
         break;
       case static_cast<uint16_t>(kKeyDualEmitEn) :
         key_mask.insert(kKeyDualEmitEn);
-        memcpy(&info.dual_emit_en, &packet.data[offset], val_len);
+        copy_value(&info.dual_emit_en, sizeof(info.dual_emit_en));
         break;
       case static_cast<uint16_t>(kKeyPointSendEn) :
         key_mask.insert(kKeyPointSendEn);
-        memcpy(&info.point_send_en, &packet.data[offset], val_len);
+        copy_value(&info.point_send_en, sizeof(info.point_send_en));
         break;
       case static_cast<uint16_t>(kKeyLidarIpCfg) :
+        if (val_len < 12u) {
+          return false;
+        }
         key_mask.insert(kKeyLidarIpCfg);
         ParseLidarIpAddr(packet, offset, info);
         break;
       case static_cast<uint16_t>(kKeyStateInfoHostIpCfg) :
+        if (val_len < 8u) {
+          return false;
+        }
         key_mask.insert(kKeyStateInfoHostIpCfg);
         ParseStateInfoHostIPCfg(packet, offset, info);
         break;
       case static_cast<uint16_t>(kKeyLidarPointDataHostIpCfg) :
+        if (val_len < 8u) {
+          return false;
+        }
         key_mask.insert(kKeyLidarPointDataHostIpCfg);
         ParsePointCloudHostIpCfg(packet, offset, info);
         break;
       case static_cast<uint16_t>(kKeyLidarImuHostIpCfg) :
+        if (val_len < 8u) {
+          return false;
+        }
         key_mask.insert(kKeyLidarImuHostIpCfg);
         ParseImuDataHostIpCfg(packet, offset, info);
         break;
       case static_cast<uint16_t>(kKeyCtlHostIpCfg) :
+        if (val_len < 8u) {
+          return false;
+        }
         key_mask.insert(kKeyCtlHostIpCfg);
         ParseIpCfg(packet, offset, info.ctl_host_ipcfg);
         break;
       case static_cast<uint16_t>(kKeyLogHostIpCfg) :
+        if (val_len < 8u) {
+          return false;
+        }
         key_mask.insert(kKeyLogHostIpCfg);
         ParseIpCfg(packet, offset, info.log_host_ipcfg);
         break;
       case static_cast<uint16_t>(kKeyVehicleSpeed) :
         key_mask.insert(kKeyVehicleSpeed);
-        memcpy(&info.vehicle_speed, &packet.data[offset], val_len);
+        copy_value(&info.vehicle_speed, sizeof(info.vehicle_speed));
         break;
       case static_cast<uint16_t>(kKeyEnvironmentTemp) :
         key_mask.insert(kKeyEnvironmentTemp);
-        memcpy(&info.environment_temp, &packet.data[offset], val_len);
+        copy_value(&info.environment_temp, sizeof(info.environment_temp));
         break;
       case static_cast<uint16_t>(kKeyInstallAttitude) :
         key_mask.insert(kKeyInstallAttitude);
-        memcpy(&info.install_attitude, &packet.data[offset], val_len);
+        copy_value(&info.install_attitude, sizeof(info.install_attitude));
         break;
       case static_cast<uint16_t>(kKeyBlindSpotSet) :
         key_mask.insert(kKeyBlindSpotSet);
-        memcpy(&info.blind_spot_set, &packet.data[offset], val_len);
+        copy_value(&info.blind_spot_set, sizeof(info.blind_spot_set));
         break;
       case static_cast<uint16_t>(kKeyFrameRate) :
         key_mask.insert(kKeyFrameRate);
-        memcpy(&info.frame_rate, &packet.data[offset], val_len);
+        copy_value(&info.frame_rate, sizeof(info.frame_rate));
         break;
       case static_cast<uint16_t>(kKeyFovCfg0) :
         key_mask.insert(kKeyFovCfg0);
-        memcpy(&info.fov_cfg0, &packet.data[offset], val_len);
+        copy_value(&info.fov_cfg0, sizeof(info.fov_cfg0));
         break;
       case static_cast<uint16_t>(kKeyFovCfg1) :
         key_mask.insert(kKeyFovCfg1);
-        memcpy(&info.fov_cfg1, &packet.data[offset], val_len);
+        copy_value(&info.fov_cfg1, sizeof(info.fov_cfg1));
         break;
       case static_cast<uint16_t>(kKeyFovCfgEn) :
         key_mask.insert(kKeyFovCfgEn);
-        memcpy(&info.fov_cfg_en, &packet.data[offset], val_len);
+        copy_value(&info.fov_cfg_en, sizeof(info.fov_cfg_en));
         break;
       case static_cast<uint16_t>(kKeyDetectMode) :
         key_mask.insert(kKeyDetectMode);
-        memcpy(&info.detect_mode, &packet.data[offset], val_len);
+        copy_value(&info.detect_mode, sizeof(info.detect_mode));
         break;
       case static_cast<uint16_t>(kKeyFuncIoCfg) :
         key_mask.insert(kKeyFuncIoCfg);
-        memcpy(&info.func_io_cfg, &packet.data[offset], val_len);
+        copy_value(info.func_io_cfg, sizeof(info.func_io_cfg));
         break;
       case static_cast<uint16_t>(kKeyWorkMode) :
         key_mask.insert(kKeyWorkMode);
-        memcpy(&info.work_tgt_mode, &packet.data[offset], val_len);
+        copy_value(&info.work_tgt_mode, sizeof(info.work_tgt_mode));
         break;
       case static_cast<uint16_t>(kKeyGlassHeat) :
         key_mask.insert(kKeyGlassHeat);
-        memcpy(&info.glass_heat, &packet.data[offset], val_len);
+        copy_value(&info.glass_heat, sizeof(info.glass_heat));
         break;
       case static_cast<uint16_t>(kKeyImuDataEn) :
         key_mask.insert(kKeyImuDataEn);
-        memcpy(&info.imu_data_en, &packet.data[offset], val_len);
+        copy_value(&info.imu_data_en, sizeof(info.imu_data_en));
         break;
       case static_cast<uint16_t>(kKeyFusaEn) :
         key_mask.insert(kKeyFusaEn);
-        memcpy(&info.fusa_en, &packet.data[offset], val_len);
+        copy_value(&info.fusa_en, sizeof(info.fusa_en));
         break;
       case static_cast<uint16_t>(kKeySn) :
         key_mask.insert(kKeySn);
-        memcpy(info.sn, &packet.data[offset], val_len);
+        copy_value(info.sn, sizeof(info.sn));
         break;
       case static_cast<uint16_t>(kKeyProductInfo) :
         key_mask.insert(kKeyProductInfo);
-        memcpy(info.product_info, &packet.data[offset], val_len);
+        copy_value(info.product_info, sizeof(info.product_info));
         break;
       case static_cast<uint16_t>(kKeyVersionApp) :
         key_mask.insert(kKeyVersionApp);
-        memcpy(info.version_app, &packet.data[offset], val_len);
+        copy_value(info.version_app, sizeof(info.version_app));
         break;
       case static_cast<uint16_t>(kKeyVersionLoader) :
         key_mask.insert(kKeyVersionLoader);
-        memcpy(info.version_loader, &packet.data[offset], val_len);
+        copy_value(info.version_loader, sizeof(info.version_loader));
         break;
       case static_cast<uint16_t>(kKeyVersionHardware):
         key_mask.insert(kKeyVersionHardware);
-        memcpy(info.version_hardware, &packet.data[offset], val_len);
+        copy_value(info.version_hardware, sizeof(info.version_hardware));
         break;
       case static_cast<uint16_t>(kKeyMac) :
         key_mask.insert(kKeyMac);
-        memcpy(info.mac, &packet.data[offset], val_len);
+        copy_value(info.mac, sizeof(info.mac));
         break;
       case static_cast<uint16_t>(kKeyCurWorkState) :
         key_mask.insert(kKeyCurWorkState);
-        memcpy(&info.cur_work_state, &packet.data[offset], val_len);
+        copy_value(&info.cur_work_state, sizeof(info.cur_work_state));
         break;
       case static_cast<uint16_t>(kKeyCoreTemp) :
         key_mask.insert(kKeyCoreTemp);
-        memcpy(&info.core_temp, &packet.data[offset], val_len);
+        copy_value(&info.core_temp, sizeof(info.core_temp));
         break;
       case static_cast<uint16_t>(kKeyPowerUpCnt) :
         key_mask.insert(kKeyPowerUpCnt);
-        memcpy(&info.powerup_cnt, &packet.data[offset], val_len);
+        copy_value(&info.powerup_cnt, sizeof(info.powerup_cnt));
         break;
       case static_cast<uint16_t>(kKeyLocalTimeNow) :
         key_mask.insert(kKeyLocalTimeNow);
-        memcpy(&info.local_time_now, &packet.data[offset], val_len);
+        copy_value(&info.local_time_now, sizeof(info.local_time_now));
         break;
       case static_cast<uint16_t>(kKeyLastSyncTime) :
         key_mask.insert(kKeyLastSyncTime);
-        memcpy(&info.last_sync_time, &packet.data[offset], val_len);
+        copy_value(&info.last_sync_time, sizeof(info.last_sync_time));
         break;
       case static_cast<uint16_t>(kKeyTimeOffset) :
         key_mask.insert(kKeyTimeOffset);
-        memcpy(&info.time_offset, &packet.data[offset], val_len);
+        copy_value(&info.time_offset, sizeof(info.time_offset));
         break;
       case static_cast<uint16_t>(kKeyTimeSyncType) :
         key_mask.insert(kKeyTimeSyncType);
-        memcpy(&info.time_sync_type, &packet.data[offset], val_len);
+        copy_value(&info.time_sync_type, sizeof(info.time_sync_type));
         break;
       case static_cast<uint16_t>(kKeyStatusCode) :
         key_mask.insert(kKeyStatusCode);
-        memcpy(&info.status_code, &packet.data[offset], val_len);
+        copy_value(info.status_code, sizeof(info.status_code));
         break;
       case static_cast<uint16_t>(kKeyLidarDiagStatus) :
         key_mask.insert(kKeyLidarDiagStatus);
-        memcpy(&info.lidar_diag_status, &packet.data[offset], val_len);
+        copy_value(&info.lidar_diag_status, sizeof(info.lidar_diag_status));
         break;
       case static_cast<uint16_t>(kKeyLidarFlashStatus) :
         key_mask.insert(kKeyLidarFlashStatus);
-        memcpy(&info.lidar_flash_status, &packet.data[offset], val_len);
+        copy_value(&info.lidar_flash_status, sizeof(info.lidar_flash_status));
         break;
       case static_cast<uint16_t>(kKeyFwType) :
         key_mask.insert(kKeyFwType);
-        memcpy(&info.fw_type, &packet.data[offset], val_len);
+        copy_value(&info.fw_type, sizeof(info.fw_type));
         break; 
       case static_cast<uint16_t>(kKeyHmsCode) :
         key_mask.insert(kKeyHmsCode);
-        memcpy(&info.hms_code, &packet.data[offset], val_len);
+        copy_value(info.hms_code, sizeof(info.hms_code));
         break;
       case static_cast<uint16_t>(kKeyRoiMode) :
         key_mask.insert(kKeyRoiMode);
-        memcpy(&info.ROI_Mode, &packet.data[offset], val_len);
+        copy_value(&info.ROI_Mode, sizeof(info.ROI_Mode));
         break;
       case static_cast<uint16_t>(kKeySetEscMode) :
         key_mask.insert(kKeySetEscMode);
-        memcpy(&info.esc_mode, &packet.data[offset], val_len);
+        copy_value(&info.esc_mode, sizeof(info.esc_mode));
         break;
       case static_cast<uint16_t>(kKeySetFovMode) :
         key_mask.insert(kKeySetFovMode);
-        memcpy(&info.fov_mode, &packet.data[offset], val_len);
+        copy_value(&info.fov_mode, sizeof(info.fov_mode));
         break;
       case static_cast<uint16_t>(kKeySetEchoMode) :
         key_mask.insert(kKeySetEchoMode);
-        memcpy(&info.echo_mode, &packet.data[offset], val_len);
+        copy_value(&info.echo_mode, sizeof(info.echo_mode));
         break;
       case static_cast<uint16_t>(kKeySetNTPServerIp) : {
+        if (val_len < 4u) {
+          return false;
+        }
         key_mask.insert(kKeySetNTPServerIp);
         uint8_t ip[4];
         memcpy(ip, &packet.data[offset], sizeof(uint8_t) * 4);
@@ -237,15 +291,15 @@ bool ParseLidarStateInfo::ParseStateInfo(const CommPacket& packet,
       }
       case static_cast<uint16_t>(kKeySetITOCtrl) :
         key_mask.insert(kKeySetITOCtrl);
-        memcpy(&info.ito_mode, &packet.data[offset], val_len);
+        copy_value(&info.ito_mode, sizeof(info.ito_mode));
         break;
       case static_cast<uint16_t>(kKeySetFogNoiseFilter) :
         key_mask.insert(kKeySetFogNoiseFilter);
-        memcpy(&info.fog_noise_filter, &packet.data[offset], val_len);
+        copy_value(&info.fog_noise_filter, sizeof(info.fog_noise_filter));
         break;
       case static_cast<uint16_t>(kKeySetImuRange) :
         key_mask.insert(kKeySetImuRange);
-        memcpy(&info.imu_range, &packet.data[offset], val_len);
+        copy_value(&info.imu_range, sizeof(info.imu_range));
         break;
       default :
         break;
@@ -306,7 +360,7 @@ bool ParseLidarStateInfo::ParseStateInfo(const CommPacket& packet,
   return true;
 }
 
-void ParseLidarStateInfo::ParseLidarIpAddr(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info) {
+void ParseLidarStateInfo::ParseLidarIpAddr(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info) {
   uint8_t lidar_ip[4];
   memcpy(lidar_ip, &packet.data[off], sizeof(uint8_t) * 4);
   std::string lidar_ip_str = std::to_string(lidar_ip[0]) + "." + std::to_string(lidar_ip[1]) + "." + 
@@ -328,7 +382,7 @@ void ParseLidarStateInfo::ParseLidarIpAddr(const CommPacket& packet, uint16_t of
   strcpy(info.lidar_ipcfg.gw_addr, lidar_gateway_str.c_str());
 }
 
-void ParseLidarStateInfo::ParseStateInfoHostIPCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info) {
+void ParseLidarStateInfo::ParseStateInfoHostIPCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info) {
   uint8_t host_state_info_ip[4];
   memcpy(host_state_info_ip, &packet.data[off], sizeof(uint8_t) * 4);
   std::string host_state_info_ip_str = std::to_string(host_state_info_ip[0]) + "." + 
@@ -344,7 +398,7 @@ void ParseLidarStateInfo::ParseStateInfoHostIPCfg(const CommPacket& packet, uint
   memcpy(&info.host_state_info.lidar_state_info_port, &packet.data[off], sizeof(uint16_t));
 }
 
-void ParseLidarStateInfo::ParsePointCloudHostIpCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info) {
+void ParseLidarStateInfo::ParsePointCloudHostIpCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info) {
   uint8_t host_point_cloud_ip[4];
   memcpy(host_point_cloud_ip, &packet.data[off], sizeof(uint8_t) * 4);
   std::string host_point_cloud_ip_str = std::to_string(host_point_cloud_ip[0]) + "." + 
@@ -361,7 +415,7 @@ void ParseLidarStateInfo::ParsePointCloudHostIpCfg(const CommPacket& packet, uin
   off += sizeof(uint16_t);
 }
 
-void ParseLidarStateInfo::ParseImuDataHostIpCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info) {
+void ParseLidarStateInfo::ParseImuDataHostIpCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info) {
   uint8_t host_imu_data_ip[4];
   memcpy(host_imu_data_ip, &packet.data[off], sizeof(uint8_t) * 4);
   std::string host_imu_data_ip_str = std::to_string(host_imu_data_ip[0]) + "." + 
@@ -378,16 +432,16 @@ void ParseLidarStateInfo::ParseImuDataHostIpCfg(const CommPacket& packet, uint16
   off += sizeof(uint16_t);
 }
 
-void ParseLidarStateInfo::ParseIpCfg(const CommPacket& packet, uint16_t off, LivoxIpCfg& cfg) {
+void ParseLidarStateInfo::ParseIpCfg(const CommPacket& packet, uint32_t off, LivoxIpCfg& cfg) {
   std::string ip_str = std::to_string(packet.data[off]) + "." + 
                        std::to_string(packet.data[off + 1]) + "." + 
                        std::to_string(packet.data[off + 2]) + "." +
                        std::to_string(packet.data[off + 3]);
   strcpy(cfg.ip_addr, ip_str.c_str());
   off += sizeof(uint8_t) * 4;
-  cfg.dst_port = *(uint16_t*)&packet.data[off];
+  memcpy(&cfg.dst_port, &packet.data[off], sizeof(uint16_t));
   off += sizeof(uint16_t); 
-  cfg.src_port = *(uint16_t*)&packet.data[off];
+  memcpy(&cfg.src_port, &packet.data[off], sizeof(uint16_t));
   return;
 }
 
@@ -645,12 +699,14 @@ void ParseLidarStateInfo::LivoxLidarStateInfoToJson(const DirectLidarStateInfo& 
 
   if (key_mask.find(kKeySn) != key_mask.end()) {
     write.Key("sn");
-    write.String(info.sn);
+    write.String(info.sn, static_cast<rapidjson::SizeType>(
+        BoundedStringLength(info.sn, sizeof(info.sn))));
   }
   
   if (key_mask.find(kKeyProductInfo) != key_mask.end()) {
     write.Key("product_info");
-    write.String(info.product_info);
+    write.String(info.product_info, static_cast<rapidjson::SizeType>(
+        BoundedStringLength(info.product_info, sizeof(info.product_info))));
   }
   
   if (key_mask.find(kKeyVersionApp) != key_mask.end()) {
@@ -784,8 +840,5 @@ void ParseLidarStateInfo::LivoxLidarStateInfoToJson(const DirectLidarStateInfo& 
 
 } // namespace livox
 } // namespace direct
-
-
-
 
 

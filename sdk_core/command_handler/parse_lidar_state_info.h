@@ -49,11 +49,11 @@ class ParseLidarStateInfo {
   static bool Parse(const CommPacket& packet, std::string& info);
  private:
   static bool ParseStateInfo(const CommPacket& packet, DirectLidarStateInfo& info, std::set<ParamKeyName>& key_mask);
-  static void ParseLidarIpAddr(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info);
-  static void ParseStateInfoHostIPCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info);
-  static void ParsePointCloudHostIpCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info);
-  static void ParseImuDataHostIpCfg(const CommPacket& packet, uint16_t off, DirectLidarStateInfo& info);
-  static void ParseIpCfg(const CommPacket& packet, uint16_t off, LivoxIpCfg& cfg);
+  static void ParseLidarIpAddr(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info);
+  static void ParseStateInfoHostIPCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info);
+  static void ParsePointCloudHostIpCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info);
+  static void ParseImuDataHostIpCfg(const CommPacket& packet, uint32_t off, DirectLidarStateInfo& info);
+  static void ParseIpCfg(const CommPacket& packet, uint32_t off, LivoxIpCfg& cfg);
   static void LivoxLidarStateInfoToJson(const DirectLidarStateInfo& info, const std::set<ParamKeyName>& key_mask, std::string& lidar_info);
 };
 
@@ -61,7 +61,6 @@ class ParseLidarStateInfo {
 } // namespace lidar
 
 # endif // PARSE_LIDAR_STATE_INFO_H_
-
 
 
 
