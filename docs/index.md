@@ -30,6 +30,12 @@ firmware, and the communication protocol.
 - [Glossary](glossary/index.md) — one canonical term and one normative
   definition per page.
 
+Product and device names, paths, function and setting names, programming
+languages, build tools, file formats, and common engineering words are treated
+as identifiers or ordinary language unless the glossary gives them a canonical
+page. Other documentation may describe their use but must not create a
+competing normative definition for a glossary term.
+
 Validate structure, the glossary contract, and relative links with:
 
 ```sh

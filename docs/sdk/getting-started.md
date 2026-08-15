@@ -32,7 +32,7 @@ The default build includes the SDK libraries and repository samples. Installing
 system-wide is optional:
 
 ```sh
-cmake --install build
+cmake --build build --target install
 ```
 
 Installation permissions and prefix are controlled by the local CMake setup.
