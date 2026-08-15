@@ -15,10 +15,12 @@ Alpha exists only in the positive fixture.
 
 ## Example
 
-The index links to Alpha.
+The index links to Alpha. Literal reference syntax such as `[guide][ref]` is
+ordinary code text without a definition.
+
+    [guide][ref]
+    [ref]: beta.md
 
 ## Related terms
 
-- [Beta][beta-term]
-
-[beta-term]: beta.md
+- [Beta](beta.md)

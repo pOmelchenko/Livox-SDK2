@@ -24,7 +24,7 @@ class DocumentationValidatorTests(unittest.TestCase):
     def test_negative_fixtures_fail_for_expected_reason(self):
         cases = {
             "broken-anchor": "missing Markdown anchor",
-            "broken-reference-definition": "broken relative link",
+            "broken-reference-definition": "reference-style Markdown links are unsupported",
             "broken-related-link": "broken relative link",
             "duplicate-canonical": "duplicate canonical glossary term",
             "duplicate-slug": "duplicate glossary slug",
@@ -32,7 +32,6 @@ class DocumentationValidatorTests(unittest.TestCase):
             "missing-definition": "expected exactly one ## Definition section, found 0",
             "multiple-definitions": "expected exactly one ## Definition section, found 2",
             "unindexed-page": "glossary page is missing from index",
-            "undefined-reference": "undefined Markdown reference",
         }
         for fixture, expected in cases.items():
             with self.subTest(fixture=fixture):

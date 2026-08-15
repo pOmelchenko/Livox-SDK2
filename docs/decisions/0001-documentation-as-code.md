@@ -31,6 +31,27 @@ deterministically. The GitHub Wiki is disabled or used only as a non-canonical
 pointer to `docs/index.md`. A future browsable site must publish these same
 sources rather than maintain copied content.
 
+### Validator boundary
+
+The documentation validator enforces repository-specific structure, glossary,
+and link invariants. It is deliberately not a general Markdown parser,
+renderer, style linter, or publication framework.
+
+Canonical link destinations use inline syntax:
+
+```text
+[label](relative/path.md#heading)
+```
+
+Reference-style definition lines are rejected with an instruction to use
+inline links; the validator does not resolve reference labels. Fenced code is
+excluded from link checking. Literal inline-link syntax that should not be
+interpreted as a destination belongs in a fenced or indented code block.
+
+Support for another Markdown construct requires a separately qualified issue
+with an observed need in canonical documentation. A hypothetical syntax case
+by itself does not expand this validator's contract.
+
 ## Consequences
 
 - Documentation review, commit identity, status checks, and release history are
