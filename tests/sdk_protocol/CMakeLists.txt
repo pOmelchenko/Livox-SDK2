@@ -21,6 +21,7 @@ set(SDK_PROTOCOL_SOURCES
 function(configure_sdk_protocol_test target)
   target_compile_features(${target} PRIVATE cxx_std_11)
   target_include_directories(${target} PRIVATE
+    "${LIVOX_SDK_ROOT}/include"
     "${LIVOX_SDK_ROOT}/sdk_core"
     "${LIVOX_SDK_ROOT}/3rdparty"
   )
@@ -40,6 +41,18 @@ configure_sdk_protocol_test(livox_sdk_protocol_tests)
 
 add_test(NAME livox_sdk_protocol_tests COMMAND livox_sdk_protocol_tests)
 
+add_executable(livox_command_observer_admission_tests
+  command_observer_admission_tests.cpp
+  "${LIVOX_SDK_ROOT}/sdk_core/comm/comm_port.cpp"
+  ${SDK_PROTOCOL_SOURCES}
+)
+configure_sdk_protocol_test(livox_command_observer_admission_tests)
+
+add_test(
+  NAME livox_command_observer_admission_tests
+  COMMAND livox_command_observer_admission_tests
+)
+
 if(SDK_PROTOCOL_ENABLE_SANITIZERS)
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     message(FATAL_ERROR
@@ -57,6 +70,13 @@ if(SDK_PROTOCOL_ENABLE_SANITIZERS)
     ${SDK_PROTOCOL_SANITIZER_OPTIONS}
   )
   target_link_options(livox_sdk_protocol_tests PRIVATE
+    -fsanitize=address,undefined
+  )
+
+  target_compile_options(livox_command_observer_admission_tests PRIVATE
+    ${SDK_PROTOCOL_SANITIZER_OPTIONS}
+  )
+  target_link_options(livox_command_observer_admission_tests PRIVATE
     -fsanitize=address,undefined
   )
 
@@ -83,6 +103,7 @@ if(SDK_PROTOCOL_ENABLE_SANITIZERS)
   )
   set_tests_properties(
     livox_sdk_protocol_tests
+    livox_command_observer_admission_tests
     sdk_protocol_truncated_sanitizer_test
     PROPERTIES ENVIRONMENT "${SDK_PROTOCOL_SANITIZER_ENVIRONMENT}"
   )

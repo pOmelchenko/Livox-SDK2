@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "livox_lidar_def.h"
+#include "command_handler/command_observer_admission.h"
 #include "command_handler/command_handler.h"
 #include "command_handler/hap_command_handler.h"
 #include "command_handler/mid360_command_handler.h"
@@ -192,11 +193,7 @@ void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handl
     return;
   }
   
-  if (cmd_observer_cb_) {
-    cmd_observer_cb_(handle, reinterpret_cast<LivoxLidarCmdPacket*>(buf), cmd_observer_client_data_);
-  }
-
-  if (dev_type == kLivoxLidarTypePA && lidar_port == kPaLidarFaultPort) {
+  if (!detail::IsCommandObserverInput(dev_type, lidar_port)) {
     std::shared_ptr<CommandHandler> cmd_handler = GetLidarCommandHandler(dev_type);
     if (cmd_handler == nullptr) {
       LOG_ERROR("GeneralCommandHandler::Handler get cmd handler failed");
@@ -211,7 +208,9 @@ void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handl
 
   CommPacket packet;
   memset(&packet, 0, sizeof(packet));
-  if (!(comm_port_->ParseCommStream((uint8_t*)buf, buf_size, &packet))) {
+  if (!detail::ParseAndNotifyCommandObserver(
+          *comm_port_, handle, buf, buf_size, cmd_observer_cb_,
+          cmd_observer_client_data_, packet)) {
     LOG_INFO("Parse Command Stream failed.");
     return;
   }
@@ -849,4 +848,3 @@ void GeneralCommandHandler::CommandsHandle(TimePoint now) {
 
 }  // namespace livox
 } // namespace lidar
-
