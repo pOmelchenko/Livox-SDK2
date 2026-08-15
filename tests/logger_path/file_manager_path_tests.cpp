@@ -30,6 +30,7 @@ void ExpectPlan(const std::string& label, const std::string& input,
                 DirectoryPathStyle style,
                 const std::string& expected_normalized,
                 const std::string& expected_required_root,
+                const std::string& expected_creation_prefix,
                 const std::vector<std::string>& expected_components) {
   DirectoryCreationPlan plan;
   Expect(livox::lidar::detail::BuildDirectoryCreationPlan(
@@ -39,31 +40,57 @@ void ExpectPlan(const std::string& label, const std::string& input,
          label + " normalized path");
   Expect(plan.required_existing_root == expected_required_root,
          label + " required root");
+  Expect(plan.creation_prefix == expected_creation_prefix,
+         label + " creation prefix");
   Expect(plan.components == expected_components, label + " components");
 }
 
 void TestPathPlans() {
   ExpectPlan("Windows drive rooted", "C:\\logs\\nested",
              DirectoryPathStyle::kWindows, "C:/logs/nested", "",
-             {"C:/logs", "C:/logs/nested"});
+             "C:/", {"logs", "nested"});
   ExpectPlan("Windows drive relative", "C:logs\\nested",
              DirectoryPathStyle::kWindows, "C:logs/nested", "",
-             {"C:logs", "C:logs/nested"});
+             "C:", {"logs", "nested"});
   ExpectPlan("Windows current drive rooted", "\\logs\\nested",
              DirectoryPathStyle::kWindows, "/logs/nested", "",
-             {"/logs", "/logs/nested"});
+             "/", {"logs", "nested"});
   ExpectPlan("Windows UNC", "\\\\server\\share\\logs\\nested",
              DirectoryPathStyle::kWindows, "//server/share/logs/nested",
-             "//server/share",
-             {"//server/share/logs", "//server/share/logs/nested"});
+             "//server/share", "//server/share", {"logs", "nested"});
   ExpectPlan("Unix literal backslash", "/tmp/logs\\2026",
              DirectoryPathStyle::kUnix, "/tmp/logs\\2026", "",
-             {"/tmp", "/tmp/logs\\2026"});
+             "/", {"tmp", "logs\\2026"});
 
   DirectoryCreationPlan invalid_plan;
   Expect(!livox::lidar::detail::BuildDirectoryCreationPlan(
              "\\\\server", DirectoryPathStyle::kWindows, &invalid_plan),
          "UNC path without a share should be rejected");
+}
+
+void TestPlanStorageIsLinear() {
+  constexpr std::size_t kComponentCount = 5000;
+  std::string path;
+  path.reserve(kComponentCount * 2);
+  for (std::size_t index = 0; index < kComponentCount; ++index) {
+    if (!path.empty()) {
+      path.push_back('/');
+    }
+    path.push_back('a');
+  }
+
+  DirectoryCreationPlan plan;
+  Expect(livox::lidar::detail::BuildDirectoryCreationPlan(
+             path, DirectoryPathStyle::kUnix, &plan),
+         "many-component path should produce a plan");
+  std::size_t stored_component_bytes = 0;
+  for (const auto& component : plan.components) {
+    stored_component_bytes += component.size();
+  }
+  Expect(plan.components.size() == kComponentCount,
+         "many-component plan should retain every component");
+  Expect(stored_component_bytes == kComponentCount,
+         "many-component plan storage should be linear in input size");
 }
 
 void TestNativeFilesystem() {
@@ -114,6 +141,7 @@ void TestNativeFilesystem() {
 
 int main() {
   TestPathPlans();
+  TestPlanStorageIsLinear();
   TestNativeFilesystem();
   return failures == 0 ? 0 : 1;
 }

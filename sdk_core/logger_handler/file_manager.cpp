@@ -391,8 +391,15 @@ bool MakeDirecotory(std::string dir) {
       !IsDirectory(plan.required_existing_root)) {
     return false;
   }
+  std::string current = plan.creation_prefix;
   for (const auto& component : plan.components) {
-    if (!CreateDirectoryComponent(component)) {
+    if (!current.empty() && current.back() != '/' &&
+        !(path_style == detail::DirectoryPathStyle::kWindows &&
+          current.back() == ':')) {
+      current.push_back('/');
+    }
+    current.append(component);
+    if (!CreateDirectoryComponent(current)) {
       return false;
     }
   }
