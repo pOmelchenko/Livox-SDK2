@@ -15,11 +15,10 @@ Full commit SHAs identify bases, evidence, releases, and rollback targets; short
 
 ## Example
 
-`e3fd6540ee8598968cbaf00e0b415726124371dc` identifies the qualified base for issue #13.
+`1f40962234dc695033f1f3704900edb56e56e823` identifies the re-evaluated base for issue #13.
 
 ## Related terms
 
 - [Commit](commit.md)
 - [Tag](tag.md)
 - [Provenance](provenance.md)
-

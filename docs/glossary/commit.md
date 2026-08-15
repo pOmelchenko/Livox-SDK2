@@ -15,11 +15,10 @@ Each downstream topic commit contains one reviewable concern and follows the exa
 
 ## Example
 
-Commit `2118737` records the initial documentation architecture for issue #13.
+Commit `20471ce` records the upstream drift query trust boundary.
 
 ## Related terms
 
 - [Commit SHA](commit-sha.md)
 - [Commit trailer](commit-trailer.md)
 - [Branch](branch.md)
-
