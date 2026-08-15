@@ -22,4 +22,3 @@ The downstream can retain a fix after the official repository moves forward.
 - [Repository](repository.md)
 - [Upstream](upstream.md)
 - [Downstream](downstream.md)
-

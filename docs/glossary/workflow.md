@@ -22,4 +22,3 @@ The documentation workflow runs the validator and its unit tests on a pull reque
 - [CI](ci.md)
 - [Status check](status-check.md)
 - [Validator](validator.md)
-

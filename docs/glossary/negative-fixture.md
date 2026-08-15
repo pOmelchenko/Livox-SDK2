@@ -22,4 +22,3 @@ A term page containing two `## Definition` headings is a negative fixture.
 - [Fixture](fixture.md)
 - [Positive fixture](positive-fixture.md)
 - [Validator](validator.md)
-

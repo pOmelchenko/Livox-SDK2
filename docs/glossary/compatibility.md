@@ -22,4 +22,3 @@ A documentation-only change can preserve runtime compatibility while still chang
 - [ABI](abi.md)
 - [Public API](public-api.md)
 - [Wire protocol](wire-protocol.md)
-

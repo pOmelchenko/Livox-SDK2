@@ -22,4 +22,3 @@ A point-cloud callback receives a packet containing a count and point payload.
 - [Point cloud](point-cloud.md)
 - [IMU](imu.md)
 - [Wire protocol](wire-protocol.md)
-

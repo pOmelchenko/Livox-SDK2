@@ -22,4 +22,3 @@ An accepted pull request adds its validated commits to `master` under one merge 
 - [Pull request](pull-request.md)
 - [Branch](branch.md)
 - [Human review](human-review.md)
-

@@ -22,4 +22,3 @@ An application requests device information and receives the result through a com
 - [LiDAR](lidar.md)
 - [Wire protocol](wire-protocol.md)
 - [Data packet](data-packet.md)
-

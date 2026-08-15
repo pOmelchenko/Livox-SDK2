@@ -22,4 +22,3 @@ A ruleset can block force pushes to `master` and require a status check.
 - [Branch protection](branch-protection.md)
 - [Required check](required-check.md)
 - [Repository](repository.md)
-

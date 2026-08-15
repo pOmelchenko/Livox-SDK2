@@ -22,4 +22,3 @@ An application links `livox_lidar_sdk_static` and includes `livox_lidar_api.h`.
 - [Public API](public-api.md)
 - [Sample application](sample-application.md)
 - [LiDAR](lidar.md)
-

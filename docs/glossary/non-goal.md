@@ -22,4 +22,3 @@ Changing SDK runtime behavior is a non-goal of issue #13.
 - [Scope](scope.md)
 - [Issue](issue.md)
 - [Compatibility](compatibility.md)
-

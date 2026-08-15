@@ -22,4 +22,3 @@ Checks provide bounded evidence; their names, source, exact revision, and limita
 - [Required check](required-check.md)
 - [CI](ci.md)
 - [Human review](human-review.md)
-

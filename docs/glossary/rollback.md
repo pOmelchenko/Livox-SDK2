@@ -22,4 +22,3 @@ A consumer returns to the recorded upstream-base commit while a regression is in
 - [Release](release.md)
 - [Commit SHA](commit-sha.md)
 - [Compatibility](compatibility.md)
-

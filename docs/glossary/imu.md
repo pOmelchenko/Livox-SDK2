@@ -22,4 +22,3 @@ An application registers `SetLivoxLidarImuDataCallback` to receive IMU data.
 - [LiDAR](lidar.md)
 - [Data packet](data-packet.md)
 - [SDK](sdk.md)
-

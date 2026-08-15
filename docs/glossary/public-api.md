@@ -22,4 +22,3 @@ For this SDK the installed headers listed by the build define the public surface
 - [ABI](abi.md)
 - [SDK](sdk.md)
 - [Compatibility](compatibility.md)
-

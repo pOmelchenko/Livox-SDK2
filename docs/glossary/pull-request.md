@@ -22,4 +22,3 @@ A topic branch for issue #13 opens a draft pull request into `master`.
 - [Branch](branch.md)
 - [Merge](merge.md)
 - [Reviewer](reviewer.md)
-

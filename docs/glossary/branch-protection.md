@@ -22,4 +22,3 @@ A direct force push to protected `master` is rejected.
 - [Branch](branch.md)
 - [Required check](required-check.md)
 - [Ruleset](ruleset.md)
-

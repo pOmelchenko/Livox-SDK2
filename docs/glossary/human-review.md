@@ -22,4 +22,3 @@ A reviewer checks whether a passing test actually covers the claimed callback li
 - [Reviewer](reviewer.md)
 - [Status check](status-check.md)
 - [Pull request](pull-request.md)
-

@@ -22,4 +22,3 @@ A Mid-360 device sends measurements that the SDK delivers as point-cloud data.
 - [Point cloud](point-cloud.md)
 - [IMU](imu.md)
 - [SDK](sdk.md)
-

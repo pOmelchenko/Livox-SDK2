@@ -22,4 +22,3 @@ Every topic commit ends with exactly one issue-reference trailer and exactly one
 - [Commit](commit.md)
 - [Issue](issue.md)
 - [Agent authorship](agent-authorship.md)
-

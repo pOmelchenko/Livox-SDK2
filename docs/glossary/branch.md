@@ -22,4 +22,3 @@ Topic branches hold unmerged work; consumers do not treat a mutable branch name 
 - [Default branch](default-branch.md)
 - [Commit](commit.md)
 - [Repository](repository.md)
-

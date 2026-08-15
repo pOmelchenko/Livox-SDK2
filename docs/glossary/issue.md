@@ -22,4 +22,3 @@ Issue #13 governs the versioned documentation and glossary work.
 - [Scope](scope.md)
 - [Non-goal](non-goal.md)
 - [Pull request](pull-request.md)
-

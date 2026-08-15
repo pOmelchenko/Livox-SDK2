@@ -22,4 +22,3 @@ A tag named `downstream-v1.4.3-r1` would require an annotated tag and matching q
 - [Tag](tag.md)
 - [Commit SHA](commit-sha.md)
 - [Rollback](rollback.md)
-

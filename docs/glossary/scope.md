@@ -22,4 +22,3 @@ Issue #13 includes documentation and validation but excludes SDK runtime changes
 - [Non-goal](non-goal.md)
 - [Issue](issue.md)
 - [Compatibility](compatibility.md)
-

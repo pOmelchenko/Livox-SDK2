@@ -22,4 +22,3 @@ Published downstream release tags are annotated, qualified, and never moved or r
 - [Release](release.md)
 - [Commit SHA](commit-sha.md)
 - [Repository](repository.md)
-

@@ -22,4 +22,3 @@ A pull request triggers a Linux build and the documentation validator.
 - [Workflow](workflow.md)
 - [Status check](status-check.md)
 - [Validator](validator.md)
-

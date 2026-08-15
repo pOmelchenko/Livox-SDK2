@@ -22,4 +22,3 @@ The `docs/` tree and SDK source are reviewed in the same repository history.
 - [Commit](commit.md)
 - [Branch](branch.md)
 - [Fork](fork.md)
-

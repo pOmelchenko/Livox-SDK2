@@ -22,4 +22,3 @@ A correctly indexed term page with one definition is a positive fixture.
 - [Fixture](fixture.md)
 - [Negative fixture](negative-fixture.md)
 - [Validator](validator.md)
-

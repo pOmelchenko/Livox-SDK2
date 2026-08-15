@@ -22,4 +22,3 @@ A Mid-360 sample file selects host and device ports for an isolated test network
 - [SDK](sdk.md)
 - [Control command](control-command.md)
 - [Logger](logger.md)
-

@@ -22,4 +22,3 @@ A pull request into `master` uses its event base SHA as the trusted base.
 - [Commit SHA](commit-sha.md)
 - [Pull request](pull-request.md)
 - [Validator](validator.md)
-

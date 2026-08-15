@@ -22,4 +22,3 @@ This repository preserves Livox attribution and protocol authority while carryin
 - [Upstream](upstream.md)
 - [Fork](fork.md)
 - [Provenance](provenance.md)
-

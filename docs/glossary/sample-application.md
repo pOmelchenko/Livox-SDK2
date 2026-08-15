@@ -22,4 +22,3 @@ Programs under `samples/` show initialization, callbacks, logging, time sync, co
 - [SDK](sdk.md)
 - [Public API](public-api.md)
 - [Configuration](configuration.md)
-

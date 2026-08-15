@@ -22,4 +22,3 @@ A control-command frame and its response follow the official device protocol.
 - [Control command](control-command.md)
 - [Data packet](data-packet.md)
 - [Compatibility](compatibility.md)
-

@@ -22,4 +22,3 @@ Repository validators check commit metadata, release-preview identity, and docum
 - [Fixture](fixture.md)
 - [CI](ci.md)
 - [Trusted base](trusted-base.md)
-

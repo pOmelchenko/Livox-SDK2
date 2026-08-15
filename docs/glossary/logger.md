@@ -22,4 +22,3 @@ This repository distinguishes SDK console logging, device log reception, configu
 - [Configuration](configuration.md)
 - [SDK](sdk.md)
 - [Data packet](data-packet.md)
-

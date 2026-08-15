@@ -22,4 +22,3 @@ A third-party candidate records its repository, full commit SHA, author, license
 - [Commit SHA](commit-sha.md)
 - [Upstream](upstream.md)
 - [Agent authorship](agent-authorship.md)
-

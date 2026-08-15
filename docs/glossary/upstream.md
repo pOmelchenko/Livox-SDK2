@@ -22,4 +22,3 @@ A general SDK fix may be proposed upstream while fork-specific governance remain
 - [Downstream](downstream.md)
 - [Fork](fork.md)
 - [Provenance](provenance.md)
-

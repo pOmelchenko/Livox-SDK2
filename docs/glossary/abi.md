@@ -22,4 +22,3 @@ Changing the size of a public structure can break an application compiled agains
 - [Public API](public-api.md)
 - [Compatibility](compatibility.md)
 - [SDK](sdk.md)
-

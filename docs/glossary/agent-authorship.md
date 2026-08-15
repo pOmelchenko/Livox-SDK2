@@ -22,4 +22,3 @@ A commit substantially written by Codex ends with `Agent-Authored: OpenAI Codex`
 - [Commit trailer](commit-trailer.md)
 - [Commit](commit.md)
 - [Human review](human-review.md)
-

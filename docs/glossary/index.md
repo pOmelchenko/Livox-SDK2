@@ -48,4 +48,3 @@
 | Validator | validation tool | [Validator](validator.md) |
 | Wire protocol | communication protocol; on-wire protocol | [Wire protocol](wire-protocol.md) |
 | Workflow | GitHub Actions workflow; automation workflow | [Workflow](workflow.md) |
-

@@ -22,4 +22,3 @@ A new issue intake comment records the event's default-branch commit SHA.
 - [Branch](branch.md)
 - [Pull request](pull-request.md)
 - [Trusted base](trusted-base.md)
-

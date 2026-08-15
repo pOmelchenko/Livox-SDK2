@@ -22,4 +22,3 @@ A fixture with one indexed term and one valid term page should pass.
 - [Positive fixture](positive-fixture.md)
 - [Negative fixture](negative-fixture.md)
 - [Validator](validator.md)
-

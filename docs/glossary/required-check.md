@@ -22,4 +22,3 @@ A failed required governance status blocks the merge button.
 - [Status check](status-check.md)
 - [Branch protection](branch-protection.md)
 - [Workflow](workflow.md)
-

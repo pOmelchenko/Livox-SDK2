@@ -22,4 +22,3 @@ A commit missing `Compatibility:` should receive a failing governance status in 
 - [Pull request](pull-request.md)
 - [Positive fixture](positive-fixture.md)
 - [Negative fixture](negative-fixture.md)
-

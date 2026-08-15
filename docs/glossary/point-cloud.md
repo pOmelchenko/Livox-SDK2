@@ -22,4 +22,3 @@ The quick-start sample prints metadata from point-cloud packets received from a 
 - [LiDAR](lidar.md)
 - [Data packet](data-packet.md)
 - [Public API](public-api.md)
-

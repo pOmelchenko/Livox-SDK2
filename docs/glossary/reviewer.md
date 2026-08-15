@@ -22,4 +22,3 @@ Codex reviews the final pull-request head and identifies an untested broken-link
 - [Human review](human-review.md)
 - [Pull request](pull-request.md)
 - [Issue](issue.md)
-
