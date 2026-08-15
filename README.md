@@ -58,8 +58,10 @@ shutdown requirements.
 versioned documentation. The root records retain these focused roles:
 
 - [`CHANGELOG.md`](CHANGELOG.md) — upstream-derived SDK version history;
-- [`DOWNSTREAM_MAINTENANCE.md`](DOWNSTREAM_MAINTENANCE.md) — current
-  downstream maintenance policy;
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — human contributor entry point;
+- [`DOWNSTREAM_MAINTENANCE.md`](DOWNSTREAM_MAINTENANCE.md) — stable index of
+  downstream policy;
+- [`SECURITY.md`](SECURITY.md) — private-reporting and support boundary;
 - [`AGENTS.md`](AGENTS.md) — repository instructions for automated agents;
 - [`LICENSE.txt`](LICENSE.txt) — Livox SDK2 MIT license and attribution.
 

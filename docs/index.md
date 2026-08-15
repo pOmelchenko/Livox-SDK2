@@ -14,11 +14,22 @@ firmware, and the communication protocol.
 5. [Public API](sdk/public-api.md)
 6. [Supported platforms](sdk/supported-platforms.md)
 
+## Contributors and maintainers
+
+- [Contributing](../CONTRIBUTING.md)
+- [Security reporting](../SECURITY.md)
+- [Downstream identity](downstream/identity.md)
+- [Maintenance policy](downstream/maintenance-policy.md)
+- [Contribution workflow](downstream/contribution-workflow.md)
+- [Versioning and releases](downstream/versioning-and-releases.md)
+- [Upstream sync and retirement](downstream/upstream-sync-and-retirement.md)
+- [Rollback and recovery](downstream/rollback-and-recovery.md)
+
 ## Repository records
 
 - [Downstream source identity](../DOWNSTREAM_REVISION.json)
 - [Change history](../CHANGELOG.md)
-- [Maintenance policy](../DOWNSTREAM_MAINTENANCE.md)
+- [Stable maintenance-policy entry](../DOWNSTREAM_MAINTENANCE.md)
 - [Agent instructions](../AGENTS.md)
 - [Documentation-as-code decision](decisions/0001-documentation-as-code.md)
 - [License](../LICENSE.txt)
