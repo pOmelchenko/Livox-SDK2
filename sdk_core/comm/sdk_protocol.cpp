@@ -74,9 +74,14 @@ int32_t SdkProtocol::Pack(uint8_t *o_buf, uint32_t o_buf_size, uint32_t *o_len, 
 }
 
 bool SdkProtocol::ParsePacket(uint8_t *i_buf, uint32_t buf_size, CommPacket *o_packet) {
-  SdkPacket *sdk_packet = (SdkPacket *)i_buf;
+  if (i_buf == nullptr || o_packet == nullptr ||
+      buf_size < GetPacketWrapperLen()) {
+    return false;
+  }
 
-  if (buf_size < GetPacketWrapperLen()) {
+  SdkPacket *sdk_packet = (SdkPacket *)i_buf;
+  if (sdk_packet->length < GetPacketWrapperLen() ||
+      sdk_packet->length > buf_size) {
     return false;
   }
 
@@ -107,7 +112,7 @@ uint32_t SdkProtocol::GetPacketLen(uint8_t *buf) {
 }
 
 bool SdkProtocol::CheckPreamble(uint8_t *buf, uint32_t buf_size) {
-  if (buf_size < GetPreambleLen()) {
+  if (buf == nullptr || buf_size < GetPreambleLen()) {
     return false;
   }
 
@@ -120,7 +125,8 @@ bool SdkProtocol::CheckPreamble(uint8_t *buf, uint32_t buf_size) {
     return false;
   }
 
-  if (packet->length < GetPreambleLen()) {
+  if (packet->length < GetPacketWrapperLen() ||
+      packet->length > buf_size) {
     return false;
   }
 
