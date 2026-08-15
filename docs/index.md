@@ -30,6 +30,12 @@ firmware, and the communication protocol.
 - [Glossary](glossary/index.md) — one canonical term and one normative
   definition per page.
 
+Validate structure, the glossary contract, and relative links with:
+
+```sh
+python3 tools/docs/validate_docs.py --root .
+```
+
 ## Repository records
 
 - [Downstream source identity](../DOWNSTREAM_REVISION.json)

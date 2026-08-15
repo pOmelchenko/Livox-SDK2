@@ -1,0 +1,49 @@
+name: Documentation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/documentation.yml"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "DOWNSTREAM_MAINTENANCE.md"
+      - "README.md"
+      - "SECURITY.md"
+      - "docs/**"
+      - "tests/docs/**"
+      - "tools/docs/**"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/documentation.yml"
+      - "AGENTS.md"
+      - "CHANGELOG.md"
+      - "CONTRIBUTING.md"
+      - "DOWNSTREAM_MAINTENANCE.md"
+      - "README.md"
+      - "SECURITY.md"
+      - "docs/**"
+      - "tests/docs/**"
+      - "tools/docs/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Structure, glossary, and links
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run documentation unit tests
+        run: python3 -m unittest discover -s tests/docs -p "test_*.py" -v
+
+      - name: Validate canonical documentation
+        run: python3 tools/docs/validate_docs.py --root .
