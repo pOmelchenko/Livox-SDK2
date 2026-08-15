@@ -80,8 +80,10 @@ bool Firmware::ReadAndCheckHeader() {
   file_.read((char *)(&header_), sizeof(header_));
   printf("This firmware is used for device[%d].\n", header_.device_type);
 
+  // FastCRC's legacy mcrf4xx name is the Livox seed-0 compatibility profile.
   uint16_t crc = crc16_.mcrf4xx(
-      (uint8_t *)(&header_), (uint16_t)(sizeof(header_) - sizeof(uint16_t)));
+      reinterpret_cast<const uint8_t *>(&header_),
+      kLivoxFirmwareHeaderChecksumOffset);
   if (crc != header_.header_checksum) {
     printf("Header checksum[%4x %4x] error!\n", crc, header_.header_checksum);
     return false;

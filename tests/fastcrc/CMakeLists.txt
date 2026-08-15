@@ -22,6 +22,9 @@ target_compile_features(livox_fastcrc_tests PRIVATE cxx_std_11)
 target_include_directories(livox_fastcrc_tests PRIVATE
   "${LIVOX_SDK_ROOT}/3rdparty/FastCRC"
 )
+target_compile_definitions(livox_fastcrc_tests PRIVATE
+  "LIVOX_FASTCRC_FIXTURE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/fixtures\""
+)
 
 if(MSVC)
   target_compile_options(livox_fastcrc_tests PRIVATE /W4)

@@ -25,6 +25,7 @@
 #ifndef LIVOX_UPGRADE_FIRMWARE_H_
 #define LIVOX_UPGRADE_FIRMWARE_H_
 
+#include <cstddef>
 #include <fstream>
 #include <ios>
 
@@ -90,8 +91,15 @@ typedef struct {
   uint8_t checksum[128];
   uint8_t hw_whitelist[128];
   uint64_t modify_time;
-  uint16_t header_checksum;
+  uint16_t header_checksum;  // Little-endian Livox CRC-16 over prior bytes.
 } LivoxEncryptFirmwareHeader;
+
+constexpr std::size_t kLivoxFirmwareHeaderChecksumOffset =
+    offsetof(LivoxEncryptFirmwareHeader, header_checksum);
+static_assert(kLivoxFirmwareHeaderChecksumOffset == 284,
+              "firmware header checksum offset changed");
+static_assert(sizeof(LivoxEncryptFirmwareHeader) == 286,
+              "firmware header wire size changed");
 
 typedef struct {
   uint8_t overall_signature[kMd5SignatureLength];
