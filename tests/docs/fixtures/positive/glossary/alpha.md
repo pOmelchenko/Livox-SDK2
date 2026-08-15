@@ -15,11 +15,12 @@ Alpha exists only in the positive fixture.
 
 ## Example
 
-The index links to Alpha. Literal reference syntax such as `[guide][ref]` is
-ordinary code text without a definition.
+The index links to Alpha. Literal reference syntax belongs in a fenced block.
 
-    [guide][ref]
-    [ref]: beta.md
+```text
+[guide][ref]
+[ref]: beta.md
+```
 
 ## Related terms
 

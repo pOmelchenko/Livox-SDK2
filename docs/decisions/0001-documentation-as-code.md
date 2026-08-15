@@ -46,7 +46,7 @@ Canonical link destinations use inline syntax:
 Reference-style definition lines are rejected with an instruction to use
 inline links; the validator does not resolve reference labels. Fenced code is
 excluded from link checking. Literal inline-link syntax that should not be
-interpreted as a destination belongs in a fenced or indented code block.
+interpreted as a destination belongs in a fenced code block.
 
 Support for another Markdown construct requires a separately qualified issue
 with an observed need in canonical documentation. A hypothetical syntax case
