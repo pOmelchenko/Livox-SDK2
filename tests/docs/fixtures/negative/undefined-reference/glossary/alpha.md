@@ -7,18 +7,16 @@
 
 ## Definition
 
-Alpha is the first valid fixture term.
+Alpha is a fixture term with an undefined reference label.
 
 ## Repository meaning and boundaries
 
-Alpha exists only in the positive fixture.
+Alpha exists only in this negative fixture.
 
 ## Example
 
-The index links to Alpha.
+The undefined reference label must be rejected.
 
 ## Related terms
 
-- [Beta][beta-term]
-
-[beta-term]: beta.md
+- [Missing][missing-term]

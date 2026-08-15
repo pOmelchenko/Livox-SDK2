@@ -86,6 +86,11 @@ MINIMUM_TERMS = {
 }
 
 LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+REFERENCE_DEFINITION_RE = re.compile(
+    r'^ {0,3}\[([^\]]+)\]:\s*(?:<([^>]+)>|(\S+))'
+    r'(?:\s+(?:"[^"]*"|\'[^\']*\'|\([^)]*\)))?\s*$'
+)
+REFERENCE_LINK_RE = re.compile(r"!?\[([^\]]+)\]\[([^\]]*)\]")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 INDEX_ROW_RE = re.compile(
     r"^\|\s*(?P<canonical>[^|]+?)\s*"
@@ -167,39 +172,80 @@ def inside_root(path: Path, root: Path) -> bool:
         return False
 
 
+def reference_label(text: str) -> str:
+    return " ".join(text.split()).casefold()
+
+
+def validate_link_target(
+    source: Path,
+    number: int,
+    raw: str,
+    root: Path,
+    anchor_cache: Dict[Path, Set[str]],
+) -> List[str]:
+    errors: List[str] = []
+    raw = raw.strip().strip("<>")
+    if not raw or raw.casefold().startswith(EXTERNAL_PREFIXES):
+        return errors
+    target_text, separator, anchor = raw.partition("#")
+    target_text = unquote(target_text.split("?", 1)[0])
+    target = source if not target_text else source.parent / target_text
+    target = target.resolve()
+    display = source.relative_to(root)
+    if not inside_root(target, root):
+        return [f"{display}:{number}: relative link escapes repository: {raw}"]
+    if not target.exists():
+        return [f"{display}:{number}: broken relative link: {raw}"]
+    if separator and target.is_file() and target.suffix.casefold() == ".md":
+        expected = unquote(anchor).casefold()
+        if target not in anchor_cache:
+            anchor_cache[target] = anchors_for(target)
+        if expected not in anchor_cache[target]:
+            errors.append(f"{display}:{number}: missing Markdown anchor: {raw}")
+    return errors
+
+
 def validate_markdown_links(files: Sequence[Path], root: Path) -> List[str]:
     errors: List[str] = []
     root = root.resolve()
     anchor_cache: Dict[Path, Set[str]] = {}
     for source in files:
-        for number, line in markdown_lines(source):
-            for match in LINK_RE.finditer(line):
-                raw = match.group(1).strip().strip("<>")
-                if not raw or raw.casefold().startswith(EXTERNAL_PREFIXES):
-                    continue
-                target_text, separator, anchor = raw.partition("#")
-                target_text = unquote(target_text.split("?", 1)[0])
-                target = source if not target_text else source.parent / target_text
-                target = target.resolve()
-                display = source.relative_to(root)
-                if not inside_root(target, root):
+        lines = list(markdown_lines(source))
+        definitions: Dict[str, Tuple[int, str]] = {}
+        for number, line in lines:
+            definition = REFERENCE_DEFINITION_RE.fullmatch(line)
+            if definition:
+                label = reference_label(definition.group(1))
+                if label in definitions:
+                    display = source.relative_to(root)
                     errors.append(
-                        f"{display}:{number}: relative link escapes repository: {raw}"
+                        f"{display}:{number}: duplicate Markdown reference label: "
+                        f"{definition.group(1)}"
                     )
-                    continue
-                if not target.exists():
-                    errors.append(
-                        f"{display}:{number}: broken relative link: {raw}"
-                    )
-                    continue
-                if separator and target.is_file() and target.suffix.casefold() == ".md":
-                    expected = unquote(anchor).casefold()
-                    if target not in anchor_cache:
-                        anchor_cache[target] = anchors_for(target)
-                    if expected not in anchor_cache[target]:
-                        errors.append(
-                            f"{display}:{number}: missing Markdown anchor: {raw}"
+                else:
+                    target = definition.group(2) or definition.group(3)
+                    definitions[label] = (number, target)
+                    errors.extend(
+                        validate_link_target(
+                            source, number, target, root, anchor_cache
                         )
+                    )
+
+        for number, line in lines:
+            for match in LINK_RE.finditer(line):
+                errors.extend(
+                    validate_link_target(
+                        source, number, match.group(1), root, anchor_cache
+                    )
+                )
+            for match in REFERENCE_LINK_RE.finditer(line):
+                label_text = match.group(2) or match.group(1)
+                if reference_label(label_text) not in definitions:
+                    display = source.relative_to(root)
+                    errors.append(
+                        f"{display}:{number}: undefined Markdown reference: "
+                        f"{label_text}"
+                    )
     return errors
 
 
