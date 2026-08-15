@@ -37,7 +37,7 @@ Prerequisites and qualified platform boundaries are documented in
 ```sh
 git clone https://github.com/pOmelchenko/Livox-SDK2.git
 cd Livox-SDK2
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 ```
 

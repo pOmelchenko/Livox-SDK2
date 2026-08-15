@@ -21,12 +21,18 @@ any applicable release record.
 
 ## 2. Build
 
-Use CMake 3.0 or newer and a compiler with C++11 support:
+The command form below requires CMake 3.13 or newer and a compiler with C++11
+support. The inherited project declares a CMake 3.0 minimum; older CMake users
+must use its legacy source/build-directory syntax instead.
 
 ```sh
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 ```
+
+The explicit policy floor lets CMake 4 configure the inherited project files,
+which still declare compatibility with CMake 3.0. It does not claim additional
+platform or compiler qualification.
 
 The default build includes the SDK libraries and repository samples. Installing
 system-wide is optional:

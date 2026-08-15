@@ -18,6 +18,12 @@ These statements describe inherited project intent. They are not evidence that
 every combination, device family, firmware, generator, or downstream commit was
 tested.
 
+CMake 4 no longer configures a project declaring a pre-3.5 policy version
+unless the caller supplies a compatibility floor. The repository quick start
+therefore passes `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`; this is a configure-time
+compatibility selection, not a change to the inherited minimum declaration or a
+platform support claim.
+
 ## Source portability
 
 The current source selects:
