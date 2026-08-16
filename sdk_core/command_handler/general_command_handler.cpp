@@ -125,12 +125,7 @@ void GeneralCommandHandler::Destory() {
     commands_.clear();
   }
 
-  livox_lidar_info_change_cb_ = nullptr;
-  livox_lidar_info_change_client_data_ = nullptr;
-  livox_lidar_info_cb_ = nullptr;
-  livox_lidar_info_client_data_ = nullptr;
-  cmd_observer_cb_ = nullptr;
-  cmd_observer_client_data_ = nullptr;
+  ClearCallbackRegistrations();
 
   detection_host_ip_ = "";
   is_view_ = false;
@@ -214,9 +209,7 @@ void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handl
 
   CommPacket packet;
   memset(&packet, 0, sizeof(packet));
-  if (!detail::ParseAndNotifyCommandObserver(
-          *comm_port_, handle, buf, buf_size, cmd_observer_cb_,
-          cmd_observer_client_data_, packet)) {
+  if (!ParseAndNotifyCommandObserver(handle, buf, buf_size, packet)) {
     LOG_INFO("Parse Command Stream failed.");
     return;
   }
@@ -582,9 +575,7 @@ void GeneralCommandHandler::LivoxLidarInfoChange(const uint32_t handle) {
   }
 
   if (!is_callback) {
-    if (livox_lidar_info_change_cb_) {
-      livox_lidar_info_change_cb_(handle, &lidar_info, livox_lidar_info_change_client_data_);
-    }
+    NotifyLivoxLidarInfoChange(handle, lidar_info);
   }
 }
 
@@ -592,10 +583,44 @@ void GeneralCommandHandler::PushLivoxLidarInfo(const uint32_t handle, const std:
   std::lock_guard<std::mutex> lock(dev_type_mutex_);
   if (device_dev_type_.find(handle) != device_dev_type_.end()) {
     uint8_t dev_type = device_dev_type_[handle];
-    
-    if (livox_lidar_info_cb_) {
-      livox_lidar_info_cb_(handle, dev_type, info.c_str(), livox_lidar_info_client_data_);
-    }
+    NotifyLivoxLidarInfo(handle, dev_type, info);
+  }
+}
+
+void GeneralCommandHandler::ClearCallbackRegistrations() {
+  std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
+  livox_lidar_info_change_cb_ = nullptr;
+  livox_lidar_info_change_client_data_ = nullptr;
+  livox_lidar_info_cb_ = nullptr;
+  livox_lidar_info_client_data_ = nullptr;
+  cmd_observer_cb_ = nullptr;
+  cmd_observer_client_data_ = nullptr;
+}
+
+bool GeneralCommandHandler::ParseAndNotifyCommandObserver(
+    uint32_t handle, uint8_t* buffer, uint32_t buffer_size,
+    CommPacket& packet) {
+  std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
+  return detail::ParseAndNotifyCommandObserver(
+      *comm_port_, handle, buffer, buffer_size, cmd_observer_cb_,
+      cmd_observer_client_data_, packet);
+}
+
+void GeneralCommandHandler::NotifyLivoxLidarInfoChange(
+    uint32_t handle, const LivoxLidarInfo& lidar_info) {
+  std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
+  if (livox_lidar_info_change_cb_) {
+    livox_lidar_info_change_cb_(
+        handle, &lidar_info, livox_lidar_info_change_client_data_);
+  }
+}
+
+void GeneralCommandHandler::NotifyLivoxLidarInfo(
+    uint32_t handle, uint8_t dev_type, const std::string& info) {
+  std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
+  if (livox_lidar_info_cb_) {
+    livox_lidar_info_cb_(
+        handle, dev_type, info.c_str(), livox_lidar_info_client_data_);
   }
 }
 

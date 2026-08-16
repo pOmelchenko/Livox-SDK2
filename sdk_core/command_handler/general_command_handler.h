@@ -92,21 +92,25 @@ class GeneralCommandHandler : public noncopyable {
   void AddDetectedLidar(const std::shared_ptr<std::vector<LivoxLidarCfg>>& custom_lidars_cfg_ptr);
 
   void SetLivoxLidarInfoChangeCallback(LivoxLidarInfoChangeCallback cb, void* client_data) {
+    std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
     livox_lidar_info_change_cb_ = cb;
     livox_lidar_info_change_client_data_ = client_data;
   }
 
   void SetLivoxLidarInfoCallback(LivoxLidarInfoCallback cb, void* client_data) {
+    std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
     livox_lidar_info_cb_ = cb;
     livox_lidar_info_client_data_ = client_data;
   }
 
   void LivoxLidarAddCmdObserver(LivoxLidarCmdObserverCallBack cb, void* client_data) {
+    std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
     cmd_observer_cb_ = cb;
     cmd_observer_client_data_ = client_data;
   }
 
   void LivoxLidarRemoveCmdObserver() {
+    std::lock_guard<std::recursive_mutex> lock(callbacks_mutex_);
     cmd_observer_cb_ = nullptr;
     cmd_observer_client_data_ = nullptr;
   }
@@ -126,6 +130,13 @@ class GeneralCommandHandler : public noncopyable {
   void HandleDetectionData(uint32_t handle, uint16_t lidar_port, const CommPacket& packet);
   void HandleAcceptedDetectionData(uint32_t handle, DetectionData* detection_data,
       const std::string& serial_number);
+  void ClearCallbackRegistrations();
+  bool ParseAndNotifyCommandObserver(uint32_t handle, uint8_t* buffer,
+      uint32_t buffer_size, CommPacket& packet);
+  void NotifyLivoxLidarInfoChange(uint32_t handle,
+      const LivoxLidarInfo& lidar_info);
+  void NotifyLivoxLidarInfo(uint32_t handle, uint8_t dev_type,
+      const std::string& info);
   void GetFirmwareType(const uint32_t handle, DeviceInfo& device_info);
   livox_status QueryFwType(const uint32_t handle);
   void UpdateFwType(const uint32_t handle, const uint8_t fw_type);
@@ -147,6 +158,7 @@ class GeneralCommandHandler : public noncopyable {
   std::mutex commands_mutex_;
   std::map<uint32_t, std::pair<Command, TimePoint> > commands_;
 
+  mutable std::recursive_mutex callbacks_mutex_;
   LivoxLidarInfoChangeCallback livox_lidar_info_change_cb_;
   void* livox_lidar_info_change_client_data_;
 

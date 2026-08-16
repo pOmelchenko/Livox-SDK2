@@ -52,12 +52,39 @@ class GeneralCommandHandlerTestPeer {
   }
 
   static bool RegistrationsAreClear(const GeneralCommandHandler& handler) {
+    std::lock_guard<std::recursive_mutex> lock(handler.callbacks_mutex_);
     return handler.livox_lidar_info_change_cb_ == nullptr &&
            handler.livox_lidar_info_change_client_data_ == nullptr &&
            handler.livox_lidar_info_cb_ == nullptr &&
            handler.livox_lidar_info_client_data_ == nullptr &&
            handler.cmd_observer_cb_ == nullptr &&
            handler.cmd_observer_client_data_ == nullptr;
+  }
+
+  static void ClearCallbackRegistrations(GeneralCommandHandler* handler) {
+    handler->ClearCallbackRegistrations();
+  }
+
+  static bool NotifyCommandObserver(GeneralCommandHandler* handler,
+                                    std::uint32_t handle,
+                                    std::uint8_t* buffer,
+                                    std::uint32_t buffer_size) {
+    CommPacket packet = {};
+    return handler->ParseAndNotifyCommandObserver(
+        handle, buffer, buffer_size, packet);
+  }
+
+  static void NotifyLivoxLidarInfoChange(GeneralCommandHandler* handler,
+                                         std::uint32_t handle,
+                                         const LivoxLidarInfo& info) {
+    handler->NotifyLivoxLidarInfoChange(handle, info);
+  }
+
+  static void NotifyLivoxLidarInfo(GeneralCommandHandler* handler,
+                                   std::uint32_t handle,
+                                   std::uint8_t dev_type,
+                                   const std::string& info) {
+    handler->NotifyLivoxLidarInfo(handle, dev_type, info);
   }
 };
 
@@ -145,6 +172,48 @@ void InfoCallback(const std::uint32_t, const std::uint8_t, const char*, void*) {
 }
 
 void ObserverCallback(const std::uint32_t, const LivoxLidarCmdPacket*, void*) {
+}
+
+struct RegistrationCapture {
+  std::atomic<int> info_change_calls;
+  std::atomic<int> info_calls;
+  std::atomic<int> observer_calls;
+
+  RegistrationCapture()
+      : info_change_calls(0), info_calls(0), observer_calls(0) {
+  }
+};
+
+void ConcurrentInfoChangeCallback(const std::uint32_t,
+                                  const LivoxLidarInfo*, void* client_data) {
+  static_cast<RegistrationCapture*>(client_data)
+      ->info_change_calls.fetch_add(1);
+}
+
+void ConcurrentInfoCallback(const std::uint32_t, const std::uint8_t,
+                            const char*, void* client_data) {
+  static_cast<RegistrationCapture*>(client_data)->info_calls.fetch_add(1);
+}
+
+void ConcurrentObserverCallback(const std::uint32_t,
+                                const LivoxLidarCmdPacket*,
+                                void* client_data) {
+  static_cast<RegistrationCapture*>(client_data)
+      ->observer_calls.fetch_add(1);
+}
+
+struct ReentrantObserverContext {
+  GeneralCommandHandler* handler;
+  int calls;
+};
+
+void ReentrantObserverCallback(const std::uint32_t,
+                               const LivoxLidarCmdPacket*,
+                               void* client_data) {
+  ReentrantObserverContext* context =
+      static_cast<ReentrantObserverContext*>(client_data);
+  ++context->calls;
+  context->handler->LivoxLidarRemoveCmdObserver();
 }
 
 void RegisterAllCallbacks(GeneralCommandHandler* handler, void* client_data) {
@@ -330,6 +399,103 @@ void CheckConcurrentTimerInspectionAndDestroy() {
               static_cast<std::size_t>(0u));
 }
 
+void CheckCallbackRegistrationSynchronization() {
+  std::unique_ptr<GeneralCommandHandler> handler =
+      GeneralCommandHandlerTestPeer::MakeHandler();
+  Expect("callback lifecycle initializes",
+         handler->Init("192.0.2.10", false, nullptr));
+
+  RegistrationCapture capture;
+  LivoxLidarInfo lidar_info = {};
+  std::vector<std::uint8_t> packet = PackAck(500u, 0x0101u, 0x5Au);
+  std::atomic<bool> start(false);
+  std::atomic<bool> observer_parse_failed(false);
+
+  std::thread registration_thread([&handler, &capture, &start]() {
+    while (!start.load()) {
+      std::this_thread::yield();
+    }
+    for (int iteration = 0; iteration < 5000; ++iteration) {
+      handler->SetLivoxLidarInfoChangeCallback(
+          ConcurrentInfoChangeCallback, &capture);
+      handler->SetLivoxLidarInfoCallback(ConcurrentInfoCallback, &capture);
+      handler->LivoxLidarAddCmdObserver(
+          ConcurrentObserverCallback, &capture);
+      if (iteration % 2 == 0) {
+        handler->LivoxLidarRemoveCmdObserver();
+      }
+      if (iteration % 3 == 0) {
+        GeneralCommandHandlerTestPeer::ClearCallbackRegistrations(
+            handler.get());
+      }
+    }
+  });
+
+  std::thread notification_thread(
+      [&handler, &lidar_info, &packet, &start, &observer_parse_failed]() {
+        while (!start.load()) {
+          std::this_thread::yield();
+        }
+        for (int iteration = 0; iteration < 5000; ++iteration) {
+          GeneralCommandHandlerTestPeer::NotifyLivoxLidarInfoChange(
+              handler.get(), 0x01020304u, lidar_info);
+          GeneralCommandHandlerTestPeer::NotifyLivoxLidarInfo(
+              handler.get(), 0x01020304u, kLivoxLidarTypeMid360,
+              "callback-sync");
+          if (!GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+                  handler.get(), 0x01020304u, packet.data(),
+                  static_cast<std::uint32_t>(packet.size()))) {
+            observer_parse_failed.store(true);
+          }
+        }
+      });
+
+  start.store(true);
+  registration_thread.join();
+  notification_thread.join();
+  Expect("every concurrent observer packet parses",
+         !observer_parse_failed.load());
+
+  handler->SetLivoxLidarInfoChangeCallback(
+      ConcurrentInfoChangeCallback, &capture);
+  handler->SetLivoxLidarInfoCallback(ConcurrentInfoCallback, &capture);
+  handler->LivoxLidarAddCmdObserver(ConcurrentObserverCallback, &capture);
+  GeneralCommandHandlerTestPeer::NotifyLivoxLidarInfoChange(
+      handler.get(), 0x01020304u, lidar_info);
+  GeneralCommandHandlerTestPeer::NotifyLivoxLidarInfo(
+      handler.get(), 0x01020304u, kLivoxLidarTypeMid360, "callback-sync");
+  Expect("registered observer packet parses",
+         GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+             handler.get(), 0x01020304u, packet.data(),
+             static_cast<std::uint32_t>(packet.size())));
+  Expect("information-change callback remains callable",
+         capture.info_change_calls.load() > 0);
+  Expect("information callback remains callable",
+         capture.info_calls.load() > 0);
+  Expect("command observer remains callable",
+         capture.observer_calls.load() > 0);
+
+  ReentrantObserverContext reentrant_context = {handler.get(), 0};
+  handler->LivoxLidarAddCmdObserver(
+      ReentrantObserverCallback, &reentrant_context);
+  Expect("reentrant observer packet parses",
+         GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+             handler.get(), 0x01020304u, packet.data(),
+             static_cast<std::uint32_t>(packet.size())));
+  ExpectEqual("observer can remove itself", reentrant_context.calls, 1);
+  Expect("packet parses after reentrant observer removal",
+         GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+             handler.get(), 0x01020304u, packet.data(),
+             static_cast<std::uint32_t>(packet.size())));
+  ExpectEqual("removed observer is not called again", reentrant_context.calls,
+              1);
+
+  GeneralCommandHandlerTestPeer::ClearCallbackRegistrations(handler.get());
+  Expect("synchronized callback clearing removes every registration",
+         GeneralCommandHandlerTestPeer::RegistrationsAreClear(*handler));
+  handler->Destory();
+}
+
 }  // namespace
 
 int main() {
@@ -337,6 +503,7 @@ int main() {
   CheckTimeoutBoundary();
   CheckAckCompletion();
   CheckConcurrentTimerInspectionAndDestroy();
+  CheckCallbackRegistrationSynchronization();
 
   if (failures != 0) {
     std::cerr << failures << " command lifecycle test(s) failed\n";
