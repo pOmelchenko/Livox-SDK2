@@ -1,4 +1,5 @@
 #include "command_handler/general_command_handler.h"
+#include "command_handler/mid360_command_handler.h"
 
 #include <atomic>
 #include <chrono>
@@ -14,6 +15,12 @@
 
 namespace livox {
 namespace lidar {
+
+class TestMid360CommandHandler final : public Mid360CommandHandler {
+ public:
+  explicit TestMid360CommandHandler(DeviceManager* device_manager)
+      : Mid360CommandHandler(device_manager) {}
+};
 
 class GeneralCommandHandlerTestPeer {
  public:
@@ -52,7 +59,7 @@ class GeneralCommandHandlerTestPeer {
   }
 
   static bool RegistrationsAreClear(const GeneralCommandHandler& handler) {
-    std::lock_guard<std::recursive_mutex> lock(handler.callbacks_mutex_);
+    std::lock_guard<std::mutex> lock(handler.callback_state_mutex_);
     return handler.livox_lidar_info_change_cb_ == nullptr &&
            handler.livox_lidar_info_change_client_data_ == nullptr &&
            handler.livox_lidar_info_cb_ == nullptr &&
@@ -63,6 +70,19 @@ class GeneralCommandHandlerTestPeer {
 
   static void ClearCallbackRegistrations(GeneralCommandHandler* handler) {
     handler->ClearCallbackRegistrations();
+  }
+
+  static bool CallbackOperationsAreStopped(
+      const GeneralCommandHandler& handler) {
+    std::lock_guard<std::mutex> lock(handler.callback_state_mutex_);
+    return handler.callback_operations_stopped_;
+  }
+
+  static void SeedCommandRoute(GeneralCommandHandler* handler,
+                               std::uint32_t handle) {
+    handler->device_dev_type_[handle] = kLivoxLidarTypeMid360;
+    handler->lidars_command_handler_[kLivoxLidarTypeMid360] =
+        std::make_shared<TestMid360CommandHandler>(nullptr);
   }
 
   static bool NotifyCommandObserver(GeneralCommandHandler* handler,
@@ -214,6 +234,62 @@ void ReentrantObserverCallback(const std::uint32_t,
       static_cast<ReentrantObserverContext*>(client_data);
   ++context->calls;
   context->handler->LivoxLidarRemoveCmdObserver();
+}
+
+struct BlockingObserverContext {
+  std::atomic<bool> entered;
+  std::atomic<bool> release;
+
+  BlockingObserverContext() : entered(false), release(false) {
+  }
+};
+
+void BlockingObserverCallback(const std::uint32_t,
+                              const LivoxLidarCmdPacket*,
+                              void* client_data) {
+  BlockingObserverContext* context =
+      static_cast<BlockingObserverContext*>(client_data);
+  context->entered.store(true);
+  while (!context->release.load()) {
+    std::this_thread::yield();
+  }
+}
+
+struct CallbackLockOrderContext {
+  GeneralCommandHandler* handler;
+  std::uint32_t handle;
+  std::atomic<bool> observer_entered;
+  std::atomic<bool> info_entered;
+  std::atomic<int> send_status;
+
+  CallbackLockOrderContext(GeneralCommandHandler* command_handler,
+                           std::uint32_t device_handle)
+      : handler(command_handler),
+        handle(device_handle),
+        observer_entered(false),
+        info_entered(false),
+        send_status(-1) {
+  }
+};
+
+void LockOrderInfoCallback(const std::uint32_t, const std::uint8_t,
+                           const char*, void* client_data) {
+  static_cast<CallbackLockOrderContext*>(client_data)
+      ->info_entered.store(true);
+}
+
+void LockOrderObserverCallback(const std::uint32_t,
+                               const LivoxLidarCmdPacket*,
+                               void* client_data) {
+  CallbackLockOrderContext* context =
+      static_cast<CallbackLockOrderContext*>(client_data);
+  context->observer_entered.store(true);
+  while (!context->info_entered.load()) {
+    std::this_thread::yield();
+  }
+  context->send_status.store(context->handler->SendCommand(
+      context->handle, 0x0101u, nullptr, 0u,
+      std::shared_ptr<CommandCallback>()));
 }
 
 void RegisterAllCallbacks(GeneralCommandHandler* handler, void* client_data) {
@@ -424,10 +500,6 @@ void CheckCallbackRegistrationSynchronization() {
       if (iteration % 2 == 0) {
         handler->LivoxLidarRemoveCmdObserver();
       }
-      if (iteration % 3 == 0) {
-        GeneralCommandHandlerTestPeer::ClearCallbackRegistrations(
-            handler.get());
-      }
     }
   });
 
@@ -490,9 +562,84 @@ void CheckCallbackRegistrationSynchronization() {
   ExpectEqual("removed observer is not called again", reentrant_context.calls,
               1);
 
-  GeneralCommandHandlerTestPeer::ClearCallbackRegistrations(handler.get());
+  BlockingObserverContext blocking_context;
+  std::atomic<bool> blocking_notification_result(false);
+  std::atomic<bool> clearing_finished(false);
+  handler->LivoxLidarAddCmdObserver(
+      BlockingObserverCallback, &blocking_context);
+  std::thread blocking_notification_thread(
+      [&handler, &packet, &blocking_notification_result]() {
+        blocking_notification_result.store(
+            GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+                handler.get(), 0x01020304u, packet.data(),
+                static_cast<std::uint32_t>(packet.size())));
+      });
+  while (!blocking_context.entered.load()) {
+    std::this_thread::yield();
+  }
+
+  std::thread clearing_thread([&handler, &clearing_finished]() {
+    GeneralCommandHandlerTestPeer::ClearCallbackRegistrations(handler.get());
+    clearing_finished.store(true);
+  });
+  while (!GeneralCommandHandlerTestPeer::CallbackOperationsAreStopped(
+      *handler)) {
+    std::this_thread::yield();
+  }
+  Expect("teardown waits for in-flight callback",
+         !clearing_finished.load());
+  blocking_context.release.store(true);
+  blocking_notification_thread.join();
+  clearing_thread.join();
+
+  Expect("blocking observer packet parses",
+         blocking_notification_result.load());
+  Expect("teardown finishes after in-flight callback",
+         clearing_finished.load());
   Expect("synchronized callback clearing removes every registration",
          GeneralCommandHandlerTestPeer::RegistrationsAreClear(*handler));
+  Expect("callback delivery stays stopped after teardown",
+         !GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+             handler.get(), 0x01020304u, packet.data(),
+             static_cast<std::uint32_t>(packet.size())));
+  handler->Destory();
+}
+
+void CheckCallbackLockOrdering() {
+  std::unique_ptr<GeneralCommandHandler> handler =
+      GeneralCommandHandlerTestPeer::MakeHandler();
+  Expect("lock-order lifecycle initializes",
+         handler->Init("192.0.2.11", false, nullptr));
+
+  const std::uint32_t handle = 0x0A0B0C0Du;
+  GeneralCommandHandlerTestPeer::SeedCommandRoute(handler.get(), handle);
+  CallbackLockOrderContext context(handler.get(), handle);
+  handler->SetLivoxLidarInfoCallback(LockOrderInfoCallback, &context);
+  handler->LivoxLidarAddCmdObserver(
+      LockOrderObserverCallback, &context);
+  std::vector<std::uint8_t> packet = PackAck(600u, 0x0101u, 0x5Au);
+  std::atomic<bool> observer_packet_parsed(false);
+
+  std::thread observer_thread([&handler, &packet, &observer_packet_parsed]() {
+    observer_packet_parsed.store(
+        GeneralCommandHandlerTestPeer::NotifyCommandObserver(
+            handler.get(), 0x0A0B0C0Du, packet.data(),
+            static_cast<std::uint32_t>(packet.size())));
+  });
+  while (!context.observer_entered.load()) {
+    std::this_thread::yield();
+  }
+  std::thread info_thread([&handler]() {
+    handler->PushLivoxLidarInfo(0x0A0B0C0Du, "lock-order");
+  });
+
+  observer_thread.join();
+  info_thread.join();
+
+  Expect("lock-order observer packet parses", observer_packet_parsed.load());
+  Expect("concurrent information callback runs", context.info_entered.load());
+  ExpectEqual("observer command call completes", context.send_status.load(),
+              static_cast<int>(kLivoxLidarStatusSuccess));
   handler->Destory();
 }
 
@@ -504,6 +651,7 @@ int main() {
   CheckAckCompletion();
   CheckConcurrentTimerInspectionAndDestroy();
   CheckCallbackRegistrationSynchronization();
+  CheckCallbackLockOrdering();
 
   if (failures != 0) {
     std::cerr << failures << " command lifecycle test(s) failed\n";
