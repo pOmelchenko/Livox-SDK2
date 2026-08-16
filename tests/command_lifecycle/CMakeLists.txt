@@ -54,6 +54,7 @@ target_link_libraries(livox_command_lifecycle_tests PRIVATE Threads::Threads)
 if(MSVC)
   target_compile_definitions(livox_command_lifecycle_tests PRIVATE WIN32)
   target_compile_options(livox_command_lifecycle_tests PRIVATE /W4)
+  target_link_libraries(livox_command_lifecycle_tests PRIVATE ws2_32)
 else()
   target_compile_options(livox_command_lifecycle_tests PRIVATE
     -Wall
