@@ -23,6 +23,15 @@ The primary sequence is `LivoxLidarSdkInit`, callback registration,
 the compiled numeric SDK version. Initialization accepts a configuration path
 and optional host and logger settings as declared in the checked-out header.
 
+Registrations made through `SetLivoxLidarInfoCallback`,
+`SetLivoxLidarInfoChangeCallback`, and `LivoxLidarAddCmdObserver` are scoped to
+one initialized SDK lifecycle. `LivoxLidarSdkUninit` removes those registrations
+and stops retaining their `client_data` pointers; it does not own or free the
+application data. A later successful `LivoxLidarSdkInit` does not restore the
+old registrations. Applications that restart the SDK in one process must
+register each required callback or observer again with currently valid
+`client_data` before calling `LivoxLidarSdkStart`.
+
 ## Asynchronous callbacks
 
 The API exposes callbacks for point-cloud packets, IMU packets, device
