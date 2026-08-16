@@ -23,6 +23,8 @@
 //
 
 #include "logger_manager.h"
+
+#include "command_handler/detection_data_admission.h"
 #include "file_manager.h"
 
 #include "command_handler/general_command_handler.h"
@@ -129,7 +131,7 @@ bool LoggerManager::InitLoggerSavePath(std::string log_root_path) {
 
 void LoggerManager::AddDevice(const uint32_t handle, const DetectionData* detection_data) {
   if (devices_info_.find(handle) == devices_info_.end()) {
-    devices_info_[handle].sn = detection_data->sn;
+    devices_info_[handle].sn = detail::DetectionSerialNumber(*detection_data);
     devices_info_[handle].dev_type = detection_data->dev_type;
     std::string lidar_ip = std::to_string(detection_data->lidar_ip[0]) + "." +
       std::to_string(detection_data->lidar_ip[1]) + "." +

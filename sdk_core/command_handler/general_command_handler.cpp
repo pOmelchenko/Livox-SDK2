@@ -28,6 +28,7 @@
 
 #include "livox_lidar_def.h"
 #include "command_handler/command_observer_admission.h"
+#include "command_handler/detection_data_admission.h"
 #include "command_handler/command_handler.h"
 #include "command_handler/hap_command_handler.h"
 #include "command_handler/mid360_command_handler.h"
@@ -334,19 +335,29 @@ void GeneralCommandHandler::CreateCommandHandler(const uint8_t dev_type) {
 }
 
 void GeneralCommandHandler::HandleDetectionData(uint32_t handle, uint16_t lidar_port, const CommPacket& packet) {
-  if (packet.data == nullptr || packet.data_len == 0) {
+  detail::ParsedDetectionData parsed_detection;
+  const detail::DetectionDataStatus status =
+      detail::ParseAndDispatchDetectionData(
+          packet, parsed_detection,
+          [this, handle](detail::ParsedDetectionData& accepted) {
+            HandleAcceptedDetectionData(
+                handle, &accepted.data, accepted.serial_number);
+          });
+  if (status == detail::DetectionDataStatus::kMalformed) {
     return;
   }
 
-  DetectionData* detection_data = (DetectionData*)(packet.data);
-  if (detection_data->ret_code != 0) {
+  if (status == detail::DetectionDataStatus::kDeviceError) {
     LOG_ERROR("Detection lidar faield, the handle:{}, lidar_port:{}, ret_code:{}",
-        handle, lidar_port, detection_data->ret_code);
-    return;
+        handle, lidar_port, parsed_detection.data.ret_code);
   }
+}
 
+void GeneralCommandHandler::HandleAcceptedDetectionData(
+    uint32_t handle, DetectionData* detection_data,
+    const std::string& serial_number) {
   LOG_INFO("Handle detection data, handle:{}, dev_type:{}, sn:{}, cmd_port:{}",
-      handle, detection_data->dev_type, detection_data->sn, detection_data->cmd_port);
+      handle, detection_data->dev_type, serial_number, detection_data->cmd_port);
 
   LoggerManager::GetInstance().AddDevice(handle, detection_data);
   DebugPointCloudManager::GetInstance().AddDevice(handle, detection_data);
@@ -370,9 +381,9 @@ void GeneralCommandHandler::HandleDetectionData(uint32_t handle, uint16_t lidar_
       }
     }
 
-    if (strcmp(device_info.sn.c_str(), detection_data->sn) != 0) {
+    if (device_info.sn != serial_number) {
       LOG_ERROR("Lidar ip conflic, the lidar ip:{}, the sn1:{}, the sn2:{}", lidar_ip.c_str(),
-          device_info.sn.c_str(), detection_data->sn);
+          device_info.sn, serial_number);
     }
 
     if (device_manager_) {
@@ -395,7 +406,7 @@ void GeneralCommandHandler::HandleDetectionData(uint32_t handle, uint16_t lidar_
   }
 
   DeviceInfo& device_info = devices_[handle];
-  device_info.sn = detection_data->sn;
+  device_info.sn = serial_number;
   device_info.lidar_ip = lidar_ip;
   device_info.dev_type = detection_data->dev_type;
   device_info.is_get_loader_mode.store(false);

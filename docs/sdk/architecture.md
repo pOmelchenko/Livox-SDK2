@@ -27,6 +27,12 @@ handler. The communication layer frames the command and sends it through the
 I/O loop. A matched response is parsed and delivered through the registered
 completion callback.
 
+Discovery responses are admitted only after the complete fixed wire payload is
+present. The serial-number field is converted with its fixed array bound, so a
+full-width value does not require a terminator beyond the packet. Incomplete
+responses are discarded before device, logger, or debug-recording state is
+updated; trailing response bytes remain tolerated.
+
 Device support and exact command fields come from official Livox protocol
 documentation and the current source. This downstream does not create new
 protocol authority.

@@ -35,6 +35,7 @@
 #include "comm/generate_seq.h"
 #include "base/logging.h"
 #include "command_handler/command_impl.h"
+#include "command_handler/detection_data_admission.h"
 #include "command_handler/general_command_handler.h"
 #include "data_handler/data_handler.h"
 #include "logger_handler/logger_manager.h"
@@ -530,13 +531,12 @@ void DeviceManager::OnData(socket_t sock, void *client_data) {
   if (packet.cmd_id != kCommandIDLidarSearch) {
     return;
   }
-  if (packet.data == nullptr || packet.data_len == 0) {
+  detail::ParsedDetectionData parsed_detection;
+  if (detail::ParseDetectionData(packet, parsed_detection) !=
+      detail::DetectionDataStatus::kAccepted) {
     return;
   }
-  DetectionData* detection_data = (DetectionData*)(packet.data);
-  if (detection_data->ret_code != 0) {
-    return;
-  }
+  DetectionData* detection_data = &parsed_detection.data;
 
   if (type_lidars_cfg_map_.find(detection_data->dev_type) == type_lidars_cfg_map_.end()) {
     return;
