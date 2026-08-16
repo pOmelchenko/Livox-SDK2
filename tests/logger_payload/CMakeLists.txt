@@ -9,17 +9,15 @@ option(LOGGER_PAYLOAD_ENABLE_SANITIZERS
   OFF
 )
 
-get_filename_component(
-  LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/LivoxSdkTestSource.cmake")
 
 set(LOGGER_PAYLOAD_PRODUCTION_SOURCES
-  "${LIVOX_SDK_ROOT}/sdk_core/logger_handler/logger_manager.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/logger_handler/file_manager.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/comm_port.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/sdk_protocol.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/base/logging.cpp"
-  "${LIVOX_SDK_ROOT}/3rdparty/FastCRC/FastCRCsw.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/logger_handler/logger_manager.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/logger_handler/file_manager.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/comm_port.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/sdk_protocol.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/base/logging.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/FastCRC/FastCRCsw.cpp"
 )
 
 set(LOGGER_PAYLOAD_TEST_SUPPORT
@@ -29,12 +27,12 @@ set(LOGGER_PAYLOAD_TEST_SUPPORT
 function(configure_logger_payload_test target)
   target_compile_features(${target} PRIVATE cxx_std_17)
   target_include_directories(${target} PRIVATE
-    "${LIVOX_SDK_ROOT}/include"
-    "${LIVOX_SDK_ROOT}/sdk_core"
+    "${LIVOX_SDK_SOURCE_DIR}/include"
+    "${LIVOX_SDK_SOURCE_DIR}/sdk_core"
   )
   target_include_directories(${target} SYSTEM PRIVATE
-    "${LIVOX_SDK_ROOT}/3rdparty"
-    "${LIVOX_SDK_ROOT}/3rdparty/spdlog"
+    "${LIVOX_SDK_SOURCE_DIR}/3rdparty"
+    "${LIVOX_SDK_SOURCE_DIR}/3rdparty/spdlog"
   )
   target_link_libraries(${target} PRIVATE Threads::Threads)
 
@@ -56,6 +54,9 @@ add_executable(livox_logger_payload_tests
 configure_logger_payload_test(livox_logger_payload_tests)
 
 add_test(NAME livox_logger_payload_tests COMMAND livox_logger_payload_tests)
+set_tests_properties(livox_logger_payload_tests PROPERTIES
+  LABELS downstream_regression
+)
 
 if(LOGGER_PAYLOAD_ENABLE_SANITIZERS)
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -105,6 +106,8 @@ if(LOGGER_PAYLOAD_ENABLE_SANITIZERS)
   set_tests_properties(
     livox_logger_payload_tests
     logger_payload_truncated_sanitizer_test
-    PROPERTIES ENVIRONMENT "${LOGGER_PAYLOAD_SANITIZER_ENVIRONMENT}"
+    PROPERTIES
+      ENVIRONMENT "${LOGGER_PAYLOAD_SANITIZER_ENVIRONMENT}"
+      LABELS downstream_regression
   )
 endif()

@@ -9,21 +9,19 @@ option(SDK_PROTOCOL_ENABLE_SANITIZERS
   OFF
 )
 
-get_filename_component(
-  LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/LivoxSdkTestSource.cmake")
 
 set(SDK_PROTOCOL_SOURCES
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/sdk_protocol.cpp"
-  "${LIVOX_SDK_ROOT}/3rdparty/FastCRC/FastCRCsw.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/sdk_protocol.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/FastCRC/FastCRCsw.cpp"
 )
 
 function(configure_sdk_protocol_test target)
   target_compile_features(${target} PRIVATE cxx_std_11)
   target_include_directories(${target} PRIVATE
-    "${LIVOX_SDK_ROOT}/include"
-    "${LIVOX_SDK_ROOT}/sdk_core"
-    "${LIVOX_SDK_ROOT}/3rdparty"
+    "${LIVOX_SDK_SOURCE_DIR}/include"
+    "${LIVOX_SDK_SOURCE_DIR}/sdk_core"
+    "${LIVOX_SDK_SOURCE_DIR}/3rdparty"
   )
 
   if(MSVC)
@@ -40,10 +38,13 @@ add_executable(livox_sdk_protocol_tests
 configure_sdk_protocol_test(livox_sdk_protocol_tests)
 
 add_test(NAME livox_sdk_protocol_tests COMMAND livox_sdk_protocol_tests)
+set_tests_properties(livox_sdk_protocol_tests PROPERTIES
+  LABELS downstream_regression
+)
 
 add_executable(livox_command_observer_admission_tests
   command_observer_admission_tests.cpp
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/comm_port.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/comm_port.cpp"
   ${SDK_PROTOCOL_SOURCES}
 )
 configure_sdk_protocol_test(livox_command_observer_admission_tests)
@@ -51,6 +52,9 @@ configure_sdk_protocol_test(livox_command_observer_admission_tests)
 add_test(
   NAME livox_command_observer_admission_tests
   COMMAND livox_command_observer_admission_tests
+)
+set_tests_properties(livox_command_observer_admission_tests PROPERTIES
+  LABELS downstream_regression
 )
 
 if(SDK_PROTOCOL_ENABLE_SANITIZERS)
@@ -105,6 +109,8 @@ if(SDK_PROTOCOL_ENABLE_SANITIZERS)
     livox_sdk_protocol_tests
     livox_command_observer_admission_tests
     sdk_protocol_truncated_sanitizer_test
-    PROPERTIES ENVIRONMENT "${SDK_PROTOCOL_SANITIZER_ENVIRONMENT}"
+    PROPERTIES
+      ENVIRONMENT "${SDK_PROTOCOL_SANITIZER_ENVIRONMENT}"
+      LABELS downstream_regression
   )
 endif()

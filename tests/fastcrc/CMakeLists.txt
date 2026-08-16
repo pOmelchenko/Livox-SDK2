@@ -9,18 +9,16 @@ option(FASTCRC_ENABLE_SANITIZERS
   OFF
 )
 
-get_filename_component(
-  LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/LivoxSdkTestSource.cmake")
 
 add_executable(livox_fastcrc_tests
   fastcrc_tests.cpp
-  "${LIVOX_SDK_ROOT}/3rdparty/FastCRC/FastCRCsw.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/FastCRC/FastCRCsw.cpp"
 )
 
 target_compile_features(livox_fastcrc_tests PRIVATE cxx_std_11)
 target_include_directories(livox_fastcrc_tests PRIVATE
-  "${LIVOX_SDK_ROOT}/3rdparty/FastCRC"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/FastCRC"
 )
 target_compile_definitions(livox_fastcrc_tests PRIVATE
   "LIVOX_FASTCRC_FIXTURE_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/fixtures\""
@@ -33,6 +31,7 @@ else()
 endif()
 
 add_test(NAME livox_fastcrc_tests COMMAND livox_fastcrc_tests)
+set_tests_properties(livox_fastcrc_tests PROPERTIES LABELS contract)
 
 if(FASTCRC_ENABLE_SANITIZERS)
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -75,6 +74,8 @@ if(FASTCRC_ENABLE_SANITIZERS)
   set_tests_properties(
     livox_fastcrc_tests
     fastcrc_sanitizer_fail_closed
-    PROPERTIES ENVIRONMENT "${FASTCRC_SANITIZER_ENVIRONMENT}"
+    PROPERTIES
+      ENVIRONMENT "${FASTCRC_SANITIZER_ENVIRONMENT}"
+      LABELS contract
   )
 endif()

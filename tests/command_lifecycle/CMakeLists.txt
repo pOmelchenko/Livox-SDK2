@@ -21,15 +21,13 @@ if(COMMAND_LIFECYCLE_ENABLE_SANITIZERS AND
   )
 endif()
 
-get_filename_component(
-  LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/LivoxSdkTestSource.cmake")
 
 set(COMMAND_LIFECYCLE_PRODUCTION_SOURCES
-  "${LIVOX_SDK_ROOT}/sdk_core/command_handler/general_command_handler.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/comm_port.cpp"
-  "${LIVOX_SDK_ROOT}/sdk_core/comm/sdk_protocol.cpp"
-  "${LIVOX_SDK_ROOT}/3rdparty/FastCRC/FastCRCsw.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/command_handler/general_command_handler.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/comm_port.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/comm/sdk_protocol.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/FastCRC/FastCRCsw.cpp"
 )
 
 find_package(Threads REQUIRED)
@@ -42,12 +40,12 @@ add_executable(livox_command_lifecycle_tests
 
 target_compile_features(livox_command_lifecycle_tests PRIVATE cxx_std_11)
 target_include_directories(livox_command_lifecycle_tests PRIVATE
-  "${LIVOX_SDK_ROOT}/include"
-  "${LIVOX_SDK_ROOT}/sdk_core"
+  "${LIVOX_SDK_SOURCE_DIR}/include"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core"
 )
 target_include_directories(livox_command_lifecycle_tests SYSTEM PRIVATE
-  "${LIVOX_SDK_ROOT}/3rdparty"
-  "${LIVOX_SDK_ROOT}/3rdparty/spdlog"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty"
+  "${LIVOX_SDK_SOURCE_DIR}/3rdparty/spdlog"
 )
 target_link_libraries(livox_command_lifecycle_tests PRIVATE Threads::Threads)
 
@@ -106,10 +104,14 @@ add_test(
   NAME livox_command_lifecycle_tests
   COMMAND livox_command_lifecycle_tests
 )
+set_tests_properties(livox_command_lifecycle_tests PROPERTIES
+  LABELS downstream_regression
+)
 
 if(COMMAND_LIFECYCLE_ENABLE_SANITIZERS OR
    COMMAND_LIFECYCLE_ENABLE_THREAD_SANITIZER)
   set_tests_properties(livox_command_lifecycle_tests PROPERTIES
     ENVIRONMENT "${COMMAND_LIFECYCLE_SANITIZER_ENVIRONMENT}"
+    LABELS downstream_regression
   )
 endif()

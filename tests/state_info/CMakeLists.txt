@@ -9,23 +9,21 @@ option(STATE_INFO_ENABLE_SANITIZERS
   OFF
 )
 
-get_filename_component(
-  LIVOX_SDK_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE
-)
+include("${CMAKE_CURRENT_LIST_DIR}/../cmake/LivoxSdkTestSource.cmake")
 
 set(STATE_INFO_SOURCES
-  "${LIVOX_SDK_ROOT}/sdk_core/command_handler/parse_lidar_state_info.cpp"
+  "${LIVOX_SDK_SOURCE_DIR}/sdk_core/command_handler/parse_lidar_state_info.cpp"
 )
 
 function(configure_state_info_test target)
   target_compile_features(${target} PRIVATE cxx_std_11)
   target_include_directories(${target} PRIVATE
-    "${LIVOX_SDK_ROOT}/include"
-    "${LIVOX_SDK_ROOT}/sdk_core"
+    "${LIVOX_SDK_SOURCE_DIR}/include"
+    "${LIVOX_SDK_SOURCE_DIR}/sdk_core"
   )
   target_include_directories(${target} SYSTEM PRIVATE
-    "${LIVOX_SDK_ROOT}/3rdparty"
-    "${LIVOX_SDK_ROOT}/3rdparty/spdlog"
+    "${LIVOX_SDK_SOURCE_DIR}/3rdparty"
+    "${LIVOX_SDK_SOURCE_DIR}/3rdparty/spdlog"
   )
 
   if(MSVC)
@@ -42,6 +40,9 @@ add_executable(livox_state_info_tests
 configure_state_info_test(livox_state_info_tests)
 
 add_test(NAME livox_state_info_tests COMMAND livox_state_info_tests)
+set_tests_properties(livox_state_info_tests PROPERTIES
+  LABELS downstream_regression
+)
 
 if(STATE_INFO_ENABLE_SANITIZERS)
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -87,6 +88,8 @@ if(STATE_INFO_ENABLE_SANITIZERS)
   set_tests_properties(
     livox_state_info_tests
     state_info_oversized_sanitizer_test
-    PROPERTIES ENVIRONMENT "${STATE_INFO_SANITIZER_ENVIRONMENT}"
+    PROPERTIES
+      ENVIRONMENT "${STATE_INFO_SANITIZER_ENVIRONMENT}"
+      LABELS downstream_regression
   )
 endif()
