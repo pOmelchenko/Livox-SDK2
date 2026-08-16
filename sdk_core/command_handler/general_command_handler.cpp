@@ -104,6 +104,7 @@ void GeneralCommandHandler::AddDetectedLidar(const std::shared_ptr<std::vector<L
 void GeneralCommandHandler::Destory() {
   device_manager_ = nullptr;
   comm_port_.reset(nullptr);
+  custom_lidars_cfg_map_.clear();
   {
     std::lock_guard<std::mutex> lock(dev_type_mutex_);
     device_dev_type_.clear();
@@ -120,12 +121,16 @@ void GeneralCommandHandler::Destory() {
   }
 
   {
-    std::mutex commands_mutex_;
-    std::map<uint32_t, std::pair<Command, TimePoint> > commands_;
+    std::lock_guard<std::mutex> lock(commands_mutex_);
+    commands_.clear();
   }
 
   livox_lidar_info_change_cb_ = nullptr;
   livox_lidar_info_change_client_data_ = nullptr;
+  livox_lidar_info_cb_ = nullptr;
+  livox_lidar_info_client_data_ = nullptr;
+  cmd_observer_cb_ = nullptr;
+  cmd_observer_client_data_ = nullptr;
 
   detection_host_ip_ = "";
   is_view_ = false;

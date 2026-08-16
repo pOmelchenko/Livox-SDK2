@@ -59,6 +59,7 @@ class HapCommandHandle;
 
 class GeneralCommandHandler : public noncopyable {
  private:
+  friend class GeneralCommandHandlerTestPeer;
   GeneralCommandHandler();
   GeneralCommandHandler(const GeneralCommandHandler& other) = delete;
   GeneralCommandHandler& operator=(const GeneralCommandHandler& other) = delete;
