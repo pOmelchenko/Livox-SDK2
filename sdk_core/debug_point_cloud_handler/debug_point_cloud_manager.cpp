@@ -1,5 +1,6 @@
 #include "debug_point_cloud_manager.h"
 
+#include "command_handler/detection_data_admission.h"
 #include "spdlog/fmt/fmt.h"
 
 #include <iostream>
@@ -25,7 +26,9 @@ void DebugPointCloudManager::AddDevice(const uint32_t handle, const DetectionDat
                                                 detection_data->lidar_ip[1],
                                                 detection_data->lidar_ip[2],
                                                 detection_data->lidar_ip[3]);
-    devices_info_.emplace(handle, LidarDeviceInfo{detection_data->sn, detection_data->dev_type, ip, detection_data->cmd_port});
+    devices_info_.emplace(handle, LidarDeviceInfo{
+        detail::DetectionSerialNumber(*detection_data),
+        detection_data->dev_type, ip, detection_data->cmd_port});
   }
 }
 

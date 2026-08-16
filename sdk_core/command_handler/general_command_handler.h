@@ -123,6 +123,8 @@ class GeneralCommandHandler : public noncopyable {
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint8_t dev_type);
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint32_t handle);
   void HandleDetectionData(uint32_t handle, uint16_t lidar_port, const CommPacket& packet);
+  void HandleAcceptedDetectionData(uint32_t handle, DetectionData* detection_data,
+      const std::string& serial_number);
   void GetFirmwareType(const uint32_t handle, DeviceInfo& device_info);
   livox_status QueryFwType(const uint32_t handle);
   void UpdateFwType(const uint32_t handle, const uint8_t fw_type);
