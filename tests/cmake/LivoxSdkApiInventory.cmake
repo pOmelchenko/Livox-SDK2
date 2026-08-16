@@ -1,0 +1,447 @@
+# Test-owned API inventory for the SDK source tree selected by
+# LIVOX_SDK_SOURCE_DIR. Installed headers and entrypoints are compatibility
+# contracts. sdk_core entries describe current internal module seams and do not
+# promote those headers to the installed public API.
+
+set(LIVOX_SDK_API_INVENTORY_VERSION 1)
+
+set(LIVOX_SDK_INSTALLED_PUBLIC_HEADERS
+  include/livox_lidar_api.h
+  include/livox_lidar_cfg.h
+  include/livox_lidar_def.h
+)
+
+set(LIVOX_SDK_INSTALLED_PUBLIC_IMPLEMENTATION
+  sdk_core/livox_lidar_sdk.cpp
+)
+
+set(LIVOX_SDK_PUBLIC_API_LIFECYCLE_FUNCTIONS
+  GetLivoxLidarSdkVer
+  LivoxLidarSdkInit
+  LivoxLidarSdkStart
+  LivoxLidarSdkUninit
+)
+
+set(LIVOX_SDK_PUBLIC_API_CALLBACK_FUNCTIONS
+  SetLivoxLidarPointCloudCallBack
+  LivoxLidarAddCmdObserver
+  LivoxLidarRemoveCmdObserver
+  LivoxLidarAddPointCloudObserver
+  LivoxLidarRemovePointCloudObserver
+  SetLivoxLidarImuDataCallback
+  SetLivoxLidarInfoCallback
+  DisableLivoxSdkConsoleLogger
+  SaveLivoxLidarSdkLoggerFile
+  SetLivoxLidarInfoChangeCallback
+)
+
+set(LIVOX_SDK_PUBLIC_API_QUERY_FUNCTIONS
+  QueryLivoxLidarInternalInfo
+  QueryLivoxLidarFwType
+  QueryLivoxLidarFirmwareVer
+)
+
+set(LIVOX_SDK_PUBLIC_API_CONTROL_FUNCTIONS
+  SetLivoxLidarPclDataType
+  SetLivoxLidarScanPattern
+  SetLivoxLidarDualEmit
+  EnableLivoxLidarPointSend
+  DisableLivoxLidarPointSend
+  SetLivoxLidarIp
+  SetLivoxLidarStateInfoHostIPCfg
+  SetLivoxLidarPointDataHostIPCfg
+  SetLivoxLidarImuDataHostIPCfg
+  SetLivoxLidarInstallAttitude
+  SetLivoxLidarFovCfg0
+  SetLivoxLidarFovCfg1
+  EnableLivoxLidarFov
+  DisableLivoxLidarFov
+  SetLivoxLidarDetectMode
+  SetLivoxLidarFuncIOCfg
+  SetLivoxLidarBlindSpot
+  SetLivoxLidarWorkMode
+  EnableLivoxLidarGlassHeat
+  DisableLivoxLidarGlassHeat
+  StartForcedHeating
+  StopForcedHeating
+  SetLidarFogNoiseFilterMode
+  SetLivoxLidarITOCtrlMode
+  SetNTPServerIp
+  SetLivoxLidarPpsSyncMode
+  SetLivoxLidarEscMode
+  SetLivoxLidarFovMode
+  SetLivoxLidarEchoMode
+  SetLivoxLidarImuRange
+  SetLivoxLidarGlassHeat
+  EnableLivoxLidarImuData
+  DisableLivoxLidarImuData
+  EnableLivoxLidarFusaFunciont
+  DisableLivoxLidarFusaFunciont
+  LivoxLidarRequestReset
+  LivoxLidarStartLogger
+  LivoxLidarStopLogger
+  SetLivoxLidarDebugPointCloud
+  SetLivoxLidarRmcSyncTime
+  SetLivoxLidarWorkModeAfterBoot
+)
+
+set(LIVOX_SDK_PUBLIC_API_UPGRADE_FUNCTIONS
+  LivoxLidarRequestReboot
+  SetLivoxLidarUpgradeFirmwarePath
+  SetLivoxLidarUpgradeProgressCallback
+  UpgradeLivoxLidars
+)
+
+set(LIVOX_SDK_INSTALLED_PUBLIC_FUNCTIONS
+  ${LIVOX_SDK_PUBLIC_API_LIFECYCLE_FUNCTIONS}
+  ${LIVOX_SDK_PUBLIC_API_CALLBACK_FUNCTIONS}
+  ${LIVOX_SDK_PUBLIC_API_QUERY_FUNCTIONS}
+  ${LIVOX_SDK_PUBLIC_API_CONTROL_FUNCTIONS}
+  ${LIVOX_SDK_PUBLIC_API_UPGRADE_FUNCTIONS}
+)
+
+set(LIVOX_SDK_INTERNAL_MODULE_IDS
+  config
+  device_manager
+  base_io
+  comm
+  command_builders
+  command_handlers
+  data_handler
+  logger
+  debug_point_cloud
+  upgrade
+)
+
+set(LIVOX_SDK_INTERNAL_API_CONFIG_HEADERS
+  sdk_core/parse_cfg_file.h
+  sdk_core/params_check.h
+)
+set(LIVOX_SDK_INTERNAL_API_CONFIG_SYMBOLS
+  ParseCfgFile::Parse
+  ParamsCheck::Check
+)
+
+set(LIVOX_SDK_INTERNAL_API_DEVICE_MANAGER_HEADERS
+  sdk_core/device_manager.h
+)
+set(LIVOX_SDK_INTERNAL_API_DEVICE_MANAGER_SYMBOLS
+  Command
+  DeviceManager::GetInstance
+  DeviceManager::Init
+  DeviceManager::Destory
+  DeviceManager::HandleDetectionData
+  DeviceManager::SendCommand
+  DeviceManager::SendLoggerCommand
+  DeviceManager::GetLivoxLidarInternalInfoCallback
+  DeviceManager::UpdateViewLidarCfgCallback
+  DeviceManager::OnData
+  DeviceManager::OnTimer
+)
+
+set(LIVOX_SDK_INTERNAL_API_BASE_IO_HEADERS
+  sdk_core/base/io_loop.h
+  sdk_core/base/io_thread.h
+  sdk_core/base/thread_base.h
+  sdk_core/base/multiple_io/multiple_io_base.h
+  sdk_core/base/multiple_io/multiple_io_factory.h
+  sdk_core/base/multiple_io/multiple_io_epoll.h
+  sdk_core/base/multiple_io/multiple_io_kqueue.h
+  sdk_core/base/multiple_io/multiple_io_poll.h
+  sdk_core/base/multiple_io/multiple_io_select.h
+  sdk_core/base/wake_up/wake_up_pipe.h
+  sdk_core/base/network/network_util.h
+)
+set(LIVOX_SDK_INTERNAL_API_BASE_IO_SYMBOLS
+  IOLoop::IOLoopDelegate
+  IOLoop::Init
+  IOLoop::Uninit
+  IOLoop::AddDelegate
+  IOLoop::RemoveDelegate
+  IOLoop::Loop
+  IOLoop::Wakeup
+  IOLoop::PostTask
+  IOThread::Init
+  IOThread::GetLoop
+  IOThread::ThreadFunc
+  ThreadBase::Start
+  ThreadBase::IsQuit
+  MultipleIOBase::PollCreate
+  MultipleIOBase::PollDestroy
+  MultipleIOBase::PollSetAdd
+  MultipleIOBase::PollSetRemove
+  MultipleIOBase::Poll
+  MultipleIOBase::PollWakeUp
+  MultipleIOFactory::CreateMultipleIO
+  WakeUpPipe::PipeCreate
+  WakeUpPipe::PipeDestroy
+  WakeUpPipe::WakeUp
+  WakeUpPipe::Drain
+  WakeUpPipe::GetPipeOut
+  util::CreateSocket
+  util::CloseSock
+  util::FindLocalIp
+  util::RecvFrom
+)
+
+set(LIVOX_SDK_INTERNAL_API_COMM_HEADERS
+  sdk_core/comm/protocol.h
+  sdk_core/comm/sdk_protocol.h
+  sdk_core/comm/comm_port.h
+  sdk_core/comm/generate_seq.h
+)
+set(LIVOX_SDK_INTERNAL_API_COMM_SYMBOLS
+  Protocol::ParsePacket
+  Protocol::Pack
+  Protocol::GetPreambleLen
+  Protocol::GetPacketWrapperLen
+  Protocol::GetPacketLen
+  Protocol::CheckPreamble
+  SdkProtocol::ParsePacket
+  SdkProtocol::Pack
+  SdkProtocol::GetPreambleLen
+  SdkProtocol::GetPacketWrapperLen
+  SdkProtocol::GetPacketLen
+  SdkProtocol::CheckPreamble
+  CommPort::Pack
+  CommPort::ParseCommStream
+  GenerateSeq::GetSeq
+)
+
+set(LIVOX_SDK_INTERNAL_API_COMMAND_BUILDERS_HEADERS
+  sdk_core/command_handler/build_request.h
+  sdk_core/command_handler/command_impl.h
+)
+set(LIVOX_SDK_INTERNAL_API_COMMAND_BUILDERS_SYMBOLS
+  BuildRequest::BuildUpdateViewLidarCfgRequest
+  BuildRequest::BuildUpdateLidarCfgRequest
+  BuildRequest::BuildUpdateMid360LidarCfgRequest
+  BuildRequest::BuildUpdateAvia2LidarCfgRequest
+  BuildRequest::BuildSetLidarIPInfoRequest
+  BuildRequest::BuildSetHostStateInfoIPCfgRequest
+  BuildRequest::BuildSetHostPointDataIPInfoRequest
+  BuildRequest::BuildSetHostImuDataIPInfoRequest
+  BuildRequest::IpToU8
+  BuildRequest::BuildSetNTPserverIPInfoRequest
+  CommandImpl::QueryLivoxLidarInternalInfo
+  CommandImpl::QueryLivoxLidarFwType
+  CommandImpl::QueryLivoxLidarFirmwareVer
+  CommandImpl::SetLivoxLidarPclDataType
+  CommandImpl::SetLivoxLidarScanPattern
+  CommandImpl::SetLivoxLidarDualEmit
+  CommandImpl::EnableLivoxLidarPointSend
+  CommandImpl::DisableLivoxLidarPointSend
+  CommandImpl::SetLivoxLidarIp
+  CommandImpl::SetLivoxLidarStateInfoHostIPCfg
+  CommandImpl::SetLivoxLidarPointDataHostIPCfg
+  CommandImpl::SetLivoxLidarImuDataHostIPCfg
+  CommandImpl::SetLivoxLidarInstallAttitude
+  CommandImpl::SetLivoxLidarFovCfg0
+  CommandImpl::SetLivoxLidarFovCfg1
+  CommandImpl::EnableLivoxLidarFov
+  CommandImpl::DisableLivoxLidarFov
+  CommandImpl::SetLivoxLidarDetectMode
+  CommandImpl::SetLivoxLidarFuncIOCfg
+  CommandImpl::SetLivoxLidarBlindSpot
+  CommandImpl::SetLivoxLidarWorkMode
+  CommandImpl::EnableLivoxLidarGlassHeat
+  CommandImpl::DisableLivoxLidarGlassHeat
+  CommandImpl::SetLivoxLidarGlassHeat
+  CommandImpl::EnableLivoxLidarImuData
+  CommandImpl::DisableLivoxLidarImuData
+  CommandImpl::EnableLivoxLidarFusaFunciont
+  CommandImpl::DisableLivoxLidarFusaFunciont
+  CommandImpl::StartForcedHeating
+  CommandImpl::StopForcedHeating
+  CommandImpl::SetLivoxLidarPpsSyncMode
+  CommandImpl::SetLidarFogNoiseFilterMode
+  CommandImpl::SetLivoxLidarITOCtrlMode
+  CommandImpl::SetNTPServerIp
+  CommandImpl::SetLivoxLidarEscMode
+  CommandImpl::SetLivoxLidarFovMode
+  CommandImpl::SetLivoxLidarEchoMode
+  CommandImpl::SetLivoxLidarImuRange
+  CommandImpl::SetLivoxLidarLogParam
+  CommandImpl::LivoxLidarRequestReset
+  CommandImpl::SetLivoxLidarDebugPointCloud
+  CommandImpl::SetLivoxLidarRmcSyncTime
+  CommandImpl::SetLivoxLidarWorkModeAfterBoot
+  CommandImpl::LivoxLidarRequestReboot
+  CommandImpl::LivoxLidarStartUpgrade
+  CommandImpl::LivoxLidarXferFirmware
+  CommandImpl::LivoxLidarCompleteXferFirmware
+  CommandImpl::LivoxLidarGetUpgradeProgress
+  CommandImpl::LivoxLidarRequestFirmwareInfo
+)
+
+set(LIVOX_SDK_INTERNAL_API_COMMAND_HANDLERS_HEADERS
+  sdk_core/command_handler/command_handler.h
+  sdk_core/command_handler/general_command_handler.h
+  sdk_core/command_handler/hap_command_handler.h
+  sdk_core/command_handler/mid360_command_handler.h
+  sdk_core/command_handler/mid360s_command_handler.h
+  sdk_core/command_handler/avia2_command_handler.h
+  sdk_core/command_handler/parse_lidar_state_info.h
+)
+set(LIVOX_SDK_INTERNAL_API_COMMAND_HANDLERS_SYMBOLS
+  CommandHandler::Init
+  CommandHandler::Handle
+  CommandHandler::UpdateLidarCfg
+  CommandHandler::SendCommand
+  CommandHandler::SendLoggerCommand
+  GeneralCommandHandler::GetInstance
+  GeneralCommandHandler::Init
+  GeneralCommandHandler::Destory
+  GeneralCommandHandler::Handler
+  GeneralCommandHandler::CreateCommandHandler
+  GeneralCommandHandler::SendCommand
+  GeneralCommandHandler::SendLoggerCommand
+  GeneralCommandHandler::CommandsHandle
+  GeneralCommandHandler::AddCommand
+  GeneralCommandHandler::AddDetectedLidar
+  GeneralCommandHandler::SetLivoxLidarInfoChangeCallback
+  GeneralCommandHandler::SetLivoxLidarInfoCallback
+  GeneralCommandHandler::LivoxLidarAddCmdObserver
+  GeneralCommandHandler::LivoxLidarRemoveCmdObserver
+  GeneralCommandHandler::UpdateLidarCfg
+  GeneralCommandHandler::LivoxLidarInfoChange
+  GeneralCommandHandler::PushLivoxLidarInfo
+  GeneralCommandHandler::GetQueryLidarInternalInfoKeys
+  GeneralCommandHandler::GetLidarCfg
+  GeneralCommandHandler::LivoxLidarRequestReset
+  GeneralCommandHandler::QueryFwTypeCallback
+  HapCommandHandler::Init
+  HapCommandHandler::Handle
+  HapCommandHandler::UpdateLidarCfg
+  HapCommandHandler::SendCommand
+  HapCommandHandler::SendLoggerCommand
+  HapCommandHandler::UpdateLidarCallback
+  HapCommandHandler::AddDevice
+  Mid360CommandHandler::Init
+  Mid360CommandHandler::Handle
+  Mid360CommandHandler::UpdateLidarCfg
+  Mid360CommandHandler::SendCommand
+  Mid360CommandHandler::SendLoggerCommand
+  Mid360CommandHandler::UpdateLidarCallback
+  Mid360CommandHandler::AddDevice
+  Mid360sCommandHandler::Init
+  Mid360sCommandHandler::Handle
+  Mid360sCommandHandler::UpdateLidarCfg
+  Mid360sCommandHandler::SendCommand
+  Mid360sCommandHandler::SendLoggerCommand
+  Mid360sCommandHandler::UpdateLidarCallback
+  Mid360sCommandHandler::AddDevice
+  Avia2CommandHandler::Init
+  Avia2CommandHandler::Handle
+  Avia2CommandHandler::UpdateLidarCfg
+  Avia2CommandHandler::SendCommand
+  Avia2CommandHandler::SendLoggerCommand
+  Avia2CommandHandler::UpdateLidarCallback
+  Avia2CommandHandler::AddDevice
+  ParseLidarStateInfo::Parse
+)
+
+set(LIVOX_SDK_INTERNAL_API_DATA_HANDLER_HEADERS
+  sdk_core/data_handler/data_handler.h
+)
+set(LIVOX_SDK_INTERNAL_API_DATA_HANDLER_SYMBOLS
+  DataHandler::GetInstance
+  DataHandler::Init
+  DataHandler::Destory
+  DataHandler::Handle
+  DataHandler::AddPointCloudObserver
+  DataHandler::RemovePointCloudObserver
+  DataHandler::SetPointDataCallback
+  DataHandler::SetImuDataCallback
+)
+
+set(LIVOX_SDK_INTERNAL_API_LOGGER_HEADERS
+  sdk_core/logger_handler/logger_manager.h
+  sdk_core/logger_handler/logger_handler.h
+  sdk_core/logger_handler/file_manager.h
+)
+set(LIVOX_SDK_INTERNAL_API_LOGGER_SYMBOLS
+  LoggerManager::GetInstance
+  LoggerManager::Init
+  LoggerManager::GetLogEnable
+  LoggerManager::AddDevice
+  LoggerManager::RemoveDevice
+  LoggerManager::Destory
+  LoggerManager::StartLogger
+  LoggerManager::StopLogger
+  LoggerManager::Handler
+  LoggerManager::LoggerStopCallback
+  LoggerHandler::Init
+  LoggerHandler::Destory
+  LoggerHandler::StoreLogBag
+  LoggerHandler::CreateFile
+  LoggerHandler::WriteFile
+  LoggerHandler::StopFile
+  LoggerHandler::Write
+  LoggerHandler::SaveToFile
+  GetDirTotalSize
+  GetFileNames
+  ChangeHiddenFiles
+  ChangeCurrentFileName
+  StoreFileName
+  DeleteHidFiles
+  MakeDirecotory
+  IsDirectoryExits
+)
+
+set(LIVOX_SDK_INTERNAL_API_DEBUG_POINT_CLOUD_HEADERS
+  sdk_core/debug_point_cloud_handler/debug_point_cloud_manager.h
+  sdk_core/debug_point_cloud_handler/debug_point_cloud_handler.h
+)
+set(LIVOX_SDK_INTERNAL_API_DEBUG_POINT_CLOUD_SYMBOLS
+  DebugPointCloudManager::GetInstance
+  DebugPointCloudManager::AddDevice
+  DebugPointCloudManager::Handler
+  DebugPointCloudManager::Enable
+  DebugPointCloudManager::SetStorePath
+  DebugPointCloudHandler::StoreData
+  DebugPointCloudHandler::WriteData
+  DebugPointCloudHandler::Enable
+)
+
+set(LIVOX_SDK_INTERNAL_API_UPGRADE_HEADERS
+  sdk_core/upgrade_manager.h
+  sdk_core/upgrade/firmware.h
+  sdk_core/upgrade/livox_lidar_upgrader.h
+)
+set(LIVOX_SDK_INTERNAL_API_UPGRADE_SYMBOLS
+  Firmware::Open
+  Firmware::Close
+  Firmware::FirmwarePackageVersion
+  UpgradeManager::GetInstance
+  UpgradeManager::Destory
+  UpgradeManager::SetLivoxLidarUpgradeFirmwarePath
+  UpgradeManager::SetLivoxLidarUpgradeProgressCallback
+  UpgradeManager::UpgradeLivoxLidars
+  UpgradeManager::CloseLivoxLidarFirmwareFile
+  upgrade_manager
+  LivoxLidarUpgrader::AddUpgradeProgressObserver
+  LivoxLidarUpgrader::StartUpgradeLivoxLidar
+  LivoxLidarUpgrader::StartUpgrade
+  LivoxLidarUpgrader::XferFirmware
+  LivoxLidarUpgrader::CompleteXferFirmware
+  LivoxLidarUpgrader::GetUpgradeProgress
+  LivoxLidarUpgrader::UpgradeComplete
+  LivoxLidarUpgrader::StartUpgradeResponseHandler
+  LivoxLidarUpgrader::XferFirmwareResponseHandler
+  LivoxLidarUpgrader::CompleteXferFirmwareResponseHandler
+  LivoxLidarUpgrader::GetProgressResponseHandler
+  LivoxLidarUpgrader::UpgradeCompleteResponseHandler
+  LivoxLidarUpgrader::LivoxLidarFsmStateChange
+  LivoxLidarUpgrader::FsmEventHandler
+  LivoxLidarUpgrader::IsUpgradeComplete
+  LivoxLidarUpgrader::IsUpgradeError
+)
+
+set(LIVOX_SDK_VENDORED_CONTRACT_HEADERS
+  3rdparty/FastCRC/FastCRC.h
+)
+set(LIVOX_SDK_VENDORED_CONTRACT_SYMBOLS
+  FastCRC16::mcrf4xx
+  FastCRC32::crc32
+)
