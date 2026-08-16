@@ -31,6 +31,7 @@
 #include "comm/protocol.h"
 #include "comm/generate_seq.h"
 
+#include <cstddef>
 #include <map>
 #include <iomanip>
 #include <chrono>
@@ -191,10 +192,21 @@ void LoggerManager::Handler(uint32_t handle, uint16_t lidar_port, uint8_t *buf, 
     return;
   }
 
+  constexpr std::size_t kLoggerPayloadPrefixSize =
+      offsetof(DeviceLoggerFilePushRequest, data);
+  if (packet.data == nullptr ||
+      packet.data_len < kLoggerPayloadPrefixSize) {
+    return;
+  }
+
   auto data = static_cast<DeviceLoggerFilePushRequest*>((void *)packet.data);
+  if (data->data_length > packet.data_len - kLoggerPayloadPrefixSize) {
+    return;
+  }
+
   uint8_t flag = data->flag;
 
-    if (flag & 1) {
+  if (flag & 1) {
     DeviceLoggerFilePushReponse response = {};
     response.ret_code = 0x00;
     response.log_type = data->log_type;

@@ -11,6 +11,7 @@ if(NOT BUILD_TESTING)
 endif()
 
 add_subdirectory(logger_path)
+add_subdirectory(logger_payload)
 add_subdirectory(fastcrc)
 add_subdirectory(sdk_protocol)
 add_subdirectory(state_info)
