@@ -23,6 +23,10 @@
 //
 
 #include "data_handler.h"
+
+#include <cstddef>
+#include <limits>
+
 #include <base/logging.h>
 
 #include "livox_lidar_def.h"
@@ -31,7 +35,54 @@ namespace livox {
 
 namespace lidar {
 
-static const size_t kPrefixDataSize = 18;
+namespace {
+
+const std::size_t kDataHeaderSize =
+    offsetof(LivoxLidarEthernetPacket, data);
+
+std::size_t GetDataElementSize(std::uint8_t data_type) {
+  switch (data_type) {
+    case kLivoxLidarImuData:
+      return sizeof(LivoxLidarImuRawPoint);
+    case kLivoxLidarCartesianCoordinateHighData:
+      return sizeof(LivoxLidarCartesianHighRawPoint);
+    case kLivoxLidarCartesianCoordinateLowData:
+      return sizeof(LivoxLidarCartesianLowRawPoint);
+    case kLivoxLidarSphericalCoordinateData:
+      return sizeof(LivoxLidarSpherPoint);
+    case kLivoxLidarDoubleEchoData:
+      return sizeof(LivoxLidarDoubleEchoRawPoint);
+    default:
+      return 0u;
+  }
+}
+
+bool IsCompleteDataPacket(const std::uint8_t* buf, std::uint32_t buf_size) {
+  if (buf == nullptr || buf_size < kDataHeaderSize) {
+    return false;
+  }
+
+  const LivoxLidarEthernetPacket* packet =
+      reinterpret_cast<const LivoxLidarEthernetPacket*>(buf);
+  const std::size_t element_size = GetDataElementSize(packet->data_type);
+  if (element_size == 0u) {
+    return false;
+  }
+
+  const std::size_t dot_num = packet->dot_num;
+  if (dot_num >
+      ((std::numeric_limits<std::size_t>::max)() - kDataHeaderSize) /
+          element_size) {
+    return false;
+  }
+
+  const std::size_t required_size =
+      kDataHeaderSize + dot_num * element_size;
+  const std::size_t declared_size = packet->length;
+  return required_size <= declared_size && declared_size <= buf_size;
+}
+
+}  // namespace
 
 DataHandler::DataHandler()
     : point_data_callbacks_(nullptr),
@@ -67,11 +118,12 @@ DataHandler::~DataHandler() {
 
 
 void DataHandler::Handle(const uint8_t dev_type, const uint32_t handle, uint8_t *buf, uint32_t buf_size) {
-  LivoxLidarEthernetPacket *lidar_data = (LivoxLidarEthernetPacket *)buf;
-  if (lidar_data == NULL) {
+  if (!IsCompleteDataPacket(buf, buf_size)) {
     return;
   }
 
+  LivoxLidarEthernetPacket *lidar_data =
+      reinterpret_cast<LivoxLidarEthernetPacket *>(buf);
   if (lidar_data->data_type == kLivoxLidarImuData) {
     if (imu_data_callbacks_) {
       imu_data_callbacks_(handle, dev_type, lidar_data, imu_client_data_);
