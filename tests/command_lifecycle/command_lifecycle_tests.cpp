@@ -221,7 +221,7 @@ void CheckDestroyClearsLifecycleState() {
   ExpectEqual("Destory destroys pending callback once", old_capture.destructions,
               1);
 
-  handler->CommandsHandle(TimePoint::max());
+  handler->CommandsHandle((TimePoint::max)());
   ExpectEqual("old callback is not invoked after Destory", old_capture.calls,
               0);
 
@@ -232,7 +232,7 @@ void CheckDestroyClearsLifecycleState() {
 
   CallbackCapture new_capture;
   AddPendingCommand(handler.get(), 101u, 0x05060708u, &new_capture, 0u);
-  handler->CommandsHandle(TimePoint::max());
+  handler->CommandsHandle((TimePoint::max)());
   ExpectEqual("new lifecycle timeout callback", new_capture.calls, 1);
   ExpectEqual("new lifecycle timeout status", new_capture.last_status,
               static_cast<livox_status>(kLivoxLidarStatusTimeout));
