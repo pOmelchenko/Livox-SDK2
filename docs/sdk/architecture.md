@@ -33,9 +33,13 @@ protocol authority.
 
 ## Data path
 
-The I/O loop receives device datagrams. The data handler identifies point-cloud
-or IMU content and invokes the application callback registered through the
-public API. Applications must treat callback execution as asynchronous:
+The I/O loop receives device datagrams. Before dispatch, the data handler
+requires the received bytes to contain the public packet header and the data
+footprint described by a supported data type and its sample count. Incomplete
+or unknown formats are discarded without invoking application callbacks or
+observers; trailing receive bytes remain tolerated. Admitted point-cloud or IMU
+content is then delivered through the callback registered by the public API.
+Applications must treat callback execution as asynchronous:
 
 - keep callback work bounded;
 - copy data that must outlive the callback unless the public contract states a

@@ -15,6 +15,6 @@ ctest --test-dir build/sdk-regressions -C Release --show-only
 ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
-The common entrypoint adopts the focused logger-path, logger-payload, and
-FastCRC regressions. Their standalone entrypoints remain available for focused
-platform work.
+The common entrypoint adopts the focused data-handler, logger-path,
+logger-payload, SDK-protocol, state-info, and FastCRC regressions. Their
+standalone entrypoints remain available for focused platform work.
