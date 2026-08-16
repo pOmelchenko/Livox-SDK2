@@ -71,7 +71,7 @@ bool IsCompleteDataPacket(const std::uint8_t* buf, std::uint32_t buf_size) {
 
   const std::size_t dot_num = packet->dot_num;
   if (dot_num >
-      (std::numeric_limits<std::size_t>::max() - kDataHeaderSize) /
+      ((std::numeric_limits<std::size_t>::max)() - kDataHeaderSize) /
           element_size) {
     return false;
   }

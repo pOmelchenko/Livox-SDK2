@@ -179,7 +179,7 @@ void CheckSupportedDataTypes() {
     const std::size_t required_size =
         RequiredSize(test_case.data_type, test_case.dot_num);
     Expect(std::string(test_case.label) + " fits the public length field",
-           required_size <= std::numeric_limits<std::uint16_t>::max());
+           required_size <= (std::numeric_limits<std::uint16_t>::max)());
     std::vector<std::uint8_t> datagram = BuildDatagram(
         test_case.data_type, test_case.dot_num, required_size,
         static_cast<std::uint16_t>(required_size));
@@ -329,11 +329,11 @@ void CheckDeclaredLengthAndTypeBoundaries() {
                  static_cast<std::uint32_t>(datagram.size()));
 
   const std::size_t maximum_declared_size =
-      std::numeric_limits<std::uint16_t>::max();
+      (std::numeric_limits<std::uint16_t>::max)();
   datagram = BuildDatagram(
-      data_type, std::numeric_limits<std::uint16_t>::max(),
+      data_type, (std::numeric_limits<std::uint16_t>::max)(),
       maximum_declared_size,
-      std::numeric_limits<std::uint16_t>::max());
+      (std::numeric_limits<std::uint16_t>::max)());
   ExpectRejected("point count exceeds representable packet length",
                  datagram.data(),
                  static_cast<std::uint32_t>(datagram.size()));
