@@ -25,6 +25,7 @@
 #ifndef GENERAL_COMMAND_HANDLER_H_
 #define GENERAL_COMMAND_HANDLER_H_
 
+#include <cstddef>
 #include <memory>
 #include <map>
 #include <condition_variable>
@@ -59,6 +60,7 @@ class HapCommandHandle;
 
 class GeneralCommandHandler : public noncopyable {
  private:
+  friend class GeneralCommandHandlerTestPeer;
   GeneralCommandHandler();
   GeneralCommandHandler(const GeneralCommandHandler& other) = delete;
   GeneralCommandHandler& operator=(const GeneralCommandHandler& other) = delete;
@@ -91,21 +93,34 @@ class GeneralCommandHandler : public noncopyable {
   void AddDetectedLidar(const std::shared_ptr<std::vector<LivoxLidarCfg>>& custom_lidars_cfg_ptr);
 
   void SetLivoxLidarInfoChangeCallback(LivoxLidarInfoChangeCallback cb, void* client_data) {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    if (callback_operations_stopped_) {
+      return;
+    }
     livox_lidar_info_change_cb_ = cb;
     livox_lidar_info_change_client_data_ = client_data;
   }
 
   void SetLivoxLidarInfoCallback(LivoxLidarInfoCallback cb, void* client_data) {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    if (callback_operations_stopped_) {
+      return;
+    }
     livox_lidar_info_cb_ = cb;
     livox_lidar_info_client_data_ = client_data;
   }
 
   void LivoxLidarAddCmdObserver(LivoxLidarCmdObserverCallBack cb, void* client_data) {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    if (callback_operations_stopped_) {
+      return;
+    }
     cmd_observer_cb_ = cb;
     cmd_observer_client_data_ = client_data;
   }
 
   void LivoxLidarRemoveCmdObserver() {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
     cmd_observer_cb_ = nullptr;
     cmd_observer_client_data_ = nullptr;
   }
@@ -119,12 +134,36 @@ class GeneralCommandHandler : public noncopyable {
   livox_status LivoxLidarRequestReset(uint32_t handle, LivoxLidarResetCallback cb, void* client_data);
   static void QueryFwTypeCallback(livox_status status, uint32_t handle, LivoxLidarDiagInternalInfoResponse* response, void* client_data);
  private:
+  class CallbackOperationGuard {
+   public:
+    explicit CallbackOperationGuard(GeneralCommandHandler* handler)
+        : handler_(handler) {
+    }
+    ~CallbackOperationGuard();
+
+    CallbackOperationGuard(const CallbackOperationGuard&) = delete;
+    CallbackOperationGuard& operator=(const CallbackOperationGuard&) = delete;
+
+   private:
+    GeneralCommandHandler* handler_;
+  };
+
   bool VerifyNetSegment(const DetectionData* detection_data);
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint8_t dev_type);
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint32_t handle);
   void HandleDetectionData(uint32_t handle, uint16_t lidar_port, const CommPacket& packet);
   void HandleAcceptedDetectionData(uint32_t handle, DetectionData* detection_data,
       const std::string& serial_number);
+  bool BeginCallbackOperation();
+  void EndCallbackOperation();
+  void EnableCallbackOperations();
+  void ClearCallbackRegistrations();
+  bool ParseAndNotifyCommandObserver(uint32_t handle, uint8_t* buffer,
+      uint32_t buffer_size, CommPacket& packet);
+  void NotifyLivoxLidarInfoChange(uint32_t handle,
+      const LivoxLidarInfo& lidar_info);
+  void NotifyLivoxLidarInfo(uint32_t handle, uint8_t dev_type,
+      const std::string& info);
   void GetFirmwareType(const uint32_t handle, DeviceInfo& device_info);
   livox_status QueryFwType(const uint32_t handle);
   void UpdateFwType(const uint32_t handle, const uint8_t fw_type);
@@ -146,6 +185,10 @@ class GeneralCommandHandler : public noncopyable {
   std::mutex commands_mutex_;
   std::map<uint32_t, std::pair<Command, TimePoint> > commands_;
 
+  mutable std::mutex callback_state_mutex_;
+  std::condition_variable callback_state_cv_;
+  std::size_t active_callback_operations_;
+  bool callback_operations_stopped_;
   LivoxLidarInfoChangeCallback livox_lidar_info_change_cb_;
   void* livox_lidar_info_change_client_data_;
 

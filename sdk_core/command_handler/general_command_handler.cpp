@@ -48,6 +48,8 @@ namespace lidar {
 GeneralCommandHandler::GeneralCommandHandler()
     : device_manager_(nullptr),
       comm_port_(nullptr),
+      active_callback_operations_(0u),
+      callback_operations_stopped_(false),
       livox_lidar_info_change_cb_(nullptr),
       livox_lidar_info_change_client_data_(nullptr),
       livox_lidar_info_cb_(nullptr),
@@ -66,6 +68,7 @@ bool GeneralCommandHandler::Init(const std::string& host_ip, const bool is_view,
   detection_host_ip_ = host_ip;
   device_manager_ = device_manager;
   comm_port_.reset(new CommPort());
+  EnableCallbackOperations();
   return true; 
 }
 
@@ -88,6 +91,7 @@ bool GeneralCommandHandler::Init(std::shared_ptr<std::vector<LivoxLidarCfg>>& cu
     lidars_command_handler_[kLivoxLidarTypeAvia2].reset(new Avia2CommandHandler(device_manager_));
   }
   AddDetectedLidar(custom_lidars_cfg_ptr);
+  EnableCallbackOperations();
   return true;
 }
 
@@ -102,8 +106,11 @@ void GeneralCommandHandler::AddDetectedLidar(const std::shared_ptr<std::vector<L
 }
 
 void GeneralCommandHandler::Destory() {
+  ClearCallbackRegistrations();
+
   device_manager_ = nullptr;
   comm_port_.reset(nullptr);
+  custom_lidars_cfg_map_.clear();
   {
     std::lock_guard<std::mutex> lock(dev_type_mutex_);
     device_dev_type_.clear();
@@ -120,12 +127,9 @@ void GeneralCommandHandler::Destory() {
   }
 
   {
-    std::mutex commands_mutex_;
-    std::map<uint32_t, std::pair<Command, TimePoint> > commands_;
+    std::lock_guard<std::mutex> lock(commands_mutex_);
+    commands_.clear();
   }
-
-  livox_lidar_info_change_cb_ = nullptr;
-  livox_lidar_info_change_client_data_ = nullptr;
 
   detection_host_ip_ = "";
   is_view_ = false;
@@ -136,6 +140,11 @@ GeneralCommandHandler::~GeneralCommandHandler() {
 }
 
 void GeneralCommandHandler::Handler(uint32_t handle, uint16_t lidar_port, uint8_t *buf, uint32_t buf_size) {
+  if (!BeginCallbackOperation()) {
+    return;
+  }
+  CallbackOperationGuard operation_guard(this);
+
   if (buf == nullptr || buf_size == 0) {
     return;
   }
@@ -190,6 +199,11 @@ void GeneralCommandHandler::Handler(uint32_t handle, uint16_t lidar_port, uint8_
 
 void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handle, const uint16_t lidar_port,
     uint8_t *buf, uint32_t buf_size) {
+  if (!BeginCallbackOperation()) {
+    return;
+  }
+  CallbackOperationGuard operation_guard(this);
+
   if (buf == nullptr || buf_size == 0) {
     return;
   }
@@ -209,9 +223,7 @@ void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handl
 
   CommPacket packet;
   memset(&packet, 0, sizeof(packet));
-  if (!detail::ParseAndNotifyCommandObserver(
-          *comm_port_, handle, buf, buf_size, cmd_observer_cb_,
-          cmd_observer_client_data_, packet)) {
+  if (!ParseAndNotifyCommandObserver(handle, buf, buf_size, packet)) {
     LOG_INFO("Parse Command Stream failed.");
     return;
   }
@@ -577,20 +589,117 @@ void GeneralCommandHandler::LivoxLidarInfoChange(const uint32_t handle) {
   }
 
   if (!is_callback) {
-    if (livox_lidar_info_change_cb_) {
-      livox_lidar_info_change_cb_(handle, &lidar_info, livox_lidar_info_change_client_data_);
-    }
+    NotifyLivoxLidarInfoChange(handle, lidar_info);
   }
 }
 
 void GeneralCommandHandler::PushLivoxLidarInfo(const uint32_t handle, const std::string& info) {
-  std::lock_guard<std::mutex> lock(dev_type_mutex_);
-  if (device_dev_type_.find(handle) != device_dev_type_.end()) {
-    uint8_t dev_type = device_dev_type_[handle];
-    
-    if (livox_lidar_info_cb_) {
-      livox_lidar_info_cb_(handle, dev_type, info.c_str(), livox_lidar_info_client_data_);
+  uint8_t dev_type = 0u;
+  {
+    std::lock_guard<std::mutex> lock(dev_type_mutex_);
+    const auto device_type = device_dev_type_.find(handle);
+    if (device_type == device_dev_type_.end()) {
+      return;
     }
+    dev_type = device_type->second;
+  }
+  NotifyLivoxLidarInfo(handle, dev_type, info);
+}
+
+GeneralCommandHandler::CallbackOperationGuard::~CallbackOperationGuard() {
+  handler_->EndCallbackOperation();
+}
+
+bool GeneralCommandHandler::BeginCallbackOperation() {
+  std::lock_guard<std::mutex> lock(callback_state_mutex_);
+  if (callback_operations_stopped_) {
+    return false;
+  }
+  ++active_callback_operations_;
+  return true;
+}
+
+void GeneralCommandHandler::EndCallbackOperation() {
+  std::lock_guard<std::mutex> lock(callback_state_mutex_);
+  --active_callback_operations_;
+  if (active_callback_operations_ == 0u) {
+    callback_state_cv_.notify_all();
+  }
+}
+
+void GeneralCommandHandler::EnableCallbackOperations() {
+  std::lock_guard<std::mutex> lock(callback_state_mutex_);
+  callback_operations_stopped_ = false;
+}
+
+void GeneralCommandHandler::ClearCallbackRegistrations() {
+  std::unique_lock<std::mutex> lock(callback_state_mutex_);
+  callback_operations_stopped_ = true;
+  livox_lidar_info_change_cb_ = nullptr;
+  livox_lidar_info_change_client_data_ = nullptr;
+  livox_lidar_info_cb_ = nullptr;
+  livox_lidar_info_client_data_ = nullptr;
+  cmd_observer_cb_ = nullptr;
+  cmd_observer_client_data_ = nullptr;
+  callback_state_cv_.wait(lock, [this]() {
+    return active_callback_operations_ == 0u;
+  });
+}
+
+bool GeneralCommandHandler::ParseAndNotifyCommandObserver(
+    uint32_t handle, uint8_t* buffer, uint32_t buffer_size,
+    CommPacket& packet) {
+  if (!BeginCallbackOperation()) {
+    return false;
+  }
+  CallbackOperationGuard operation_guard(this);
+
+  LivoxLidarCmdObserverCallBack observer = nullptr;
+  void* client_data = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    observer = cmd_observer_cb_;
+    client_data = cmd_observer_client_data_;
+  }
+  return detail::ParseAndNotifyCommandObserver(
+      *comm_port_, handle, buffer, buffer_size, observer, client_data, packet);
+}
+
+void GeneralCommandHandler::NotifyLivoxLidarInfoChange(
+    uint32_t handle, const LivoxLidarInfo& lidar_info) {
+  if (!BeginCallbackOperation()) {
+    return;
+  }
+  CallbackOperationGuard operation_guard(this);
+
+  LivoxLidarInfoChangeCallback callback = nullptr;
+  void* client_data = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    callback = livox_lidar_info_change_cb_;
+    client_data = livox_lidar_info_change_client_data_;
+  }
+  if (callback) {
+    callback(handle, &lidar_info, client_data);
+  }
+}
+
+void GeneralCommandHandler::NotifyLivoxLidarInfo(
+    uint32_t handle, uint8_t dev_type, const std::string& info) {
+  if (!BeginCallbackOperation()) {
+    return;
+  }
+  CallbackOperationGuard operation_guard(this);
+
+  LivoxLidarInfoCallback callback = nullptr;
+  void* client_data = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(callback_state_mutex_);
+    callback = livox_lidar_info_cb_;
+    client_data = livox_lidar_info_client_data_;
+  }
+  if (callback) {
+    callback(handle, dev_type, info.c_str(), client_data);
   }
 }
 
@@ -833,6 +942,11 @@ void GeneralCommandHandler::AddCommand(const Command& command) {
 }
 
 void GeneralCommandHandler::CommandsHandle(TimePoint now) {
+  if (!BeginCallbackOperation()) {
+    return;
+  }
+  CallbackOperationGuard operation_guard(this);
+
   std::list<Command> timeout_commands;
 
   {
