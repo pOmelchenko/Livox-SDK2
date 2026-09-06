@@ -42,4 +42,5 @@ if(LIVOX_SDK_TEST_SUITE STREQUAL "all" OR
   add_subdirectory(data_handler)
   add_subdirectory(detection_data)
   add_subdirectory(command_lifecycle)
+  add_subdirectory(gprmc)
 endif()

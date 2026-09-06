@@ -34,6 +34,7 @@
 #include "comm/generate_seq.h"
 
 #include "build_request.h"
+#include "gprmc_validation.h"
 
 #include <sstream>
 #include <inttypes.h>
@@ -67,7 +68,7 @@ std::vector<std::string> Split(std::string const& str, char const pattern) {
 
 std::uint64_t ParseGPRMC(std::string const& gprmc) {
     std::vector<std::string> gprmc_vec = Split(gprmc, ',');
-    if (gprmc_vec.size() < 9 || gprmc_vec[1].length() < 6 || gprmc_vec[9].length() < 6) {
+    if (!HasGprmcTimestampFields(gprmc_vec)) {
       LOG_ERROR("gprmc check failed. gprmc is : {}", gprmc);
       return 0;
     }

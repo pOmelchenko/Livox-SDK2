@@ -16,9 +16,9 @@ ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
 The common entrypoint adopts the focused command-lifecycle, data-handler,
-discovery-response, logger-path, logger-payload, SDK-protocol, state-info, and
-FastCRC regressions. Their standalone entrypoints remain available for focused
-platform work.
+discovery-response, GPRMC-validation, logger-path, logger-payload, SDK-protocol,
+state-info, and FastCRC regressions. Their standalone entrypoints remain
+available for focused platform work.
 
 ## API inventory
 
