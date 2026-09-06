@@ -16,9 +16,31 @@ ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
 The common entrypoint adopts the focused command-lifecycle, data-handler,
-discovery-response, logger-path, logger-payload, SDK-protocol, state-info, and
-FastCRC regressions. Their standalone entrypoints remain available for focused
-platform work.
+discovery-response, GPRMC-validation, logger-path, logger-payload, SDK-protocol,
+state-info, and FastCRC regressions. Their standalone entrypoints remain
+available for focused platform work.
+
+## GPRMC parser regressions
+
+`gprmc/` tests both the field validator and `ParseGPRMC` from the production
+`command_impl.cpp`. Parser cases cover complete timestamps, fractional-time
+compatibility, a leap day, missing fields, and empty or short time/date fields.
+CTest fixes `TZ=UTC0` for deterministic timestamp expectations; this does not
+change or qualify production timezone semantics. Test-only stubs abort if the
+parser reaches unrelated command, configuration, or transport dependencies.
+
+Run the focused memory-safety checks with a Clang or GCC-compatible compiler:
+
+```sh
+cmake -S tests/gprmc -B build/gprmc-sanitizers \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGPRMC_ENABLE_SANITIZERS=ON
+cmake --build build/gprmc-sanitizers --config RelWithDebInfo --parallel
+ctest --test-dir build/gprmc-sanitizers -C RelWithDebInfo --output-on-failure
+```
+
+These tests check parser bounds and existing timestamp conversion. They do not
+exercise command delivery, physical-device synchronization, checksum checking,
+or full validation of calendar/time input.
 
 ## API inventory
 

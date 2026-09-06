@@ -104,6 +104,7 @@ set(DATA_HANDLER_SOURCES
         )
 set(COMMAND_HANDLER_SOURCES
         command_handler/command_impl.cpp
+        command_handler/gprmc_validation.cpp
         command_handler/general_command_handler.cpp
         command_handler/hap_command_handler.cpp
         command_handler/mid360_command_handler.cpp
