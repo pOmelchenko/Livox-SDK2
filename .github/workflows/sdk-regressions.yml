@@ -110,3 +110,38 @@ jobs:
         run: >-
           ctest --test-dir build/fastcrc-sanitizers
           -C RelWithDebInfo --output-on-failure --no-tests=error
+
+  gprmc-sanitizers:
+    name: GPRMC sanitizers
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          cmake --version
+          g++ --version
+
+      - name: Configure GPRMC sanitizers
+        env:
+          CXX: g++
+        run: >-
+          cmake -S tests/gprmc -B build/gprmc-sanitizers
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DGPRMC_ENABLE_SANITIZERS=ON
+
+      - name: Build GPRMC sanitizers
+        run: >-
+          cmake --build build/gprmc-sanitizers
+          --config RelWithDebInfo --parallel
+
+      - name: Run sanitizer tests
+        run: >-
+          ctest --test-dir build/gprmc-sanitizers
+          -C RelWithDebInfo --output-on-failure --no-tests=error
