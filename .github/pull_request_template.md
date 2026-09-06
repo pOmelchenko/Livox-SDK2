@@ -39,6 +39,7 @@ Refs #
 ## Review evidence
 
 <!-- Link or identify the Codex/external review of the current head and record the disposition of actionable findings. -->
+<!-- Commit-contract findings must cite the exact commit SHA and full-message evidence, with observed validator results when available. This PR description is a separate artifact; its headings are not the commit-message contract. See docs/downstream/contribution-workflow.md#commit-review-evidence. -->
 
 - [ ] The pull request remains draft until its scope and evidence are ready for review.
 - [ ] Every commit follows the immutable commit contract and contains one concern.
