@@ -958,12 +958,13 @@ livox_status GeneralCommandHandler::SendCommand(uint32_t handle,
     return kLivoxLidarStatusSendFailed;
   }
 
+  // The receive thread may observe an ACK before transport returns.
+  AddCommand(command);
   const livox_status status = cmd_handler->SendCommand(command);
   if (status != kLivoxLidarStatusSuccess) {
     RemoveCommand(command.packet.seq_num);
     return status;
   }
-  AddCommand(command);
   return kLivoxLidarStatusSuccess;
 }
 
@@ -984,12 +985,13 @@ livox_status GeneralCommandHandler::SendLoggerCommand(uint32_t handle,
     return kLivoxLidarStatusSendFailed;
   }
 
+  // The receive thread may observe an ACK before transport returns.
+  AddCommand(command);
   const livox_status status = cmd_handler->SendLoggerCommand(command);
   if (status != kLivoxLidarStatusSuccess) {
     RemoveCommand(command.packet.seq_num);
     return status;
   }
-  AddCommand(command);
   return kLivoxLidarStatusSuccess;
 }
 

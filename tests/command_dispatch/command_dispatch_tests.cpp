@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <thread>
 
 #include "base/logging.h"
 #include "command_handler/general_command_handler.h"
@@ -12,18 +13,42 @@ using namespace livox::lidar;
 namespace {
 const uint32_t kHandle = 0x010200c0;  // 192.0.2.1, no device traffic.
 int failures = 0;
+enum class Transport { Quiet, Ack, Fail, AckThenFail, Timeout, TimeoutThenFail };
+Transport transport = Transport::Quiet;
+unsigned transport_calls = 0;
 void Check(bool ok, const char* message) {
   if (!ok) { std::cerr << message << '\n'; ++failures; }
 }
-struct Result { unsigned calls = 0; livox_status status = kLivoxLidarStatusFailure; };
+struct Result {
+  unsigned calls = 0;
+  livox_status status = kLivoxLidarStatusFailure;
+  bool reenter = false;
+};
+void Reenter(Result& result) {
+  if (result.reenter) {
+    result.reenter = false;
+    uint8_t request = 0;
+    Check(GeneralCommandHandler::GetInstance().SendCommand(kHandle,
+        kCommandIDLidarWorkModeControl, &request, 1, nullptr) == kLivoxLidarStatusSuccess,
+        "callback can send another command");
+  }
+}
 void Record(livox_status status, uint32_t, LivoxLidarAsyncControlResponse* response, void* context) {
   Result& result = *static_cast<Result*>(context);
   ++result.calls;
   result.status = status;
+  Reenter(result);
   if (status == kLivoxLidarStatusSuccess) {
     Check(response && response->ret_code == 0 && response->error_key == 0,
           "complete typed control response");
   }
+}
+void RecordLogger(livox_status status, uint32_t, LivoxLidarLoggerResponse* response, void* context) {
+  Result& result = *static_cast<Result*>(context);
+  ++result.calls;
+  result.status = status;
+  if (status == kLivoxLidarStatusSuccess) Check(response && response->ret_code == 0, "logger ACK");
+  Reenter(result);
 }
 std::vector<uint8_t> Ack(uint32_t sequence, uint16_t id, unsigned length) {
   std::vector<uint8_t> payload(length ? length : 1, 0);
@@ -38,15 +63,39 @@ std::vector<uint8_t> Ack(uint32_t sequence, uint16_t id, unsigned length) {
 namespace livox { namespace lidar {
 class GeneralCommandHandlerTestPeer {
  public:
-  static void Seed(GeneralCommandHandler& general) {
-    general.device_dev_type_[kHandle] = kLivoxLidarTypeMid360l;
+  static void Seed(GeneralCommandHandler& general, uint8_t type = kLivoxLidarTypeMid360l) {
+    general.device_dev_type_[kHandle] = type;
   }
   static size_t Pending(const GeneralCommandHandler& general) { return general.commands_.size(); }
 };
-int DeviceManager::SendCommand(uint8_t, uint32_t, const std::vector<uint8_t>&,
-    int16_t size, const struct sockaddr*, socklen_t) { return size; }
-int DeviceManager::SendLoggerCommand(uint8_t, uint32_t, const std::vector<uint8_t>&,
-    int16_t size, const struct sockaddr*, socklen_t) { return size; }
+// A receiver/timer thread wins before the sender returns from the transport.
+// All command handlers and the packet encoder/decoder remain production code.
+int DeviceManager::SendCommand(uint8_t type, uint32_t handle, const std::vector<uint8_t>& bytes,
+    int16_t size, const struct sockaddr*, socklen_t) {
+  ++transport_calls;
+  auto& general = GeneralCommandHandler::GetInstance();
+  if (transport == Transport::Ack || transport == Transport::AckThenFail) {
+    CommPacket packet = {};
+    CommPort port;
+    if (!port.ParseCommStream(const_cast<uint8_t*>(bytes.data()), size, &packet)) std::abort();
+    auto ack = Ack(packet.seq_num, packet.cmd_id,
+        packet.cmd_id == kCommandIDLidarCollectionLog ? sizeof(LivoxLidarLoggerResponse)
+                                                     : sizeof(LivoxLidarAsyncControlResponse));
+    std::thread receiver([&] {
+      general.Handler(type, handle, kMid360lLidarCmdPort, ack.data(), ack.size());
+    });
+    receiver.join();
+  } else if (transport == Transport::Timeout || transport == Transport::TimeoutThenFail) {
+    std::thread timer([&] { general.CommandsHandle((TimePoint::max)()); });
+    timer.join();
+  }
+  return transport == Transport::Fail || transport == Transport::AckThenFail ||
+      transport == Transport::TimeoutThenFail ? -1 : size;
+}
+int DeviceManager::SendLoggerCommand(uint8_t type, uint32_t handle, const std::vector<uint8_t>& bytes,
+    int16_t size, const struct sockaddr* address, socklen_t address_size) {
+  return SendCommand(type, handle, bytes, size, address, address_size);
+}
 }}
 namespace {
 void Deliver(GeneralCommandHandler& general, bool typed, std::vector<uint8_t>& ack,
@@ -89,6 +138,42 @@ void ControlAckBounds(GeneralCommandHandler& general, bool typed) {
   Deliver(general, typed, valid);
   Check(GeneralCommandHandlerTestPeer::Pending(general) == 0, "setup accepts complete ACK");
 }
+void SendOrdering(GeneralCommandHandler& general) {
+  const uint8_t types[] = {kLivoxLidarTypeIndustrialHAP, kLivoxLidarTypeMid360,
+      kLivoxLidarTypeMid360s, kLivoxLidarTypeMid360l, kLivoxLidarTypeAvia2};
+  for (auto type : types) {
+    GeneralCommandHandlerTestPeer::Seed(general, type);
+    for (bool log : {false, true}) {
+      for (auto mode : {Transport::Ack, Transport::Fail, Transport::AckThenFail,
+                        Transport::Timeout, Transport::TimeoutThenFail}) {
+        for (bool has_callback : {false, true}) {
+          transport = mode;
+          Result result;
+          result.reenter = mode == Transport::Ack;
+          uint8_t request = 0;
+          std::shared_ptr<CommandCallback> cb;
+          if (has_callback) cb = log
+              ? MakeCommandCallback<LivoxLidarLoggerResponse>(RecordLogger, &result)
+              : MakeCommandCallback<LivoxLidarAsyncControlResponse>(Record, &result);
+          const auto status = log
+              ? general.SendLoggerCommand(kHandle, kCommandIDLidarCollectionLog, &request, 1, cb)
+              : general.SendCommand(kHandle, kCommandIDLidarWorkModeControl, &request, 1, cb);
+          const bool fail = mode == Transport::Fail || mode == Transport::AckThenFail ||
+                            mode == Transport::TimeoutThenFail;
+          Check(status == (fail ? kLivoxLidarStatusSendFailed : kLivoxLidarStatusSuccess), "send return status");
+          Check(GeneralCommandHandlerTestPeer::Pending(general) == 0, "completed send must not be requeued");
+          general.CommandsHandle((TimePoint::max)());
+          Check(result.calls == unsigned(has_callback), "exactly one completion per send");
+          const auto expected = mode == Transport::Fail ? kLivoxLidarStatusSendFailed :
+              mode == Transport::Timeout || mode == Transport::TimeoutThenFail
+                  ? kLivoxLidarStatusTimeout : kLivoxLidarStatusSuccess;
+          if (has_callback) Check(result.status == expected, "first terminal event wins");
+        }
+      }
+    }
+  }
+}
+
 }
 int main() {
   logger->set_level(spdlog::level::off);
@@ -98,6 +183,7 @@ int main() {
   GeneralCommandHandlerTestPeer::Seed(general);
   ControlAckBounds(general, false);
   ControlAckBounds(general, true);
+  SendOrdering(general);
   general.Destory();
   return failures ? 1 : 0;
 }

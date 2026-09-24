@@ -26,7 +26,10 @@ available for focused platform work.
 handlers, packet codec, request builders, and state parser. Test doubles replace
 only transport and unrelated managers. It checks control ACK boundaries in both
 receive paths, request matching, recovery after an incomplete response, and the
-real Mid-360L setup callback. It does not contact physical devices.
+real Mid-360L setup callback. Controlled receiver/timer threads also exercise
+ACKs arriving before send returns, send errors, timeout races, logger sends,
+null callbacks, and callback reentry across HAP, Mid-360, Mid-360S, Mid-360L,
+and Avia2. It does not contact physical devices.
 
 For GCC or Clang, configure this focused entrypoint with
 `-DCOMMAND_DISPATCH_ENABLE_SANITIZERS=ON` to enable ASan/UBSan. Alignment

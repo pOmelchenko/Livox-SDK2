@@ -43,12 +43,11 @@ Applications must establish their own synchronization and shutdown ordering.
 Do not infer ownership or a lifetime beyond the declaration, implementation,
 and focused tests for the exact revision.
 
-A local command-send failure can invoke its completion callback before the
-initiating API function returns. In this downstream revision, a failed send
-through the general command path is removed from timeout tracking; the new
-Mid-360L setup path also removes a failed pending command before notifying its
-callback. An application should treat that failure as the terminal result for
-the attempt.
+Commands are registered for completion before transport sends them. A fast ACK
+or local send failure can therefore invoke the callback before the initiating
+API function returns. The first ACK, timeout, or send failure to remove the
+pending command owns its completion; later events do not invoke it again. The
+callback runs outside the pending-command lock and may submit another command.
 
 Control ACKs are delivered only when the source handle and command ID match
 the pending request and the payload contains a complete
