@@ -24,3 +24,8 @@ repository. Follow the stricter requirement when instructions overlap.
    evidence.
 8. Treat this repository as a maintained downstream, preserve upstream license
    notices and attribution, and do not claim new protocol authority.
+9. Ground commit-contract review findings in the exact Git commit message and
+   SHA, following the [commit-review evidence requirements](docs/downstream/contribution-workflow.md#commit-review-evidence).
+   A pull-request title, description, or review summary is not a commit message.
+   Report validation commands and exit results only when actually observed;
+   unavailable commit evidence is a review limitation, not a contract failure.

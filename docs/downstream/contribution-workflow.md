@@ -94,6 +94,33 @@ GitHub required approvals are set to zero, but review remains mandatory.
 Conversation resolution and review evidence determine whether the maintainer
 may merge.
 
+### Commit-review evidence
+
+The commit contract applies to immutable Git commit messages. The pull-request
+description follows the pull-request template and is reviewed separately; it
+does not have to repeat the commit-message headings or trailer layout.
+
+Before reporting a commit-contract violation:
+
+1. Identify the exact base and head SHAs being reviewed. Read each affected
+   commit's full message with `git show --no-patch --format=%B <commit-sha>`,
+   or the GitHub Git-commit API's `message` field for that exact SHA. Do not
+   substitute a pull-request title/body, generated summary, or earlier review.
+2. Use the trusted base revision's validator against the reviewed base/head
+   range when execution is available. Record the command, SHAs, exit code, and
+   relevant diagnostics. Compare any governance CI result with the same head;
+   a conflicting result requires investigation before claiming rejection.
+3. Cite the affected commit SHA and the message evidence for the finding.
+   Assess changed-path grouping from that commit's actual paths. If execution
+   is unavailable, distinguish a message-based finding from a validator result
+   and state the limitation. If the message cannot be retrieved, report the
+   missing evidence instead of asserting that sections or trailers are absent.
+
+Never present an expected validation failure as an observed run. Conversely,
+a passing validator establishes only the immutable format/path contract: issue
+qualification, truthful provenance, meaningful issue references, and adequate
+verification still require substantive review.
+
 ## Merge
 
 Merge an accepted pull request only with a GitHub merge commit. Squash and
