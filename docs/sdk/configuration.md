@@ -8,7 +8,9 @@ Repository examples are starting points, not safe defaults for every network.
 
 Each sample directory contains device-family configurations. The broadest set
 is under [`samples/livox_lidar_quick_start/`](../../samples/livox_lidar_quick_start/).
-Use the example matching the device family and the checked-out revision.
+Use the example matching the device family and the checked-out revision. The
+Mid-360L configuration uses the `Mid360l` object and is illustrated by
+[`mid360l_config.json`](../../samples/livox_lidar_quick_start/mid360l_config.json).
 
 ## Device and host network blocks
 
@@ -26,6 +28,22 @@ A device-family object such as `HAP` or `MID360` contains:
 Names and accepted shapes are implemented in
 [`sdk_core/parse_cfg_file.cpp`](../../sdk_core/parse_cfg_file.cpp). Review that
 source and the matching sample before relying on an optional field.
+
+During initialization, `ParamsCheck` normalizes device-side ports for `MID360`,
+`Mid360s`, and `Mid360l` to command `56100`, status `56200`, point-cloud `56300`,
+IMU `56400`, and log `56500`. Each noncanonical value is logged and replaced,
+for both family defaults and configurations with explicit `lidar_ip` entries.
+Host-side ports remain configurable. These are the fixed ports used by the
+checked-out SDK handlers; normalization keeps receive routing consistent with
+the device configuration requests.
+
+For `MID360`, `Mid360s`, `Mid360l`, and `Avia2`, a configured multicast group
+also receives status messages at `push_msg_port`. The SDK joins that group on
+`host_ip` using a separate socket on the command event loop, for both controlling
+and receiving instances. Unicast command routing and status reception remain
+available. Subscription errors fail channel creation instead of silently
+leaving an unusable receiver. Network and firewall settings must permit the
+group on the selected interface.
 
 ## SDK role
 

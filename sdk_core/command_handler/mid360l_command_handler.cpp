@@ -22,7 +22,7 @@
 // SOFTWARE.
 //
 
-#include "avia2_command_handler.h"
+#include "mid360l_command_handler.h"
 #include "livox_lidar_def.h"
 
 #include "base/command_callback.h"
@@ -39,27 +39,27 @@
 namespace livox {
 namespace lidar {
 
-Avia2CommandHandler::Avia2CommandHandler(DeviceManager* device_manager) 
+Mid360lCommandHandler::Mid360lCommandHandler(DeviceManager* device_manager)
     : CommandHandler(device_manager),
       comm_port_(new CommPort),
       is_view_(false) {
 }
 
-bool Avia2CommandHandler::Init(bool is_view) {
+bool Mid360lCommandHandler::Init(bool is_view) {
   is_view_ = is_view;
   return true;
 }
 
-bool Avia2CommandHandler::Init(const std::map<uint32_t, LivoxLidarCfg>& custom_lidars_cfg_map) {
+bool Mid360lCommandHandler::Init(const std::map<uint32_t, LivoxLidarCfg>& custom_lidars_cfg_map) {
   for (const auto& it : custom_lidars_cfg_map) {
-    if (it.second.device_type == kLivoxLidarTypeAvia2 && custom_lidars_.find(it.first) == custom_lidars_.end()) {
+    if (it.second.device_type == kLivoxLidarTypeMid360l && custom_lidars_.find(it.first) == custom_lidars_.end()) {
       custom_lidars_[it.first] = it.second;
     }
   }
   return true;
 }
 
-void Avia2CommandHandler::Handle(const uint32_t handle, uint16_t lidar_port, const Command& command) {
+void Mid360lCommandHandler::Handle(const uint32_t handle, uint16_t lidar_port, const Command& command) {
   if (command.packet.cmd_type == kCommandTypeAck) {
     LOG_INFO(" Receive Ack: Id {} Seq {}", command.packet.cmd_id, command.packet.seq_num);
     OnCommandAck(handle, command);
@@ -69,7 +69,7 @@ void Avia2CommandHandler::Handle(const uint32_t handle, uint16_t lidar_port, con
   }
 }
 
-void Avia2CommandHandler::OnCommandAck(uint32_t handle, const Command &command) {
+void Mid360lCommandHandler::OnCommandAck(uint32_t handle, const Command &command) {
   if (command.cb == nullptr) {
     return;
   }
@@ -82,15 +82,15 @@ void Avia2CommandHandler::OnCommandAck(uint32_t handle, const Command &command) 
   (*command.cb)(kLivoxLidarStatusSuccess, handle, command.packet.data);
 }
 
-void Avia2CommandHandler::OnCommandCmd(uint32_t handle, const uint16_t lidar_port, const Command &command) {
-  if (command.packet.cmd_id == kCommandIDLidarPushMsg && lidar_port == kAvia2LidarPushMsgPort) {
-    std::string info; 
+void Mid360lCommandHandler::OnCommandCmd(uint32_t handle, const uint16_t lidar_port, const Command &command) {
+  if (command.packet.cmd_id == kCommandIDLidarPushMsg && lidar_port == kMid360lLidarPushMsgPort) {
+    std::string info;
     ParseLidarStateInfo::Parse(command.packet, info);
     GeneralCommandHandler::GetInstance().PushLivoxLidarInfo(handle, info);
   }
 }
 
-void Avia2CommandHandler::UpdateLidarCfg(const ViewLidarIpInfo& view_lidar_info) {
+void Mid360lCommandHandler::UpdateLidarCfg(const ViewLidarIpInfo& view_lidar_info) {
   {
     std::lock_guard<std::mutex> lock(device_mutex_);
     if (devices_.find(view_lidar_info.handle) != devices_.end()) {
@@ -100,14 +100,14 @@ void Avia2CommandHandler::UpdateLidarCfg(const ViewLidarIpInfo& view_lidar_info)
   SetViewLidar(view_lidar_info);
 }
 
-void Avia2CommandHandler::UpdateLidarCfg(const uint32_t handle, const uint16_t lidar_cmd_port) {
+void Mid360lCommandHandler::UpdateLidarCfg(const uint32_t handle, const uint16_t lidar_cmd_port) {
   {
     std::lock_guard<std::mutex> lock(device_mutex_);
     if (devices_.find(handle) != devices_.end()) {
       return;
     }
   }
-  
+
   if (custom_lidars_.find(handle) != custom_lidars_.end()) {
     const LivoxLidarCfg& lidar_cfg = custom_lidars_[handle];
     SetCustomLidar(handle, lidar_cmd_port, lidar_cfg);
@@ -115,7 +115,7 @@ void Avia2CommandHandler::UpdateLidarCfg(const uint32_t handle, const uint16_t l
   }
 }
 
-void Avia2CommandHandler::SetViewLidar(const ViewLidarIpInfo& view_lidar_info) {
+void Mid360lCommandHandler::SetViewLidar(const ViewLidarIpInfo& view_lidar_info) {
   uint8_t req_buff[kMaxCommandBufferSize] = {0};
   uint16_t req_len = 0;
   if (!BuildRequest::BuildUpdateViewLidarCfgRequest(view_lidar_info, req_buff, req_len)) {
@@ -128,14 +128,14 @@ void Avia2CommandHandler::SetViewLidar(const ViewLidarIpInfo& view_lidar_info) {
   std::string lidar_ip = inet_ntoa(addr);
   uint16_t seq = GenerateSeq::GetSeq();
   Command command(seq, kCommandIDLidarWorkModeControl, kCommandTypeCmd, kHostSend, req_buff, req_len, view_lidar_info.handle,
-      lidar_ip, MakeCommandCallback<LivoxLidarAsyncControlResponse>(Avia2CommandHandler::UpdateLidarCallback, this));
+      lidar_ip, MakeCommandCallback<LivoxLidarAsyncControlResponse>(Mid360lCommandHandler::UpdateLidarCallback, this));
   SendCommand(command, view_lidar_info.lidar_cmd_port);
 }
 
-void Avia2CommandHandler::SetCustomLidar(const uint32_t handle, const uint16_t lidar_cmd_port, const LivoxLidarCfg& lidar_cfg) {
+void Mid360lCommandHandler::SetCustomLidar(const uint32_t handle, const uint16_t lidar_cmd_port, const LivoxLidarCfg& lidar_cfg) {
   uint8_t req_buff[kMaxCommandBufferSize] = {0};
   uint16_t req_len = 0;
-  if (!BuildRequest::BuildUpdateAvia2LidarCfgRequest(lidar_cfg, req_buff, req_len)) {
+  if (!BuildRequest::BuildUpdateMid360lLidarCfgRequest(lidar_cfg, req_buff, req_len)) {
     LOG_ERROR("Build update lidar cfg request failed.");
     return;
   }
@@ -145,11 +145,11 @@ void Avia2CommandHandler::SetCustomLidar(const uint32_t handle, const uint16_t l
   std::string lidar_ip = inet_ntoa(addr);
   uint16_t seq = GenerateSeq::GetSeq();
   Command command(seq, kCommandIDLidarWorkModeControl, kCommandTypeCmd, kHostSend, req_buff, req_len, handle,
-      lidar_ip, MakeCommandCallback<LivoxLidarAsyncControlResponse>(Avia2CommandHandler::UpdateLidarCallback, this));
+      lidar_ip, MakeCommandCallback<LivoxLidarAsyncControlResponse>(Mid360lCommandHandler::UpdateLidarCallback, this));
   SendCommand(command, lidar_cmd_port);
 }
 
-void Avia2CommandHandler::UpdateLidarCallback(livox_status status, uint32_t handle,
+void Mid360lCommandHandler::UpdateLidarCallback(livox_status status, uint32_t handle,
     LivoxLidarAsyncControlResponse *response, void *client_data) {
   if (status != kLivoxLidarStatusSuccess) {
     LOG_INFO("Update lidar failed, the status:{}", status);
@@ -163,7 +163,7 @@ void Avia2CommandHandler::UpdateLidarCallback(livox_status status, uint32_t hand
 
   if (response->ret_code == 0 && response->error_key == 0) {
     if (client_data != nullptr) {
-      Avia2CommandHandler* self = (Avia2CommandHandler*)client_data;
+      Mid360lCommandHandler* self = (Mid360lCommandHandler*)client_data;
       self->AddDevice(handle);
     }
     LOG_INFO("Update lidar:{} succ.", handle);
@@ -174,12 +174,12 @@ void Avia2CommandHandler::UpdateLidarCallback(livox_status status, uint32_t hand
   }
 }
 
-void Avia2CommandHandler::AddDevice(const uint32_t handle) {
+void Mid360lCommandHandler::AddDevice(const uint32_t handle) {
   std::lock_guard<std::mutex> lock(device_mutex_);
   devices_.insert(handle);
 }
 
-bool Avia2CommandHandler::IsStatusException(const Command &command) {
+bool Mid360lCommandHandler::IsStatusException(const Command &command) {
   if (!command.packet.data) {
     return false;
   }
@@ -195,7 +195,7 @@ bool Avia2CommandHandler::IsStatusException(const Command &command) {
   return true;
 }
 
-livox_status Avia2CommandHandler::SendCommand(const Command &command, const uint16_t lidar_cmd_port) {
+livox_status Mid360lCommandHandler::SendCommand(const Command &command, const uint16_t lidar_cmd_port) {
   if (command.packet.cmd_type == kCommandTypeAck) {
     return kLivoxLidarStatusFailure;
   }
@@ -212,7 +212,7 @@ livox_status Avia2CommandHandler::SendCommand(const Command &command, const uint
   servaddr.sin_addr.s_addr = inet_addr(command.lidar_ip.c_str());
   servaddr.sin_port = htons(lidar_cmd_port);
 
-  int byte_send = device_manager_->SendCommand(kLivoxLidarTypeAvia2, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+  int byte_send = device_manager_->SendCommand(kLivoxLidarTypeMid360l, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
@@ -224,7 +224,7 @@ livox_status Avia2CommandHandler::SendCommand(const Command &command, const uint
   return kLivoxLidarStatusSuccess;
 }
 
-livox_status Avia2CommandHandler::SendCommand(const Command &command) {
+livox_status Mid360lCommandHandler::SendCommand(const Command &command) {
   if (command.packet.cmd_type == kCommandTypeAck) {
     return kLivoxLidarStatusFailure;
   }
@@ -236,9 +236,9 @@ livox_status Avia2CommandHandler::SendCommand(const Command &command) {
   struct sockaddr_in servaddr;
   servaddr.sin_family = AF_INET;
   servaddr.sin_addr.s_addr = inet_addr(command.lidar_ip.c_str());
-  servaddr.sin_port = htons(kAvia2LidarCmdPort);
+  servaddr.sin_port = htons(kMid360lLidarCmdPort);
 
-  int byte_send = device_manager_->SendCommand(kLivoxLidarTypeAvia2, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+  int byte_send = device_manager_->SendCommand(kLivoxLidarTypeMid360l, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
@@ -250,7 +250,7 @@ livox_status Avia2CommandHandler::SendCommand(const Command &command) {
   return kLivoxLidarStatusSuccess;
 }
 
-livox_status Avia2CommandHandler::SendLoggerCommand(const Command &command) {
+livox_status Mid360lCommandHandler::SendLoggerCommand(const Command &command) {
   if (command.packet.cmd_type == kCommandTypeAck) {
     return kLivoxLidarStatusFailure;
   }
@@ -262,9 +262,9 @@ livox_status Avia2CommandHandler::SendLoggerCommand(const Command &command) {
   struct sockaddr_in servaddr;
   servaddr.sin_family = AF_INET;
   servaddr.sin_addr.s_addr = inet_addr(command.lidar_ip.c_str());
-  servaddr.sin_port = htons(kAvia2LidarLogPort);
+  servaddr.sin_port = htons(kMid360lLidarLogPort);
 
-  int byte_send = device_manager_->SendLoggerCommand(kLivoxLidarTypeAvia2, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+  int byte_send = device_manager_->SendLoggerCommand(kLivoxLidarTypeMid360l, command.handle, buf, size, (const struct sockaddr *) &servaddr, sizeof(servaddr));
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
@@ -277,11 +277,10 @@ livox_status Avia2CommandHandler::SendLoggerCommand(const Command &command) {
 }
 
 
-bool Avia2CommandHandler::GetHostInfo(const uint32_t handle, std::string& host_ip, uint16_t& cmd_port) {
+bool Mid360lCommandHandler::GetHostInfo(const uint32_t handle, std::string& host_ip, uint16_t& cmd_port) {
   return true;
 }
 
 
 }  // namespace livox
 } // namespace lidar
-

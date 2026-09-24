@@ -146,7 +146,8 @@ void ParamsCheck::CheckLidarPort() {
 }
 
 void ParamsCheck::CheckPort(const uint8_t dev_type, LivoxLidarNetInfo& lidar_net_info) {
-  if (dev_type != kLivoxLidarTypeMid360 && dev_type != kLivoxLidarTypeMid360s) {
+  if (dev_type != kLivoxLidarTypeMid360 && dev_type != kLivoxLidarTypeMid360s &&
+      dev_type != kLivoxLidarTypeMid360l) {
     return;
   }
 
@@ -203,10 +204,35 @@ void ParamsCheck::CheckPort(const uint8_t dev_type, LivoxLidarNetInfo& lidar_net
       lidar_net_info.log_data_port = kMid360sLidarLogPort;
     }
   }
-  
+
+  if (dev_type == kLivoxLidarTypeMid360l) {
+    if (lidar_net_info.cmd_data_port != kMid360lLidarCmdPort) {
+      LOG_ERROR("Mid360l lidar command data port must be {}", kMid360lLidarCmdPort);
+      lidar_net_info.cmd_data_port = kMid360lLidarCmdPort;
+    }
+
+    if (lidar_net_info.push_msg_port != kMid360lLidarPushMsgPort) {
+      LOG_ERROR("Mid360l lidar push msg port must be {}", kMid360lLidarPushMsgPort);
+      lidar_net_info.push_msg_port = kMid360lLidarPushMsgPort;
+    }
+
+    if (lidar_net_info.point_data_port != kMid360lLidarPointCloudPort) {
+      LOG_ERROR("Mid360l lidar point cloud port must be {}", kMid360lLidarPointCloudPort);
+      lidar_net_info.point_data_port = kMid360lLidarPointCloudPort;
+    }
+
+    if (lidar_net_info.imu_data_port != kMid360lLidarImuDataPort) {
+      LOG_ERROR("Mid360l lidar imu data port must be {}", kMid360lLidarImuDataPort);
+      lidar_net_info.imu_data_port = kMid360lLidarImuDataPort;
+    }
+
+    if (lidar_net_info.log_data_port != kMid360lLidarLogPort) {
+      LOG_ERROR("Mid360l lidar log port must be {}", kMid360lLidarLogPort);
+      lidar_net_info.log_data_port = kMid360lLidarLogPort;
+    }
+  }
+
 }
 
 } // namespace lidar
 } // namespace livox
-
-

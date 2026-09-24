@@ -9,9 +9,11 @@ status, debug, and [logger](../glossary/logger.md) data.
 ## Repository boundary
 
 This checkout is the maintained downstream, not the official Livox repository.
-The downstream may contain qualified fixes that are absent from its recorded
-upstream base. [`DOWNSTREAM_REVISION.json`](../../DOWNSTREAM_REVISION.json)
-identifies that base and the source-bearing downstream history. Official Livox
+The downstream may contain qualified fixes that are absent from upstream.
+[`DOWNSTREAM_REVISION.json`](../../DOWNSTREAM_REVISION.json) identifies the
+original base and source-bearing downstream history; the current applied
+upstream reference is in the
+[sync record](../downstream/upstream-sync-and-retirement.md). Official Livox
 documentation remains authoritative for device behavior and the wire protocol.
 
 ## Main surfaces

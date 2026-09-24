@@ -91,6 +91,7 @@ struct Command {
 
 class DeviceManager : public IOLoop::IOLoopDelegate {
  private:
+  friend class DeviceManagerTestPeer;
   DeviceManager();
   DeviceManager(const DeviceManager& other) = delete;
   DeviceManager& operator=(const DeviceManager& other) = delete;
@@ -140,7 +141,8 @@ class DeviceManager : public IOLoop::IOLoopDelegate {
   bool CreateDetectionChannel();
   bool CreateDataChannel(const HostNetInfo& host_net_info);
   bool CreateCommandChannel(const uint8_t dev_type, const HostNetInfo& host_net_info);
-  bool CreateCmdSocketAndAddDelegate(const uint8_t dev_type, const std::string& host_ip, const uint16_t port, const HostSocketType type);
+  bool CreateCmdSocketAndAddDelegate(const uint8_t dev_type, const std::string& host_ip, const uint16_t port,
+      const HostSocketType type, const std::string& multicast_ip = "");
   bool CreateDataSocketAndAddDelegate(const std::string& host_ip, const uint16_t port, const std::string& multicast_ip);
 
   void DetectionLidars();

@@ -9,8 +9,10 @@ repository.
 
 Livox remains the product and wire-protocol authority. This downstream does
 not replace Livox product documentation, firmware guidance, or support. Source
-identity and the ordered downstream history are recorded in
-[`DOWNSTREAM_REVISION.json`](DOWNSTREAM_REVISION.json).
+identity and the original downstream source history are recorded in
+[`DOWNSTREAM_REVISION.json`](DOWNSTREAM_REVISION.json). The latest applied
+upstream reference is recorded in the versioned
+[upstream sync policy](docs/downstream/upstream-sync-and-retirement.md).
 
 ## What the SDK does
 

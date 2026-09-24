@@ -15,10 +15,50 @@ ctest --test-dir build/sdk-regressions -C Release --show-only
 ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
-The common entrypoint adopts the focused command-lifecycle, data-handler,
-discovery-response, GPRMC-validation, logger-path, logger-payload, SDK-protocol,
-state-info, and FastCRC regressions. Their standalone entrypoints remain
+The common entrypoint adopts the focused command-lifecycle, command-dispatch,
+command-channel, configuration, data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
+SDK-protocol, state-info, and FastCRC regressions. Their standalone entrypoints remain
 available for focused platform work.
+
+## Command dispatch regressions
+
+`command_dispatch/` compiles the real general and device-family command
+handlers, packet codec, request builders, and state parser. Test doubles replace
+only transport and unrelated managers. It checks control ACK boundaries in both
+receive paths, request matching, recovery after an incomplete response, and the
+real Mid-360L setup callback. Controlled receiver/timer threads also exercise
+ACKs arriving before send returns, send errors, timeout races, logger sends,
+null callbacks, and callback reentry across HAP, Mid-360, Mid-360S, Mid-360L,
+and Avia2. It does not contact physical devices.
+
+For GCC or Clang, configure this focused entrypoint with
+`-DCOMMAND_DISPATCH_ENABLE_SANITIZERS=ON` to enable ASan/UBSan. Alignment
+instrumentation is excluded because of the inherited packed C++ configuration
+layout; the remaining checks, including vptr instrumentation, stay enabled.
+
+## Command channel regressions
+
+`command_channel/` compiles the production device manager with recording socket
+and event-loop doubles. It checks multicast status subscriptions for the
+Mid-360 family and Avia2 in both SDK roles, unchanged unicast command routing,
+subscription deduplication, distinct groups and interfaces, error propagation,
+and cleanup. The production network helper is also compiled on each platform.
+The default suite performs no network I/O.
+
+On Unix, `-DCOMMAND_CHANNEL_ENABLE_LOOPBACK_TEST=ON` adds a focused test using
+the production socket helper. It sends unicast and multicast status-sized
+messages over loopback at an ephemeral port with multicast TTL zero, and checks
+failed membership handling. This optional check depends on host networking
+support and does not qualify firmware or physical devices.
+
+## Configuration regressions
+
+`configuration/` reads a public JSON fixture through the production parser and
+checks fixed-port normalization for both default and explicit Mid-360L device
+configurations. It covers all five device ports, unchanged host settings,
+already-canonical values, individual zero ports, and the existing Mid-360,
+Mid-360S, HAP, and Avia2 behavior. The fixture uses documentation-only addresses;
+the tests do not open sockets or qualify physical-device behavior.
 
 ## GPRMC parser regressions
 
@@ -57,9 +97,10 @@ It distinguishes three kinds of surface:
 Configuration compares the inventory with all public function declarations in
 the selected `livox_lidar_api.h`. An added, removed, or renamed installed
 entrypoint therefore requires an explicit inventory decision. The current
-inventory contains 62 functions. Public types, callbacks, enum values, and
-layout contracts remain authoritative in the three installed headers and will
-receive compile/link/ABI coverage under separately qualified work.
+inventory contains 64 functions. The state-info regression target also checks
+the retained offsets of the pre-sync packed public structure. Public types,
+callbacks, enum values, and layout contracts remain authoritative in the three
+installed headers; this focused check does not establish a general ABI guarantee.
 
 ## Selecting an SDK source tree
 

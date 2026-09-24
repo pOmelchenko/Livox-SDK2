@@ -22,6 +22,42 @@ class TestMid360CommandHandler final : public Mid360CommandHandler {
       : Mid360CommandHandler(device_manager) {}
 };
 
+class FailingSendCommandHandler final : public CommandHandler {
+ public:
+  FailingSendCommandHandler(GeneralCommandHandler* general_handler,
+                            bool queue_before_send)
+      : CommandHandler(nullptr), general_handler_(general_handler),
+        queue_before_send_(queue_before_send) {}
+
+  bool Init(bool) override { return true; }
+  bool Init(const std::map<uint32_t, LivoxLidarCfg>&) override { return true; }
+  void Handle(uint32_t, uint16_t, const Command&) override {}
+  void UpdateLidarCfg(const ViewLidarIpInfo&) override {}
+  void UpdateLidarCfg(uint32_t, uint16_t) override {}
+
+  livox_status SendCommand(const Command& command) override {
+    return Fail(command);
+  }
+
+  livox_status SendLoggerCommand(const Command& command) override {
+    return Fail(command);
+  }
+
+ private:
+  livox_status Fail(const Command& command) {
+    if (queue_before_send_) {
+      general_handler_->AddCommand(command);
+    }
+    if (command.cb) {
+      (*command.cb)(kLivoxLidarStatusSendFailed, command.handle, nullptr);
+    }
+    return kLivoxLidarStatusSendFailed;
+  }
+
+  GeneralCommandHandler* general_handler_;
+  bool queue_before_send_;
+};
+
 class GeneralCommandHandlerTestPeer {
  public:
   static std::unique_ptr<GeneralCommandHandler> MakeHandler() {
@@ -83,6 +119,14 @@ class GeneralCommandHandlerTestPeer {
     handler->device_dev_type_[handle] = kLivoxLidarTypeMid360;
     handler->lidars_command_handler_[kLivoxLidarTypeMid360] =
         std::make_shared<TestMid360CommandHandler>(nullptr);
+  }
+
+  static void SeedFailingCommandRoute(GeneralCommandHandler* handler,
+                                      std::uint32_t handle,
+                                      bool queue_before_send) {
+    handler->device_dev_type_[handle] = kLivoxLidarTypeMid360l;
+    handler->lidars_command_handler_[kLivoxLidarTypeMid360l] =
+        std::make_shared<FailingSendCommandHandler>(handler, queue_before_send);
   }
 
   static bool NotifyCommandObserver(GeneralCommandHandler* handler,
@@ -443,6 +487,49 @@ void CheckAckCompletion() {
   handler->Destory();
 }
 
+void CheckSendFailureCompletesOnce(bool queue_before_send) {
+  std::unique_ptr<GeneralCommandHandler> handler =
+      GeneralCommandHandlerTestPeer::MakeHandler();
+  Expect("send-failure lifecycle initializes",
+         handler->Init("192.0.2.12", false, nullptr));
+  const std::uint32_t handle = 0x01020304u;
+  GeneralCommandHandlerTestPeer::SeedFailingCommandRoute(
+      handler.get(), handle, queue_before_send);
+
+  CallbackCapture command_capture;
+  std::shared_ptr<CommandCallback> command_callback(
+      new RecordingCommandCallback(&command_capture));
+  ExpectEqual("command send failure is returned",
+              handler->SendCommand(handle, 0x0101u, nullptr, 0u,
+                                   command_callback),
+              static_cast<livox_status>(kLivoxLidarStatusSendFailed));
+  ExpectEqual("command send failure invokes callback once",
+              command_capture.calls, 1);
+  ExpectEqual("failed command does not remain pending",
+              GeneralCommandHandlerTestPeer::PendingCommandCount(*handler),
+              static_cast<std::size_t>(0u));
+
+  CallbackCapture logger_capture;
+  std::shared_ptr<CommandCallback> logger_callback(
+      new RecordingCommandCallback(&logger_capture));
+  ExpectEqual("logger send failure is returned",
+              handler->SendLoggerCommand(handle, 0x0102u, nullptr, 0u,
+                                         logger_callback),
+              static_cast<livox_status>(kLivoxLidarStatusSendFailed));
+  ExpectEqual("logger send failure invokes callback once",
+              logger_capture.calls, 1);
+  ExpectEqual("failed logger command does not remain pending",
+              GeneralCommandHandlerTestPeer::PendingCommandCount(*handler),
+              static_cast<std::size_t>(0u));
+
+  handler->CommandsHandle((TimePoint::max)());
+  ExpectEqual("command send failure is not followed by timeout",
+              command_capture.calls, 1);
+  ExpectEqual("logger send failure is not followed by timeout",
+              logger_capture.calls, 1);
+  handler->Destory();
+}
+
 void CheckConcurrentTimerInspectionAndDestroy() {
   std::unique_ptr<GeneralCommandHandler> handler =
       GeneralCommandHandlerTestPeer::MakeHandler();
@@ -649,6 +736,8 @@ int main() {
   CheckDestroyClearsLifecycleState();
   CheckTimeoutBoundary();
   CheckAckCompletion();
+  CheckSendFailureCompletesOnce(false);
+  CheckSendFailureCompletesOnce(true);
   CheckConcurrentTimerInspectionAndDestroy();
   CheckCallbackRegistrationSynchronization();
   CheckCallbackLockOrdering();

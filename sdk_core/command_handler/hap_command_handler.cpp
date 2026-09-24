@@ -217,7 +217,7 @@ livox_status HapCommandHandler::SendCommand(const Command &command, const uint16
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
-    if (command.cb) {
+    if (GeneralCommandHandler::GetInstance().RemoveCommand(command.packet.seq_num) && command.cb) {
       (*command.cb)(kLivoxLidarStatusSendFailed, command.handle, nullptr);
     }
     return kLivoxLidarStatusSendFailed;
@@ -229,8 +229,6 @@ livox_status HapCommandHandler::SendCommand(const Command &command) {
   if (command.packet.cmd_type == kCommandTypeAck) {
     return kLivoxLidarStatusFailure;
   }
-
-  GeneralCommandHandler::GetInstance().AddCommand(command);
 
   std::vector<uint8_t> buf(kMaxCommandBufferSize + 1);
   int size = 0;
@@ -246,7 +244,7 @@ livox_status HapCommandHandler::SendCommand(const Command &command) {
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
-    if (command.cb) {
+    if (GeneralCommandHandler::GetInstance().RemoveCommand(command.packet.seq_num) && command.cb) {
       (*command.cb)(kLivoxLidarStatusSendFailed, command.handle, nullptr);
     }
     return kLivoxLidarStatusSendFailed;
@@ -259,8 +257,6 @@ livox_status HapCommandHandler::SendLoggerCommand(const Command &command) {
     return kLivoxLidarStatusFailure;
   }
 
-  GeneralCommandHandler::GetInstance().AddCommand(command);
-  
   std::vector<uint8_t> buf(kMaxCommandBufferSize + 1);
   int size = 0;
   comm_port_->Pack(buf.data(), kMaxCommandBufferSize, (uint32_t *)&size, command.packet);
@@ -275,7 +271,7 @@ livox_status HapCommandHandler::SendLoggerCommand(const Command &command) {
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
-    if (command.cb) {
+    if (GeneralCommandHandler::GetInstance().RemoveCommand(command.packet.seq_num) && command.cb) {
       (*command.cb)(kLivoxLidarStatusSendFailed, command.handle, nullptr);
     }
     return kLivoxLidarStatusSendFailed;

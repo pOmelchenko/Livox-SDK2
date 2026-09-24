@@ -43,6 +43,17 @@ Applications must establish their own synchronization and shutdown ordering.
 Do not infer ownership or a lifetime beyond the declaration, implementation,
 and focused tests for the exact revision.
 
+Commands are registered for completion before transport sends them. A fast ACK
+or local send failure can therefore invoke the callback before the initiating
+API function returns. The first ACK, timeout, or send failure to remove the
+pending command owns its completion; later events do not invoke it again. The
+callback runs outside the pending-command lock and may submit another command.
+
+Control ACKs are delivered only when the source handle and command ID match
+the pending request and the payload contains a complete
+`LivoxLidarAsyncControlResponse`. An incomplete or mismatched ACK leaves the
+request pending for a valid response or its normal timeout.
+
 ## Control and query functions
 
 Public functions cover device information queries, data format and scan
@@ -51,6 +62,13 @@ field-of-view controls, debug recording, and firmware upgrade. Availability and
 accepted values vary by device family and firmware. Official Livox protocol and
 product documentation determines device semantics.
 
+The applied 1.5.2 source adds Mid-360L point-cloud frequency and time-filter
+controls and extends IMU-range control to Mid-360L. The prior
+`SetLivoxLidarPpsSyncMode` symbol and enum remain available for consumers of
+this downstream. Both it and the new `SetLivoxLidarTimeFilterMode` send key
+`0x0026` with the same one-byte values; use official device documentation to
+interpret the command on each device and firmware version.
+
 ## Compatibility discipline
 
 A public-header change can affect source compatibility, ABI, callback lifetime,
@@ -58,6 +76,11 @@ or wire behavior even when it appears small. Such a change requires its own
 issue, compatibility analysis, focused verification, updated documentation,
 and review in the same pull request. This guide is an index; the headers remain
 the exact revision-specific declaration source.
+
+`DirectLidarStateInfo` appends the two new query fields after the existing
+`imu_range` member. Existing member offsets are retained, while its packed size
+grows from 464 to 466 bytes. Consumers that allocate, copy, or exchange this
+structure by size must rebuild and assess their ABI boundary.
 
 ## Linking
 

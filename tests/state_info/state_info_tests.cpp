@@ -11,6 +11,19 @@ namespace {
 using livox::lidar::CommPacket;
 using livox::lidar::ParseLidarStateInfo;
 
+// The pre-sync public structure was 464 packed bytes. Existing field offsets
+// stay fixed even though the two new query fields extend its trailing size.
+static_assert(offsetof(DirectLidarStateInfo, sn) == 260u,
+              "legacy serial offset changed");
+static_assert(offsetof(DirectLidarStateInfo, ROI_Mode) == 460u,
+              "legacy ROI offset changed");
+static_assert(offsetof(DirectLidarStateInfo, imu_range) == 461u,
+              "legacy IMU offset changed");
+static_assert(sizeof(DirectLidarStateInfo) == 466u,
+              "unexpected synchronized state-info size");
+static_assert(kKeySetPpsSyncMode == kKeySetTimeFilterMode,
+              "legacy key 0x0026 changed");
+
 int failures = 0;
 
 void ExpectTrue(const std::string& label, bool value) {
@@ -131,6 +144,18 @@ void CheckValidUpstreamBehavior() {
   ExpectTrue("zero-length unknown key is skipped",
              Parse(payload, static_cast<std::uint16_t>(payload.size()),
                    &output));
+
+  payload = StateInfoHeader(2u);
+  AppendTlv(&payload, static_cast<std::uint16_t>(kKeySetTimeFilterMode),
+            {1u, 0xA5u, 0x5Au});
+  AppendTlv(&payload, static_cast<std::uint16_t>(kKeySetPclFreqMod),
+            {2u, 0xA5u, 0x5Au});
+  output.clear();
+  ExpectTrue("extended new scalar keys remain bounded",
+             Parse(payload, static_cast<std::uint16_t>(payload.size()),
+                   &output));
+  ExpectContains("time filter key", output, "\"time_filter_mode\": 1");
+  ExpectContains("point frequency key", output, "\"pcl_freq_mode\": 2");
 }
 
 void CheckMalformedBoundaries() {
