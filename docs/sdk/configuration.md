@@ -29,6 +29,14 @@ Names and accepted shapes are implemented in
 [`sdk_core/parse_cfg_file.cpp`](../../sdk_core/parse_cfg_file.cpp). Review that
 source and the matching sample before relying on an optional field.
 
+During initialization, `ParamsCheck` normalizes device-side ports for `MID360`,
+`Mid360s`, and `Mid360l` to command `56100`, status `56200`, point-cloud `56300`,
+IMU `56400`, and log `56500`. Each noncanonical value is logged and replaced,
+for both family defaults and configurations with explicit `lidar_ip` entries.
+Host-side ports remain configurable. These are the fixed ports used by the
+checked-out SDK handlers; normalization keeps receive routing consistent with
+the device configuration requests.
+
 ## SDK role
 
 `master_sdk` controls the role in a multicast arrangement. The controlling

@@ -1,0 +1,30 @@
+{
+  "Mid360l": {
+    "lidar_net_info": {
+      "cmd_data_port": 51000,
+      "push_msg_port": 51001,
+      "point_data_port": 51002,
+      "imu_data_port": 51003,
+      "log_data_port": 51004
+    },
+    "host_net_info": [
+      {
+        "host_ip": "192.0.2.1",
+        "cmd_data_port": 52000,
+        "push_msg_port": 52001,
+        "point_data_port": 52002,
+        "imu_data_port": 52003,
+        "log_data_port": 52004
+      },
+      {
+        "lidar_ip": ["192.0.2.2"],
+        "host_ip": "192.0.2.1",
+        "cmd_data_port": 52000,
+        "push_msg_port": 52001,
+        "point_data_port": 52002,
+        "imu_data_port": 52003,
+        "log_data_port": 52004
+      }
+    ]
+  }
+}

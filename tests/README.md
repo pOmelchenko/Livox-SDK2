@@ -15,10 +15,19 @@ ctest --test-dir build/sdk-regressions -C Release --show-only
 ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
-The common entrypoint adopts the focused command-lifecycle, data-handler,
-discovery-response, GPRMC-validation, logger-path, logger-payload, SDK-protocol,
-state-info, and FastCRC regressions. Their standalone entrypoints remain
+The common entrypoint adopts the focused command-lifecycle, configuration,
+data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
+SDK-protocol, state-info, and FastCRC regressions. Their standalone entrypoints remain
 available for focused platform work.
+
+## Configuration regressions
+
+`configuration/` reads a public JSON fixture through the production parser and
+checks fixed-port normalization for both default and explicit Mid-360L device
+configurations. It covers all five device ports, unchanged host settings,
+already-canonical values, individual zero ports, and the existing Mid-360,
+Mid-360S, HAP, and Avia2 behavior. The fixture uses documentation-only addresses;
+the tests do not open sockets or qualify physical-device behavior.
 
 ## GPRMC parser regressions
 
