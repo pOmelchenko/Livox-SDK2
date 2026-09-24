@@ -43,6 +43,13 @@ Applications must establish their own synchronization and shutdown ordering.
 Do not infer ownership or a lifetime beyond the declaration, implementation,
 and focused tests for the exact revision.
 
+A local command-send failure can invoke its completion callback before the
+initiating API function returns. In this downstream revision, a failed send
+through the general command path is removed from timeout tracking; the new
+Mid-360L setup path also removes a failed pending command before notifying its
+callback. An application should treat that failure as the terminal result for
+the attempt.
+
 ## Control and query functions
 
 Public functions cover device information queries, data format and scan

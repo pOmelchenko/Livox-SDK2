@@ -90,6 +90,7 @@ class GeneralCommandHandler : public noncopyable {
 
   void CommandsHandle(TimePoint now);
   void AddCommand(const Command& command);
+  bool RemoveCommand(uint32_t sequence);
   void AddDetectedLidar(const std::shared_ptr<std::vector<LivoxLidarCfg>>& custom_lidars_cfg_ptr);
 
   void SetLivoxLidarInfoChangeCallback(LivoxLidarInfoChangeCallback cb, void* client_data) {

@@ -216,7 +216,7 @@ livox_status Mid360lCommandHandler::SendCommand(const Command &command, const ui
   if (byte_send < 0) {
     LOG_ERROR("Sent cmd to lidar failed, the send_byte:{}, cmd_id:{}, seq:{}, lidar_ip:{}",
         byte_send, command.packet.cmd_id, command.packet.seq_num, command.lidar_ip.c_str());
-    if (command.cb) {
+    if (GeneralCommandHandler::GetInstance().RemoveCommand(command.packet.seq_num) && command.cb) {
       (*command.cb)(kLivoxLidarStatusSendFailed, command.handle, nullptr);
     }
     return kLivoxLidarStatusSendFailed;

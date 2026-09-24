@@ -948,7 +948,11 @@ livox_status GeneralCommandHandler::SendCommand(uint32_t handle,
     return kLivoxLidarStatusSendFailed;
   }
 
-  cmd_handler->SendCommand(command);
+  const livox_status status = cmd_handler->SendCommand(command);
+  if (status != kLivoxLidarStatusSuccess) {
+    RemoveCommand(command.packet.seq_num);
+    return status;
+  }
   AddCommand(command);
   return kLivoxLidarStatusSuccess;
 }
@@ -970,7 +974,11 @@ livox_status GeneralCommandHandler::SendLoggerCommand(uint32_t handle,
     return kLivoxLidarStatusSendFailed;
   }
 
-  cmd_handler->SendLoggerCommand(command);
+  const livox_status status = cmd_handler->SendLoggerCommand(command);
+  if (status != kLivoxLidarStatusSuccess) {
+    RemoveCommand(command.packet.seq_num);
+    return status;
+  }
   AddCommand(command);
   return kLivoxLidarStatusSuccess;
 }
@@ -988,6 +996,11 @@ void GeneralCommandHandler::AddCommand(const Command& command) {
     cmd.packet.data = NULL;
     cmd.packet.data_len = 0;
   }
+}
+
+bool GeneralCommandHandler::RemoveCommand(uint32_t sequence) {
+  std::lock_guard<std::mutex> lock(commands_mutex_);
+  return commands_.erase(sequence) != 0u;
 }
 
 void GeneralCommandHandler::CommandsHandle(TimePoint now) {
