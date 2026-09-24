@@ -170,18 +170,9 @@ void GeneralCommandHandler::Handler(uint32_t handle, uint16_t lidar_port, uint8_
   }
 
   if (packet.cmd_type == kCommandTypeAck) {
-    uint32_t seq = packet.seq_num;
     Command command;
-    {
-      std::lock_guard<std::mutex> lock(commands_mutex_);
-      if (commands_.find(seq) == commands_.end()) {
-        LOG_ERROR("Handle cmd ack failed, can not find command");
-        return;
-      }
-
-      command = commands_[seq].first;
-      command.packet = packet;
-      commands_.erase(seq);
+    if (!TakeCommandAck(handle, packet, command)) {
+      return;
     }
 
     if (command.cb) {
@@ -247,18 +238,37 @@ void GeneralCommandHandler::Handler(const uint8_t dev_type, const uint32_t handl
 
   Command command;
   if (packet.cmd_type == kCommandTypeAck) {
-    uint16_t seq = packet.seq_num;
-    std::lock_guard<std::mutex> lock(commands_mutex_);
-    if (commands_.find(seq) != commands_.end()) {
-      command = commands_[seq].first;
-      command.packet = packet;
-      commands_.erase(seq);
+    if (!TakeCommandAck(handle, packet, command)) {
+      return;
     }
   } else if (packet.cmd_type == kCommandTypeCmd) {
     command.packet = packet;
     command.handle = handle;
   }
   cmd_handler->Handle(handle, lidar_port, command);
+}
+
+bool GeneralCommandHandler::TakeCommandAck(uint32_t handle, const CommPacket& packet,
+                                           Command& command) {
+  std::lock_guard<std::mutex> lock(commands_mutex_);
+  const auto pending = commands_.find(packet.seq_num);
+  if (pending == commands_.end()) {
+    return false;
+  }
+  const Command& request = pending->second.first;
+  if (request.handle != handle || request.packet.cmd_id != packet.cmd_id) {
+    return false;
+  }
+  // Validate before consuming the callback: an incomplete response must not
+  // hide a later valid ACK or expose a truncated typed response to the caller.
+  if (request.packet.cmd_id == kCommandIDLidarWorkModeControl &&
+      (packet.data == nullptr || packet.data_len < sizeof(LivoxLidarAsyncControlResponse))) {
+    return false;
+  }
+  command = request;
+  command.packet = packet;
+  commands_.erase(pending);
+  return true;
 }
 
 bool GeneralCommandHandler::VerifyNetSegment(const DetectionData* detection_data) {

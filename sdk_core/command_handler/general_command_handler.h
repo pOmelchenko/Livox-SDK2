@@ -149,6 +149,7 @@ class GeneralCommandHandler : public noncopyable {
     GeneralCommandHandler* handler_;
   };
 
+  bool TakeCommandAck(uint32_t handle, const CommPacket& packet, Command& command);
   bool VerifyNetSegment(const DetectionData* detection_data);
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint8_t dev_type);
   std::shared_ptr<CommandHandler> GetLidarCommandHandler(const uint32_t handle);

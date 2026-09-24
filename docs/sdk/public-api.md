@@ -50,6 +50,11 @@ Mid-360L setup path also removes a failed pending command before notifying its
 callback. An application should treat that failure as the terminal result for
 the attempt.
 
+Control ACKs are delivered only when the source handle and command ID match
+the pending request and the payload contains a complete
+`LivoxLidarAsyncControlResponse`. An incomplete or mismatched ACK leaves the
+request pending for a valid response or its normal timeout.
+
 ## Control and query functions
 
 Public functions cover device information queries, data format and scan

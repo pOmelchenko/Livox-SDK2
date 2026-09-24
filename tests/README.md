@@ -15,10 +15,23 @@ ctest --test-dir build/sdk-regressions -C Release --show-only
 ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
-The common entrypoint adopts the focused command-lifecycle, configuration,
+The common entrypoint adopts the focused command-lifecycle, command-dispatch, configuration,
 data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
 SDK-protocol, state-info, and FastCRC regressions. Their standalone entrypoints remain
 available for focused platform work.
+
+## Command dispatch regressions
+
+`command_dispatch/` compiles the real general and device-family command
+handlers, packet codec, request builders, and state parser. Test doubles replace
+only transport and unrelated managers. It checks control ACK boundaries in both
+receive paths, request matching, recovery after an incomplete response, and the
+real Mid-360L setup callback. It does not contact physical devices.
+
+For GCC or Clang, configure this focused entrypoint with
+`-DCOMMAND_DISPATCH_ENABLE_SANITIZERS=ON` to enable ASan/UBSan. Alignment
+instrumentation is excluded because of the inherited packed C++ configuration
+layout; the remaining checks, including vptr instrumentation, stay enabled.
 
 ## Configuration regressions
 
