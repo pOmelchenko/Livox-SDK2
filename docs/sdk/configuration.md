@@ -8,7 +8,9 @@ Repository examples are starting points, not safe defaults for every network.
 
 Each sample directory contains device-family configurations. The broadest set
 is under [`samples/livox_lidar_quick_start/`](../../samples/livox_lidar_quick_start/).
-Use the example matching the device family and the checked-out revision.
+Use the example matching the device family and the checked-out revision. The
+Mid-360L configuration uses the `Mid360l` object and is illustrated by
+[`mid360l_config.json`](../../samples/livox_lidar_quick_start/mid360l_config.json).
 
 ## Device and host network blocks
 

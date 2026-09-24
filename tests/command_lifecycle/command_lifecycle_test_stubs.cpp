@@ -8,6 +8,7 @@
 #include "command_handler/hap_command_handler.h"
 #include "command_handler/mid360_command_handler.h"
 #include "command_handler/mid360s_command_handler.h"
+#include "command_handler/mid360l_command_handler.h"
 #include "comm/generate_seq.h"
 #include "debug_point_cloud_handler/debug_point_cloud_manager.h"
 #include "logger_handler/logger_manager.h"
@@ -100,6 +101,7 @@ void DebugPointCloudManager::AddDevice(const std::uint32_t,
 DEFINE_COMMAND_HANDLER_STUBS(HapCommandHandler)
 DEFINE_COMMAND_HANDLER_STUBS(Mid360CommandHandler)
 DEFINE_COMMAND_HANDLER_STUBS(Mid360sCommandHandler)
+DEFINE_COMMAND_HANDLER_STUBS(Mid360lCommandHandler)
 DEFINE_COMMAND_HANDLER_STUBS(Avia2CommandHandler)
 
 #undef DEFINE_COMMAND_HANDLER_STUBS

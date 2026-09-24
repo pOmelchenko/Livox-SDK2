@@ -66,6 +66,8 @@ set(LIVOX_SDK_PUBLIC_API_CONTROL_FUNCTIONS
   StopForcedHeating
   SetLidarFogNoiseFilterMode
   SetLivoxLidarITOCtrlMode
+  SetLivoxLidarPclFreqMod
+  SetLivoxLidarTimeFilterMode
   SetNTPServerIp
   SetLivoxLidarPpsSyncMode
   SetLivoxLidarEscMode
@@ -254,6 +256,8 @@ set(LIVOX_SDK_INTERNAL_API_COMMAND_BUILDERS_SYMBOLS
   CommandImpl::StartForcedHeating
   CommandImpl::StopForcedHeating
   CommandImpl::SetLivoxLidarPpsSyncMode
+  CommandImpl::SetLivoxLidarPclFreqMod
+  CommandImpl::SetLivoxLidarTimeFilterMode
   CommandImpl::SetLidarFogNoiseFilterMode
   CommandImpl::SetLivoxLidarITOCtrlMode
   CommandImpl::SetNTPServerIp

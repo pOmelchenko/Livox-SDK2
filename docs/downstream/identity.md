@@ -22,10 +22,12 @@ origin without claiming authorship of inherited work.
 ## Machine-readable identity
 
 [`DOWNSTREAM_REVISION.json`](../../DOWNSTREAM_REVISION.json) records the
-canonical upstream repository and base, original source-bearing downstream
-baseline, ordered source-bearing commits, release revision, publication state,
-and rollback target. Governance-only commits do not silently change that source
-baseline.
+canonical upstream repository and original base, original source-bearing
+downstream baseline, ordered source-bearing commits, release revision,
+publication state, and rollback target. Governance-only commits do not silently
+change that historical baseline. Later applied upstream references are recorded
+in the [upstream sync policy](upstream-sync-and-retirement.md) and their
+governing issues and commits.
 
 The exact commit and ordered source-bearing downstream changes must remain
 auditable. A commit or tag published as a dependency is never rewritten or

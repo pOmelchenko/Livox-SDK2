@@ -5,7 +5,17 @@ downstream fixes only through new reviewed history.
 
 ## Observe the canonical upstream reference
 
-Read the recorded base from its immutable control commit and query the exact
+The immutable control commit records the original base. For the source revision
+containing this page, the latest applied canonical upstream commit is
+`c0796f04c143143899c87a773d9f6b7136453c0b`, descended directly from
+original base `08f523c930b2f0ba1e98a6afaa8d7476bf479908`. Its selection,
+adaptation, and compatibility qualification are governed by
+[issue #57](https://github.com/pOmelchenko/Livox-SDK2/issues/57).
+This applied identity does not imply an upstream release tag or a downstream
+publication. A later synchronization updates this versioned record through a
+new qualified change; the original control object stays unchanged.
+
+Read the original base from its immutable control commit, then query the exact
 canonical upstream reference:
 
 ```sh
@@ -17,9 +27,10 @@ git ls-remote --exit-code --refs \
   refs/heads/master
 ```
 
-The first command's `upstream.base_commit` is the expected identity. The second
-must return exactly one full object ID for `refs/heads/master`. Equal IDs show
-only that no reference drift was observed at the query time; they do not prove
+The first command's `upstream.base_commit` is the historical source identity.
+Compare the second command's full object ID for `refs/heads/master` with the
+latest applied commit recorded above. Equal IDs show only that no reference
+drift was observed at the query time; they do not prove
 that a mutable reference remains unchanged or that no other synchronization
 work exists.
 

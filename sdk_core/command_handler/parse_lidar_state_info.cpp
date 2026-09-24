@@ -26,7 +26,7 @@ std::size_t BoundedStringLength(const char* value, std::size_t capacity) {
 bool ParseLidarStateInfo::Parse(const CommPacket& packet, std::string& info_str) {
   DirectLidarStateInfo info = {};
   std::set<ParamKeyName> key_mask;
-  
+
   if (!ParseStateInfo(packet, info, key_mask)) {
     return false;
   }
@@ -296,6 +296,14 @@ bool ParseLidarStateInfo::ParseStateInfo(const CommPacket& packet,
       case static_cast<uint16_t>(kKeySetFogNoiseFilter) :
         key_mask.insert(kKeySetFogNoiseFilter);
         copy_value(&info.fog_noise_filter, sizeof(info.fog_noise_filter));
+        break;
+      case static_cast<uint16_t>(kKeySetTimeFilterMode) :
+        key_mask.insert(kKeySetTimeFilterMode);
+        copy_value(&info.time_filter_mode, sizeof(info.time_filter_mode));
+        break;
+      case static_cast<uint16_t>(kKeySetPclFreqMod) :
+        key_mask.insert(kKeySetPclFreqMod);
+        copy_value(&info.pcl_freq_mode, sizeof(info.pcl_freq_mode));
         break;
       case static_cast<uint16_t>(kKeySetImuRange) :
         key_mask.insert(kKeySetImuRange);
@@ -660,7 +668,7 @@ void ParseLidarStateInfo::LivoxLidarStateInfoToJson(const DirectLidarStateInfo& 
     write.Uint(info.esc_mode);
   }
 
-    if (key_mask.find(kKeySetFovMode) != key_mask.end()) {
+  if (key_mask.find(kKeySetFovMode) != key_mask.end()) {
     write.Key("fov_mode");
     write.Uint(info.fov_mode);
   }
@@ -683,6 +691,16 @@ void ParseLidarStateInfo::LivoxLidarStateInfoToJson(const DirectLidarStateInfo& 
   if (key_mask.find(kKeySetFogNoiseFilter) != key_mask.end()) {
     write.Key("fog_noise_filter");
     write.Uint(info.fog_noise_filter);
+  }
+
+  if (key_mask.find(kKeySetPclFreqMod) != key_mask.end()) {
+    write.Key("pcl_freq_mode");
+    write.Uint(info.pcl_freq_mode);
+  }
+
+  if (key_mask.find(kKeySetTimeFilterMode) != key_mask.end()) {
+    write.Key("time_filter_mode");
+    write.Uint(info.time_filter_mode);
   }
 
   if (key_mask.find(kKeySetImuRange) != key_mask.end()) {
@@ -840,5 +858,3 @@ void ParseLidarStateInfo::LivoxLidarStateInfoToJson(const DirectLidarStateInfo& 
 
 } // namespace livox
 } // namespace direct
-
-

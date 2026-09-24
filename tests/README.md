@@ -57,9 +57,10 @@ It distinguishes three kinds of surface:
 Configuration compares the inventory with all public function declarations in
 the selected `livox_lidar_api.h`. An added, removed, or renamed installed
 entrypoint therefore requires an explicit inventory decision. The current
-inventory contains 62 functions. Public types, callbacks, enum values, and
-layout contracts remain authoritative in the three installed headers and will
-receive compile/link/ABI coverage under separately qualified work.
+inventory contains 64 functions. The state-info regression target also checks
+the retained offsets of the pre-sync packed public structure. Public types,
+callbacks, enum values, and layout contracts remain authoritative in the three
+installed headers; this focused check does not establish a general ABI guarantee.
 
 ## Selecting an SDK source tree
 
