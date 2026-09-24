@@ -317,6 +317,19 @@ bool DeviceManager::CreateCommandChannel(const uint8_t dev_type, const HostNetIn
     return false;
   }
 
+  // These configuration builders send status to the multicast destination.
+  // Keep the unicast socket and add a receive-only subscription on the same
+  // command loop, including for receiving (non-master) SDK instances.
+  if (!host_net_info.multicast_ip.empty() &&
+      (dev_type == kLivoxLidarTypeMid360 || dev_type == kLivoxLidarTypeMid360s ||
+       dev_type == kLivoxLidarTypeAvia2 || dev_type == kLivoxLidarTypeMid360l)) {
+    if (!CreateCmdSocketAndAddDelegate(dev_type, host_net_info.host_ip,
+          host_net_info.push_msg_port, kPush, host_net_info.multicast_ip)) {
+      LOG_ERROR("Create multicast status channel failed.");
+      return false;
+    }
+  }
+
   if (dev_type == kLivoxLidarTypePA) {
     //if (!CreateCmdSocketAndAddDelegate(dev_type, host_net_info.push_msg_ip, kPaHostFaultPort, is_custom)) {
     if (!CreateCmdSocketAndAddDelegate(dev_type, host_net_info.host_ip, kPaHostFaultPort, kFault)) {
@@ -349,15 +362,20 @@ bool DeviceManager::CreateCommandChannel(const uint8_t dev_type, const HostNetIn
 }
 
 bool DeviceManager::CreateCmdSocketAndAddDelegate(const uint8_t dev_type, const std::string& host_ip,
-                                                  const uint16_t port, const HostSocketType type) {
+                                                  const uint16_t port, const HostSocketType type,
+                                                  const std::string& multicast_ip) {
   if (host_ip.empty() || port == 0 || port == kLogPort) {
     return true;
   }
 
   std::string key = host_ip + ":" + std::to_string(port);
 
+  if (!multicast_ip.empty()) {
+    key += ":" + multicast_ip;
+  }
+
   if (channel_info_.find(key) != channel_info_.end()) {
-    if (custom_command_channel_.find(key) == custom_command_channel_.end()) {
+    if (multicast_ip.empty() && custom_command_channel_.find(key) == custom_command_channel_.end()) {
       custom_command_channel_[key] = channel_info_[key];
     }
     return true;
@@ -365,9 +383,9 @@ bool DeviceManager::CreateCmdSocketAndAddDelegate(const uint8_t dev_type, const 
 
   socket_t sock = -1;
   if (host_ip == "local") {
-    sock = util::CreateSocket(port, true, true, true, "", "");
+    sock = util::CreateSocket(port, true, true, true, "", multicast_ip);
   } else {
-    sock = util::CreateSocket(port, true, true, true, host_ip, "");
+    sock = util::CreateSocket(port, true, true, true, host_ip, multicast_ip);
   }
 
   if (sock < 0) {
@@ -379,7 +397,9 @@ bool DeviceManager::CreateCmdSocketAndAddDelegate(const uint8_t dev_type, const 
   socket_vec_.push_back(sock);
   channel_info_[key] = sock;
   command_channel_.insert(sock); 
-  custom_command_channel_[key] = sock;
+  if (multicast_ip.empty()) {
+    custom_command_channel_[key] = sock;
+  }
 
   cmd_io_thread_->GetLoop().lock()->AddDelegate(sock, this, nullptr);
   return true;

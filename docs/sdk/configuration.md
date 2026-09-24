@@ -37,6 +37,14 @@ Host-side ports remain configurable. These are the fixed ports used by the
 checked-out SDK handlers; normalization keeps receive routing consistent with
 the device configuration requests.
 
+For `MID360`, `Mid360s`, `Mid360l`, and `Avia2`, a configured multicast group
+also receives status messages at `push_msg_port`. The SDK joins that group on
+`host_ip` using a separate socket on the command event loop, for both controlling
+and receiving instances. Unicast command routing and status reception remain
+available. Subscription errors fail channel creation instead of silently
+leaving an unusable receiver. Network and firewall settings must permit the
+group on the selected interface.
+
 ## SDK role
 
 `master_sdk` controls the role in a multicast arrangement. The controlling

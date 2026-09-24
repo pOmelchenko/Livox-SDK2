@@ -15,8 +15,8 @@ ctest --test-dir build/sdk-regressions -C Release --show-only
 ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
-The common entrypoint adopts the focused command-lifecycle, command-dispatch, configuration,
-data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
+The common entrypoint adopts the focused command-lifecycle, command-dispatch,
+command-channel, configuration, data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
 SDK-protocol, state-info, and FastCRC regressions. Their standalone entrypoints remain
 available for focused platform work.
 
@@ -35,6 +35,21 @@ For GCC or Clang, configure this focused entrypoint with
 `-DCOMMAND_DISPATCH_ENABLE_SANITIZERS=ON` to enable ASan/UBSan. Alignment
 instrumentation is excluded because of the inherited packed C++ configuration
 layout; the remaining checks, including vptr instrumentation, stay enabled.
+
+## Command channel regressions
+
+`command_channel/` compiles the production device manager with recording socket
+and event-loop doubles. It checks multicast status subscriptions for the
+Mid-360 family and Avia2 in both SDK roles, unchanged unicast command routing,
+subscription deduplication, distinct groups and interfaces, error propagation,
+and cleanup. The production network helper is also compiled on each platform.
+The default suite performs no network I/O.
+
+On Unix, `-DCOMMAND_CHANNEL_ENABLE_LOOPBACK_TEST=ON` adds a focused test using
+the production socket helper. It sends unicast and multicast status-sized
+messages over loopback at an ephemeral port with multicast TTL zero, and checks
+failed membership handling. This optional check depends on host networking
+support and does not qualify firmware or physical devices.
 
 ## Configuration regressions
 

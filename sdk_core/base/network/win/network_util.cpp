@@ -106,10 +106,12 @@ socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_bro
   if (!multicast_ip.empty()) {
     struct ip_mreq mreq;
     memset(&mreq, 0, sizeof(struct ip_mreq));
-    mreq.imr_interface.s_addr = inet_addr(netif.c_str());
+    mreq.imr_interface.s_addr = netif.empty() ? htonl(INADDR_ANY) : inet_addr(netif.c_str());
     mreq.imr_multiaddr.s_addr = inet_addr(multicast_ip.c_str());
     if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<char*>(&mreq), sizeof(struct ip_mreq)) == -1) {
       printf("setsockopt failed\n");
+      closesocket(sock);
+      return -1;
     }
   }
 
