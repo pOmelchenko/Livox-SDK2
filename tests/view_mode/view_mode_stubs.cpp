@@ -81,6 +81,14 @@ bool IOThread::Init(bool, bool) {
 }
 void IOLoop::AddDelegate(socket_t, IOLoopDelegate*, void*) {}
 void IOLoop::RemoveDelegate(socket_t, IOLoopDelegate*) {}
+// GCC's UBSan vptr checks reference backend RTTI even though the fake loops
+// never allocate a backend. Define its key functions and the owned pipe's
+// destructor; reaching any of them would violate the no-I/O test boundary.
+void MultipleIOBase::PollWakeUp() { std::abort(); }
+void MultipleIOBase::CheckTimer() { std::abort(); }
+void MultipleIOBase::WakeUpInit() { std::abort(); }
+void MultipleIOBase::WakeUpUninit() { std::abort(); }
+WakeUpPipe::~WakeUpPipe() { std::abort(); }
 
 LoggerManager::LoggerManager() {}
 LoggerManager::~LoggerManager() {}
