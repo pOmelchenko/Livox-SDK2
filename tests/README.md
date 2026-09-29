@@ -16,9 +16,10 @@ ctest --test-dir build/sdk-regressions -C Release --output-on-failure
 ```
 
 The common entrypoint adopts the focused command-lifecycle, command-dispatch,
-command-channel, configuration, data-handler, discovery-response, GPRMC-validation, logger-path, logger-payload,
-SDK-protocol, state-info, and FastCRC regressions. Their standalone entrypoints remain
-available for focused platform work.
+command-channel, configuration, view-mode, data-handler, discovery-response,
+GPRMC-validation, logger-path, logger-payload, SDK-protocol, state-info, and
+FastCRC regressions. Their standalone entrypoints remain available for focused
+platform work.
 
 ## Command dispatch regressions
 
@@ -59,6 +60,31 @@ configurations. It covers all five device ports, unchanged host settings,
 already-canonical values, individual zero ports, and the existing Mid-360,
 Mid-360S, HAP, and Avia2 behavior. The fixture uses documentation-only addresses;
 the tests do not open sockets or qualify physical-device behavior.
+
+## View-mode regressions
+
+`view_mode/` exercises the production public initialization/uninitialization
+facade, JSON parser, device manager, general and model-specific command handlers,
+packet codec, and request builders. A synthetic discovery/ACK exchange verifies
+firmware-type queries, ordinary information reads, data-channel creation,
+configuration commands, and the public device-information callback. It covers
+fresh and repeated view sessions, JSON master/non-master roles, transitions to
+view mode, independent framework configurations, and retry after logger or
+I/O-initialization failure.
+
+Recording socket and I/O-loop doubles prevent network access and asynchronous
+event-loop work. A test-only translation unit redirects the production device
+manager's final `sendto` call, including its real discovery-sender thread, to
+the recording transport. No private-access macros or friend peers are used.
+These checks do not establish real I/O shutdown/quiescence (#56), physical
+device compatibility, or Android qualification.
+
+With GCC or Clang, configure `tests/view_mode` with
+`-DVIEW_MODE_ENABLE_SANITIZERS=ON` for focused ASan/UBSan. The inherited
+packed-C++ configuration alignment limitation is excluded, as in
+`command_dispatch/`; other undefined-behavior and address checks stay enabled.
+The suite is also included in the common platform matrix and a Linux sanitizer
+job.
 
 ## GPRMC parser regressions
 

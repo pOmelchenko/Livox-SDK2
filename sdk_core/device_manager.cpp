@@ -68,6 +68,9 @@ DeviceManager& DeviceManager::GetInstance() {
 }
 
 bool DeviceManager::Init(const std::string& host_ip, const LivoxLidarLoggerCfgInfo* log_cfg_info) {
+  // View mode controls discovered devices and owns a fresh role per session.
+  sdk_framework_cfg_ptr_ = std::make_shared<LivoxLidarSdkFrameworkCfg>();
+  sdk_framework_cfg_ptr_->master_sdk = true;
   is_view_ = true;
   detection_host_ip_ = host_ip;
   comm_port_.reset(new CommPort());

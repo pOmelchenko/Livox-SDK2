@@ -47,6 +47,18 @@ group on the selected interface.
 
 ## SDK role
 
+Calling `LivoxLidarSdkInit(nullptr, host_ip, log_cfg_info)` initializes view
+mode without a JSON file. Supply the local IPv4 address in `host_ip`; logger
+configuration is optional. Each view-mode initialization creates a fresh
+framework configuration with `master_sdk = true` before starting handlers or
+I/O. View mode controls discovered devices, including querying their firmware
+type and configuring data delivery. It does not inherit the role from an
+earlier JSON-configured session. After uninitialization or a failed startup,
+the next view-mode initialization selects this controlling role again.
+
+JSON initialization preserves an explicitly configured `master_sdk` value,
+including `false`. Use JSON configuration when a receiving instance is needed.
+
 `master_sdk` controls the role in a multicast arrangement. The controlling
 instance sends control commands and receives device data; receiving instances
 are intended to receive point-cloud data without controlling the device. A
