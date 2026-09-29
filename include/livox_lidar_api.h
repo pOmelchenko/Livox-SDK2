@@ -41,6 +41,10 @@ void GetLivoxLidarSdkVer(LivoxLidarSdkVer *version);
 
 /**
  * Initialize the SDK.
+ * @param path JSON configuration path. If nullptr, initialize view mode using host_ip.
+ * @param host_ip Local IPv4 address for view mode. View mode uses a fresh controlling
+ *                SDK configuration (master_sdk = true), independent of earlier sessions.
+ * @param log_cfg_info Optional logger configuration for view mode.
  * @return true if successfully initialized, otherwise false.
  */
 bool LivoxLidarSdkInit(const char* path, const char* host_ip = "", const LivoxLidarLoggerCfgInfo* log_cfg_info = nullptr);

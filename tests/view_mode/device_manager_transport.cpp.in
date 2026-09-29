@@ -1,0 +1,7 @@
+#include "view_mode_test_support.h"
+
+// The production source is unchanged; intercept the OS send boundary so even
+// the real discovery-sender thread cannot send packets to a network or device.
+#define sendto view_mode_test::SendTo
+#include "@LIVOX_SDK_SOURCE_DIR@/sdk_core/device_manager.cpp"
+#undef sendto

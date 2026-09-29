@@ -111,6 +111,39 @@ jobs:
           ctest --test-dir build/fastcrc-sanitizers
           -C RelWithDebInfo --output-on-failure --no-tests=error
 
+  view-mode-sanitizers:
+    name: View mode sanitizers
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Record source and toolchain
+        run: |
+          git rev-parse HEAD
+          cmake --version
+          g++ --version
+
+      - name: Configure view mode sanitizers
+        env:
+          CXX: g++
+        run: >-
+          cmake -S tests/view_mode -B build/view-mode-sanitizers
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DVIEW_MODE_ENABLE_SANITIZERS=ON
+
+      - name: Build view mode sanitizers
+        run: cmake --build build/view-mode-sanitizers --parallel
+
+      - name: Run view mode sanitizers
+        run: >-
+          ctest --test-dir build/view-mode-sanitizers
+          --output-on-failure --no-tests=error
+
   gprmc-sanitizers:
     name: GPRMC sanitizers
     runs-on: ubuntu-24.04
