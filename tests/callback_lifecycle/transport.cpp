@@ -1,6 +1,7 @@
 #include "transport.h"
 #include "upgrade_manager.h"
 #include <cstdlib>
+#include <iostream>
 #ifndef WIN32
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -28,9 +29,15 @@ socket_t CreateSocket(uint16_t, bool, bool, bool, const std::string,
 }
 void CloseSock(socket_t fd) {
 #ifdef WIN32
-  if (closesocket(fd) != 0) std::abort();
+  if (closesocket(fd) != 0) {
+    std::cerr << "test socket close failed: " << WSAGetLastError() << '\n';
+    std::abort();
+  }
 #else
-  if (close(fd) != 0) std::abort();
+  if (close(fd) != 0) {
+    std::cerr << "test socket close failed\n";
+    std::abort();
+  }
 #endif
   --lifecycle_test::live_sockets;
 }

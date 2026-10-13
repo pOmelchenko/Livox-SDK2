@@ -34,6 +34,7 @@ ThreadBase::~ThreadBase() {}
 bool ThreadBase::Start() { std::abort(); }
 IOThread::~IOThread() {}
 void IOThread::Stop() {}
+bool IOThread::IsCurrentThread() const { return false; }
 void IOThread::ThreadFunc() { std::abort(); }
 bool IOThread::Init(bool, bool) { loop_ = std::make_shared<IOLoop>(false, false); return true; }
 void IOLoop::AddDelegate(socket_t fd, IOLoopDelegate*, void*) { channel_test::sockets.at(fd).loop = this; }

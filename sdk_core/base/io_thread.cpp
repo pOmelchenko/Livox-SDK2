@@ -27,6 +27,10 @@
 namespace livox {
 namespace lidar {
 
+namespace {
+thread_local const IOThread* current_io_thread = nullptr;
+}
+
 IOThread::~IOThread() {
   Stop();
   Uninit();
@@ -45,9 +49,16 @@ void IOThread::ThreadFunc() {
   if (!loop_) {
     return;
   }
+  current_io_thread = this;
   while (!IsQuit()) {
     loop_->Loop();
   }
+  current_io_thread = nullptr;
+}
+
+bool IOThread::IsCurrentThread() const {
+  // Do not inspect the std::thread owner while a control thread may reset it.
+  return current_io_thread == this;
 }
 
 bool IOThread::Init(bool enable_timer, bool enable_wake) {

@@ -74,6 +74,7 @@ ThreadBase::~ThreadBase() {}
 bool ThreadBase::Start() { view_mode_test::ProbeRole(); return true; }
 IOThread::~IOThread() {}
 void IOThread::Stop() {}
+bool IOThread::IsCurrentThread() const { return false; }
 void IOThread::ThreadFunc() { std::abort(); }
 bool IOThread::Init(bool, bool) {
   view_mode_test::ProbeRole();

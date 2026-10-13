@@ -39,9 +39,6 @@ class ThreadBase : public noncopyable {
   virtual void ThreadFunc() = 0;
   bool Start();
   bool IsQuit() { return quit_; }
-  bool IsCurrentThread() const {
-    return thread_ && thread_->get_id() == std::this_thread::get_id();
-  }
 
  protected:
   void RequestQuit() { quit_.store(true); }

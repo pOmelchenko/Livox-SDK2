@@ -17,6 +17,9 @@ class DeviceManagerTestPeer {
     auto& manager = DeviceManager::GetInstance();
     return {{manager.detection_io_thread_, manager.cmd_io_thread_, manager.data_io_thread_}};
   }
+  static socket_t TimerSocket() {
+    return DeviceManager::GetInstance().detection_socket_;
+  }
 };
 }}
 namespace {
@@ -211,8 +214,9 @@ void TestSession(const char* directory, bool stress) {
   if (stress) { TestThreadStop(); TestRegistration(); TestDiagnosticManagers(directory); }
   const auto threads = DeviceManagerTestPeer::Threads();
   std::array<Timer, 3> timers;
-  const auto fd = util::CreateSocket(0, false, false, false, "127.0.0.1");
-  Require(fd > 0, "create an idle loopback timer socket");
+  // Use an SDK-owned descriptor so Windows closes it before WSACleanup.
+  const auto fd = DeviceManagerTestPeer::TimerSocket();
+  Require(fd > 0, "use the session's idle loopback socket for timer work");
   for (size_t i = 0; i < threads.size(); ++i) {
     threads[i].lock()->GetLoop().lock()->AddDelegate(fd, &timers[i]);
     Require(timers[i].first.get_future().wait_for(std::chrono::seconds(5)) ==
@@ -237,12 +241,17 @@ void TestSession(const char* directory, bool stress) {
   SetLivoxLidarPointCloudCallBack(nullptr, nullptr);
   auto uninit = std::async(std::launch::async, [] { LivoxLidarSdkUninit(); });
   WaitUntil([&] { auto thread = threads[2].lock(); return thread && thread->IsQuit(); });
+  std::promise<void> concurrent_reentry;
+  threads[1].lock()->GetLoop().lock()->PostTask([&] {
+    LivoxLidarSdkUninit(); concurrent_reentry.set_value();
+  });
+  Require(concurrent_reentry.get_future().wait_for(std::chrono::seconds(5)) ==
+          std::future_status::ready, "callback-thread shutdown rejection works during drain");
   Require(uninit.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout,
           "whole-SDK Uninit waits for an in-flight application callback");
   callback.release.set_value();
   uninit.get();
   for (const auto& thread : threads) Require(thread.expired(), "Uninit releases old I/O owners");
-  util::CloseSock(fd);
   Require(lifecycle_test::live_sockets.load() == 0, "session sockets are closed before return");
   LivoxLidarSdkUninit();
 }

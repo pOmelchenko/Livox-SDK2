@@ -39,6 +39,7 @@ class IOThread : public ThreadBase {
   std::weak_ptr<IOLoop> GetLoop() { return loop_; }
   void ThreadFunc();
   void Stop();
+  bool IsCurrentThread() const;
 
  private:
   void Uninit();
