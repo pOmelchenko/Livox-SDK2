@@ -76,6 +76,7 @@ class IOLoop : public noncopyable {
   std::mutex mutex_;
   bool enable_timer_;
   bool enable_wake_;
+  bool initialized_ = false;
   std::vector<IOLoopTask> pending_tasks_;
   std::unique_ptr<MultipleIOBase> multiple_io_base_;
 };

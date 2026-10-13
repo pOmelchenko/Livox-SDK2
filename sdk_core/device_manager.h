@@ -98,6 +98,8 @@ class DeviceManager : public IOLoop::IOLoopDelegate {
  public:
   typedef std::chrono::steady_clock::time_point TimePoint;
   void Destory();
+  void StopIOThreads();
+  bool IsIOThread() const;
   ~DeviceManager();
   static DeviceManager& GetInstance();
 

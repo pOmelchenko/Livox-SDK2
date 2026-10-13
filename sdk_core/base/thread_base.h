@@ -41,6 +41,7 @@ class ThreadBase : public noncopyable {
   bool IsQuit() { return quit_; }
 
  protected:
+  void RequestQuit() { quit_.store(true); }
   void Join();
   
  private:

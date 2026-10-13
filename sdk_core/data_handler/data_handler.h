@@ -30,6 +30,7 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+#include <vector>
 
 #include "comm/define.h"
 #include "base/io_loop.h"

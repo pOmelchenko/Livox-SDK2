@@ -79,14 +79,17 @@ feature, but keep sample code outside the public compatibility contract.
 
 ## 6. Shut down safely
 
-Stop application work that can race with callbacks, release application-owned
-state only after it is no longer reachable by SDK callbacks, and call
-`LivoxLidarSdkUninit`. Device, network, callback-lifetime, and concurrency
+Stop application API work, call `LivoxLidarSdkUninit` on a control thread outside
+SDK callbacks, and release callback-owned state after that call returns. Keep
+previous callback contexts alive when replacing or removing registrations:
+those operations do not wait for already captured invocations. Device, network,
+callback-lifetime, and concurrency
 claims require focused verification on the exact revision and environment.
 
 To restart the SDK in the same process, treat the next initialization as a new
 lifecycle. After `LivoxLidarSdkInit` succeeds, register the required device
-information callbacks and command observer again with live `client_data`, then
+information, point-cloud and IMU callbacks and observers again with live
+`client_data`, then
 call `LivoxLidarSdkStart`. Registrations from the previous lifecycle are not
 restored by initialization.
 

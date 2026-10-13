@@ -58,11 +58,13 @@ bool WakeUpPipe::Drain() {
 }
 
 bool WakeUpPipe::PipeDestroy() {
-  if (pipe_in_ > 0) {
+  if (pipe_in_ >= 0) {
     closesocket(pipe_in_);
+    pipe_in_ = -1;
   }
-  if (pipe_out_ > 0) {
+  if (pipe_out_ >= 0) {
     closesocket(pipe_out_);
+    pipe_out_ = -1;
   }
   return true;
 }

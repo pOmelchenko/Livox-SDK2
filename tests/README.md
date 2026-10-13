@@ -21,6 +21,24 @@ GPRMC-validation, logger-path, logger-payload, SDK-protocol, state-info, and
 FastCRC regressions. Their standalone entrypoints remain available for focused
 platform work.
 
+## Callback lifecycle regressions
+
+`callback_lifecycle/` exercises the public initialization/uninitialization facade
+with production I/O threads, platform poll backends, timers, data callbacks,
+and diagnostic managers. Only socket allocation and outbound sends are replaced:
+allocated sockets are idle loopback sockets on ephemeral ports, and sends never
+reach a network or device. Barriers hold an admitted callback while shutdown
+waits, then verify that old I/O owners and sockets are released. It covers
+unstarted/repeated stop, partial initialization, retry/reinitialization,
+callback-thread shutdown rejection, concurrent callback/context replacement,
+self-removing observers, and debug capture toggling alongside logger access.
+
+Configure the focused root with `-DCALLBACK_LIFECYCLE_ENABLE_ASAN=ON` for
+ASan/UBSan or `-DCALLBACK_LIFECYCLE_ENABLE_TSAN=ON` for ThreadSanitizer; use
+separate build directories. The packed-C++ configuration alignment limitation
+is excluded only in ASan/UBSan builds, as in `view_mode/`. These host checks do
+not qualify physical-device shutdown, firmware logging, or consumer adoption.
+
 ## Command dispatch regressions
 
 `command_dispatch/` compiles the real general and device-family command

@@ -112,8 +112,8 @@ bool DeviceManager::Init(const std::string& host_ip, const LivoxLidarLoggerCfgIn
     return false;
   }
 
-  detection_thread_ = std::make_shared<std::thread>(&DeviceManager::DetectionLidars, this);
   is_stop_detection_.store(false);
+  detection_thread_ = std::make_shared<std::thread>(&DeviceManager::DetectionLidars, this);
   return true;
 }
 
@@ -175,8 +175,8 @@ bool DeviceManager::Init(std::shared_ptr<std::vector<LivoxLidarCfg>>& lidars_cfg
   }
 
   if (!(lidars_cfg_ptr_->empty()) || !(custom_lidars_cfg_ptr->empty())) {
-    detection_thread_ = std::make_shared<std::thread>(&DeviceManager::DetectionLidars, this);
     is_stop_detection_.store(false);
+    detection_thread_ = std::make_shared<std::thread>(&DeviceManager::DetectionLidars, this);
   }
 
   LOG_INFO("Init livox lidars succ.");
@@ -844,7 +844,27 @@ bool DeviceManager::GetLoggerCmdChannel(const uint8_t dev_type, const uint32_t h
   return false;
 }
 
+bool DeviceManager::IsIOThread() const {
+  return (detection_io_thread_ && detection_io_thread_->IsCurrentThread()) ||
+         (cmd_io_thread_ && cmd_io_thread_->IsCurrentThread()) ||
+         (data_io_thread_ && data_io_thread_->IsCurrentThread());
+}
+
+void DeviceManager::StopIOThreads() {
+  // The discovery sender also uses session sockets and the packet codec.
+  is_stop_detection_.store(true);
+  if (detection_thread_) {
+    detection_thread_->join();
+    detection_thread_.reset();
+  }
+  // Stop discovery admission before the command and data consumers.
+  if (detection_io_thread_) detection_io_thread_->Stop();
+  if (data_io_thread_) data_io_thread_->Stop();
+  if (cmd_io_thread_) cmd_io_thread_->Stop();
+}
+
 void DeviceManager::Destory() {
+  StopIOThreads();
   detection_host_ip_ = "";
 
   if (detection_socket_ > 0) {
@@ -888,21 +908,19 @@ void DeviceManager::Destory() {
   }
   vec_broadcast_socket_.clear();
 
-  if (detection_thread_) {
-    is_stop_detection_.store(true);
-    detection_thread_->join();
-    detection_thread_ = nullptr;
-
-    if (detection_socket_ > 0) {
-      util::CloseSock(detection_socket_);
-      detection_socket_ = -1;
-    }
-
-    if (detection_broadcast_socket_ > 0) {
-      util::CloseSock(detection_broadcast_socket_);
-      detection_broadcast_socket_ = -1;
-    }
+  if (detection_socket_ > 0) {
+    util::CloseSock(detection_socket_);
+    detection_socket_ = -1;
   }
+  if (detection_broadcast_socket_ > 0) {
+    util::CloseSock(detection_broadcast_socket_);
+    detection_broadcast_socket_ = -1;
+  }
+
+  // Release poll backends and queued delegate changes before another Init.
+  detection_io_thread_.reset();
+  cmd_io_thread_.reset();
+  data_io_thread_.reset();
 
   lidars_cfg_ptr_ = nullptr;
   custom_lidars_cfg_ptr_ = nullptr;
