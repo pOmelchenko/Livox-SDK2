@@ -52,6 +52,7 @@ class DebugPointCloudManager {
   void Handler(uint32_t handle, uint16_t lidar_port, uint8_t *buf, uint32_t buf_size);
   bool Enable(bool enable);
   bool SetStorePath(std::string path);
+  void Destory();
   
   static DebugPointCloudManager& GetInstance();
 
@@ -59,8 +60,9 @@ class DebugPointCloudManager {
   DebugPointCloudManager();
 
  private:
+  std::mutex mutex_;
   std::atomic<bool> enable_{false};
-  std::string path_;
+  std::string path_ = ".";
   std::map<uint32_t, LidarDeviceInfo> devices_info_;
   std::map<uint32_t, std::shared_ptr<DebugPointCloudHandler>> handlers_;
 };

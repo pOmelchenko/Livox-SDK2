@@ -48,11 +48,17 @@ bool IOLoop::Init() {
     LOG_ERROR("Poll Create Failed!");
     return false;
   }
+  initialized_ = true;
   return true;
 }
 
 void IOLoop::Uninit() {
-  multiple_io_base_->PollDestroy();
+  if (initialized_) {
+    multiple_io_base_->PollDestroy();
+    initialized_ = false;
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+  pending_tasks_.clear();
 }
 
 void IOLoop::AddDelegate(socket_t sock, IOLoop::IOLoopDelegate *delegate, void *data) {

@@ -32,6 +32,15 @@ old registrations. Applications that restart the SDK in one process must
 register each required callback or observer again with currently valid
 `client_data` before calling `LivoxLidarSdkStart`.
 
+Serialize initialization and uninitialization on an application control thread,
+and stop concurrent application API work before uninitialization. Do not call
+`LivoxLidarSdkUninit` from an SDK callback: on an I/O thread it returns without
+stopping the session, so the control thread must perform shutdown. Uninitialization
+joins discovery, command, and data I/O work before clearing manager state, then
+joins diagnostic writers and releases sockets and poll backends. Failed
+initialization also releases partially created resources. Repeated
+uninitialization is safe; a later initialization creates new I/O loops.
+
 ## Asynchronous callbacks
 
 The API exposes callbacks for point-cloud packets, IMU packets, device
@@ -42,6 +51,16 @@ completion. Callback parameters and structures are defined in
 Applications must establish their own synchronization and shutdown ordering.
 Do not infer ownership or a lifetime beyond the declaration, implementation,
 and focused tests for the exact revision.
+
+Point-cloud and IMU callback/context pairs and point-cloud observer lists are
+snapshotted together under a mutex for each admitted datagram. Application
+callbacks run after that mutex is released and may replace registrations or
+remove observers, including themselves. Replacement or removal does not wait
+for a previously captured callback: keep its function and `client_data` alive
+until those invocations finish, using application synchronization or completion
+of `LivoxLidarSdkUninit` on the control thread. The SDK never frees `client_data`.
+Point-cloud/IMU callbacks and point-cloud observers must also be registered again
+after a new initialization.
 
 Commands are registered for completion before transport sends them. A fast ACK
 or local send failure can therefore invoke the callback before the initiating

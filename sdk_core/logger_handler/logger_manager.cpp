@@ -70,6 +70,7 @@ LoggerManager& LoggerManager::GetInstance() {
 }
 
 bool LoggerManager::Init(std::shared_ptr<LivoxLidarLoggerCfg> lidar_logger_cfg_ptr) {
+  std::lock_guard<std::mutex> state_lock(state_mutex_);
   is_destroy_.store(false);
   if (lidar_logger_cfg_ptr == nullptr || 
       lidar_logger_cfg_ptr->lidar_log_enable == false) {
@@ -118,6 +119,9 @@ bool LoggerManager::GetLogEnable() {
 }
 
 bool LoggerManager::InitLoggerSavePath(std::string log_root_path) {
+  if (log_root_path.empty()) {
+    return false;
+  }
   std::string log_root_dir = log_root_path + (log_root_path.back() == '/' ? "" : "/") + "lidar_log/";
   if (access(log_root_dir.c_str(), 0) != EXIT_SUCCESS) {
     if (!MakeDirecotory(log_root_dir)) {
@@ -130,6 +134,8 @@ bool LoggerManager::InitLoggerSavePath(std::string log_root_path) {
 }
 
 void LoggerManager::AddDevice(const uint32_t handle, const DetectionData* detection_data) {
+  std::lock_guard<std::mutex> state_lock(state_mutex_);
+  if (is_destroy_.load()) return;
   if (devices_info_.find(handle) == devices_info_.end()) {
     devices_info_[handle].sn = detail::DetectionSerialNumber(*detection_data);
     devices_info_[handle].dev_type = detection_data->dev_type;
@@ -143,6 +149,7 @@ void LoggerManager::AddDevice(const uint32_t handle, const DetectionData* detect
 }
 
 void LoggerManager::RemoveDevice(const uint32_t handle) {
+  std::lock_guard<std::mutex> state_lock(state_mutex_);
   if (devices_info_.find(handle) != devices_info_.end()) {
     devices_info_.erase(handle);
   }
@@ -150,17 +157,18 @@ void LoggerManager::RemoveDevice(const uint32_t handle) {
 
 livox_status LoggerManager::StartLogger(const uint32_t handle, const LivoxLidarLogType log_type,
     LivoxLidarLoggerCallback cb, void* client_data) {
-  if (log_enable_.load() == false) {
-    LOG_INFO("Disable logger.");
-    return kLivoxLidarStatusSuccess;  
-  }
-
-  LOG_INFO("Start Logger handler: {}, log_type: {}", handle, log_type);
-  if (handlers_.find(handle) == handlers_.end()) {
-    if (devices_info_.find(handle) != devices_info_.end()) {
-      auto serial_num = devices_info_[handle].sn;
-      handlers_[handle] = std::make_shared<LoggerHandler>(log_root_path_, serial_num);
-      handlers_[handle]->Init();
+  {
+    std::lock_guard<std::mutex> state_lock(state_mutex_);
+    if (!log_enable_.load() || is_destroy_.load()) {
+      return kLivoxLidarStatusSuccess;
+    }
+    LOG_INFO("Start Logger handler: {}, log_type: {}", handle, log_type);
+    if (handlers_.find(handle) == handlers_.end()) {
+      if (devices_info_.find(handle) != devices_info_.end()) {
+        auto serial_num = devices_info_[handle].sn;
+        handlers_[handle] = std::make_shared<LoggerHandler>(log_root_path_, serial_num);
+        handlers_[handle]->Init();
+      }
     }
   }
 
@@ -174,6 +182,7 @@ livox_status LoggerManager::StartLogger(const uint32_t handle, const LivoxLidarL
 }
 
 void LoggerManager::Handler(uint32_t handle, uint16_t lidar_port, uint8_t *buf, uint32_t buf_size) {
+  std::lock_guard<std::mutex> state_lock(state_mutex_);
   if (!log_enable_.load()) {
     return;
   }
@@ -242,7 +251,9 @@ void LoggerManager::OnLoggerCreate(const uint32_t handle, DeviceLoggerFilePushRe
     }
   }
 
-  auto & handler = handlers_[handle];
+  const auto it = handlers_.find(handle);
+  if (it == handlers_.end() || !it->second) return;
+  auto & handler = it->second;
   handler->StoreLogBag(data, static_cast<uint8_t>(Flag::kCreateFile));
 }
 
@@ -360,6 +371,7 @@ void LoggerManager::LoggerStopCallback(livox_status status, uint32_t handle, Liv
 }
 
 void LoggerManager::Destory() {
+  std::lock_guard<std::mutex> state_lock(state_mutex_);
   if(is_destroy_) {
     return;
   }
@@ -388,6 +400,8 @@ void LoggerManager::Destory() {
     ChangeHiddenFiles(log_root_path_);
   }
   log_enable_.store(false);
+  devices_info_.clear();
+  comm_port_.reset();
   is_destroy_.store(true);
 }
 

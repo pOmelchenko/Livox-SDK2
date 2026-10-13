@@ -46,5 +46,6 @@ if(LIVOX_SDK_TEST_SUITE STREQUAL "all" OR
   add_subdirectory(command_channel)
   add_subdirectory(configuration)
   add_subdirectory(view_mode)
+  add_subdirectory(callback_lifecycle)
   add_subdirectory(gprmc)
 endif()

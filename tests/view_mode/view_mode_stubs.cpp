@@ -73,6 +73,7 @@ ThreadBase::ThreadBase() : quit_(false) {}
 ThreadBase::~ThreadBase() {}
 bool ThreadBase::Start() { view_mode_test::ProbeRole(); return true; }
 IOThread::~IOThread() {}
+void IOThread::Stop() {}
 void IOThread::ThreadFunc() { std::abort(); }
 bool IOThread::Init(bool, bool) {
   view_mode_test::ProbeRole();
@@ -107,6 +108,7 @@ livox_status LoggerManager::StopLogger(uint32_t, LivoxLidarLogType,
     LivoxLidarLoggerCallback, void*) { std::abort(); }
 DebugPointCloudManager::DebugPointCloudManager() {}
 DebugPointCloudManager::~DebugPointCloudManager() {}
+void DebugPointCloudManager::Destory() {}
 DebugPointCloudManager& DebugPointCloudManager::GetInstance() {
   static DebugPointCloudManager value; return value;
 }

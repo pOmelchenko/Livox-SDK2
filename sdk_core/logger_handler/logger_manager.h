@@ -94,6 +94,7 @@ private:
 
   void StopAllLogger();
 private:
+  std::mutex state_mutex_;
   std::atomic<bool> log_enable_;
   std::atomic<bool> log_cycle_delete_enable_;
   std::string log_root_path_;

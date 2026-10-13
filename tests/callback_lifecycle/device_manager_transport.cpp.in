@@ -1,0 +1,5 @@
+#include "transport.h"
+// Keep real discovery, teardown and event loops; prevent all network sends.
+#define sendto lifecycle_test::SendTo
+#include "@LIVOX_SDK_SOURCE_DIR@/sdk_core/device_manager.cpp"
+#undef sendto

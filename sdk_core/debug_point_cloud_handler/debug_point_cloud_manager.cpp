@@ -12,7 +12,7 @@ namespace lidar {
 DebugPointCloudManager::DebugPointCloudManager() {}
 
 DebugPointCloudManager::~DebugPointCloudManager() {
-  enable_.store(false);
+  Destory();
 }
 
 DebugPointCloudManager& DebugPointCloudManager::GetInstance() {
@@ -21,6 +21,7 @@ DebugPointCloudManager& DebugPointCloudManager::GetInstance() {
 }
 
 void DebugPointCloudManager::AddDevice(const uint32_t handle, const DetectionData* detection_data) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (devices_info_.find(handle) == devices_info_.end()) {
     std::string ip = fmt::format("{}.{}.{}.{}", detection_data->lidar_ip[0],
                                                 detection_data->lidar_ip[1],
@@ -33,6 +34,7 @@ void DebugPointCloudManager::AddDevice(const uint32_t handle, const DetectionDat
 }
 
 void DebugPointCloudManager::Handler(uint32_t handle, uint16_t lidar_port, uint8_t *buf, uint32_t buf_size) {
+  std::lock_guard<std::mutex> lock(mutex_);
   if (!enable_.load()) return;
   auto it = handlers_.find(handle);
   if (it == handlers_.end() || !it->second) {
@@ -48,6 +50,7 @@ void DebugPointCloudManager::Handler(uint32_t handle, uint16_t lidar_port, uint8
 }
 
 bool DebugPointCloudManager::Enable(bool enable) {
+  std::lock_guard<std::mutex> lock(mutex_);
   enable_.store(enable);
   if (!enable) {
     for (auto& kv : handlers_) {
@@ -61,9 +64,19 @@ bool DebugPointCloudManager::Enable(bool enable) {
 }
 
 bool DebugPointCloudManager::SetStorePath(std::string path) {
-  if (path.back() == '/') path.pop_back();
+  if (path.empty()) return false;
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (path.size() > 1 && path.back() == '/') path.pop_back();
   path_ = path;
   return true;
+}
+
+void DebugPointCloudManager::Destory() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  enable_.store(false);
+  // Handler destruction joins each writer while admission remains blocked.
+  handlers_.clear();
+  devices_info_.clear();
 }
 
 

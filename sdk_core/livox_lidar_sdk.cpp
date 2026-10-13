@@ -33,6 +33,7 @@
 #include "command_handler/general_command_handler.h"
 #include "data_handler/data_handler.h"
 #include "logger_handler/logger_manager.h"
+#include "debug_point_cloud_handler/debug_point_cloud_manager.h"
 #include "upgrade_manager.h"
 
 
@@ -50,6 +51,20 @@
 using namespace livox::lidar;
 
 static bool is_initialized = false;
+
+static void DestroySdkState() {
+  DeviceManager::GetInstance().StopIOThreads();
+  LoggerManager::GetInstance().Destory();
+  DebugPointCloudManager::GetInstance().Destory();
+  DeviceManager::GetInstance().Destory();
+  DataHandler::GetInstance().Destory();
+  GeneralCommandHandler::GetInstance().Destory();
+#ifdef WIN32
+  // Close sockets and finish logger sends before releasing Winsock.
+  WSACleanup();
+#endif
+  UninitLogger();
+}
 
 void GetLivoxLidarSdkVer(LivoxLidarSdkVer *version) {
   if (version != NULL) {
@@ -73,9 +88,13 @@ bool LivoxLidarSdkInit(const char* path, const char* host_ip, const LivoxLidarLo
 #endif // WIN32
 
   InitLogger();
+  const auto fail = []() {
+    DestroySdkState();
+    return false;
+  };
 
   if (path == NULL && host_ip == NULL) {
-    return false;
+    return fail();
   }
 
   if (path) {
@@ -85,19 +104,19 @@ bool LivoxLidarSdkInit(const char* path, const char* host_ip, const LivoxLidarLo
     std::shared_ptr<LivoxLidarSdkFrameworkCfg> sdk_framework_cfg_ptr = nullptr;
 
     if (!ParseCfgFile(path).Parse(lidars_cfg_ptr, custom_lidars_cfg_ptr, lidar_logger_cfg_ptr, sdk_framework_cfg_ptr)) {
-      return false;
+      return fail();
     }
 
     if (!ParamsCheck(lidars_cfg_ptr, custom_lidars_cfg_ptr).Check()) {
-      return false;
+      return fail();
     }
 
     if (!DeviceManager::GetInstance().Init(lidars_cfg_ptr, custom_lidars_cfg_ptr, lidar_logger_cfg_ptr, sdk_framework_cfg_ptr)) {
-      return false;
+      return fail();
     }
   } else {
     if (!DeviceManager::GetInstance().Init(host_ip, log_cfg_info)) {
-      return false;
+      return fail();
     }
   }
 
@@ -110,16 +129,11 @@ void LivoxLidarSdkUninit() {
     return;
   }
 
-  LoggerManager::GetInstance().Destory();
-  // The reason for using WSACleanup() after previous statement is that Destory() still needs to send socket messages.
-#ifdef WIN32
-    WSACleanup();
-#endif // WIN32
-  DeviceManager::GetInstance().Destory();
-  DataHandler::GetInstance().Destory();
-  GeneralCommandHandler::GetInstance().Destory();
-
-  UninitLogger();
+  if (DeviceManager::GetInstance().IsIOThread()) {
+    LOG_ERROR("SDK uninitialization must run outside SDK I/O callbacks.");
+    return;
+  }
+  DestroySdkState();
   is_initialized = false;
 }
 

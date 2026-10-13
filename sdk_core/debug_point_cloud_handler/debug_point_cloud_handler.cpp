@@ -41,7 +41,7 @@ namespace lidar {
 
 DebugPointCloudHandler::DebugPointCloudHandler(std::uint32_t handle, std::string sn, std::uint8_t dev_type, std::string path)
                         : handle_(handle), sn_(sn), dev_type_(dev_type), file_size_(0) {
-  if (path.back() == '/') path.pop_back();
+  if (path.size() > 1 && path.back() == '/') path.pop_back();
   file_path_ = path;
 }
 

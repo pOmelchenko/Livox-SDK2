@@ -28,8 +28,17 @@ namespace livox {
 namespace lidar {
 
 IOThread::~IOThread() {
-  Join();
+  Stop();
   Uninit();
+}
+
+void IOThread::Stop() {
+  // Publish the stop request before waking a blocked poll.
+  RequestQuit();
+  if (loop_) {
+    loop_->Wakeup();
+  }
+  Join();
 }
 
 void IOThread::ThreadFunc() {

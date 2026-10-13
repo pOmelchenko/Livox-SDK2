@@ -33,6 +33,7 @@ ThreadBase::ThreadBase() : quit_(false) {}
 ThreadBase::~ThreadBase() {}
 bool ThreadBase::Start() { std::abort(); }
 IOThread::~IOThread() {}
+void IOThread::Stop() {}
 void IOThread::ThreadFunc() { std::abort(); }
 bool IOThread::Init(bool, bool) { loop_ = std::make_shared<IOLoop>(false, false); return true; }
 void IOLoop::AddDelegate(socket_t fd, IOLoopDelegate*, void*) { channel_test::sockets.at(fd).loop = this; }

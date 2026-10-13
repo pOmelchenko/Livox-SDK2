@@ -46,15 +46,11 @@ ThreadBase::~ThreadBase() {
 }
 
 void ThreadBase::Join() {
-  quit_ = true;
+  RequestQuit();
   if (thread_ && thread_->joinable()) {
     thread_->join();
-    thread_ = nullptr;
-  } else {
-    std::cout << "failed to join thread, joinable: " 
-              << thread_->joinable() << std::endl;
-    thread_ = nullptr;
   }
+  thread_.reset();
 }
 
 } // namespace lidar
