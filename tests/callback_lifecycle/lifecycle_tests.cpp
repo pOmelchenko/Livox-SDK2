@@ -18,7 +18,9 @@ class DeviceManagerTestPeer {
     return {{manager.detection_io_thread_, manager.cmd_io_thread_, manager.data_io_thread_}};
   }
   static socket_t TimerSocket() {
-    return DeviceManager::GetInstance().detection_socket_;
+    const auto fd = util::CreateSocket(0, false, false, false, "127.0.0.1");
+    if (fd >= 0) DeviceManager::GetInstance().socket_vec_.push_back(fd);
+    return fd;
   }
 };
 }}
@@ -211,10 +213,12 @@ void TestSession(const char* directory, bool stress) {
   Require(std::strlen(directory) < sizeof(cfg.lidar_log_path), "output path fits the public config");
   std::strcpy(cfg.lidar_log_path, directory);
   Require(LivoxLidarSdkInit(nullptr, "127.0.0.1", &cfg), "initialize a whole SDK session");
+  logger->set_level(spdlog::level::off);
   if (stress) { TestThreadStop(); TestRegistration(); TestDiagnosticManagers(directory); }
   const auto threads = DeviceManagerTestPeer::Threads();
   std::array<Timer, 3> timers;
-  // Use an SDK-owned descriptor so Windows closes it before WSACleanup.
+  // Use a fresh SDK-owned descriptor: epoll rejects duplicate registrations,
+  // and Windows must close the descriptor before WSACleanup.
   const auto fd = DeviceManagerTestPeer::TimerSocket();
   Require(fd > 0, "use the session's idle loopback socket for timer work");
   for (size_t i = 0; i < threads.size(); ++i) {
