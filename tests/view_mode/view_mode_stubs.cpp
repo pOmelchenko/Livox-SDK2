@@ -19,6 +19,7 @@ namespace view_mode_test {
 Failure failure = Failure::kNone;
 bool expected_master = true;
 unsigned invalid_startup_roles = 0;
+bool fail_command_send = false;
 namespace {
 std::mutex transport_mutex;
 std::map<socket_t, uint16_t> sockets;
@@ -37,8 +38,10 @@ int SendTo(socket_t socket, const char* bytes, int size, int,
   livox::lidar::CommPort codec;
   if (!codec.ParseCommStream(reinterpret_cast<uint8_t*>(const_cast<char*>(bytes)),
                              size, &packet)) std::abort();
-  if (packet.cmd_id != livox::lidar::kCommandIDLidarSearch)
+  if (packet.cmd_id != livox::lidar::kCommandIDLidarSearch) {
     commands.emplace_back(bytes, bytes + size);
+    if (fail_command_send) return -1;
+  }
   return size;
 }
 std::vector<std::vector<uint8_t>> Commands() {

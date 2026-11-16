@@ -13,6 +13,7 @@ firmware, and the communication protocol.
 4. [Configuration](sdk/configuration.md)
 5. [Public API](sdk/public-api.md)
 6. [Supported platforms](sdk/supported-platforms.md)
+7. [MID-360S information-query hardware procedure](sdk/mid360s-information-query.md)
 
 ## Contributors and maintainers
 

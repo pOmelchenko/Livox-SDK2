@@ -833,7 +833,8 @@ bool GeneralCommandHandler::GetQueryLidarInternalInfoKeys(const uint32_t handle,
         kKeyImuDataEn,
         kKeySetEscMode,
         kKeySetTimeFilterMode,
-        kKeySetImuRange,
+        // MID-360S FW 35.1.1.11 rejects the whole query with 0x20 when
+        // optional IMU-range is included (#54). Keep explicit control available.
         kKeySn,
         kKeyProductInfo,
         kKeyVersionApp,
