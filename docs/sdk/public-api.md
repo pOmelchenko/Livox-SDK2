@@ -88,6 +88,23 @@ this downstream. Both it and the new `SetLivoxLidarTimeFilterMode` send key
 `0x0026` with the same one-byte values; use official device documentation to
 interpret the command on each device and firmware version.
 
+`QueryLivoxLidarInternalInfo` omits optional IMU-range (`0x002B`) from the
+default MID-360S query. A reported same-device comparison on firmware
+`35.1.1.11` found that this key caused the entire read to return `0x20`.
+Consumers must allow the optional field to be absent from that query. Explicit
+`SetLivoxLidarImuRange` operations, parsing of received IMU-range values, and
+other device-family query lists remain available and unchanged. This does not
+mean all MID-360S firmware lacks IMU-range support.
+
+For an information-query ACK, callback status `kLivoxLidarStatusSuccess` means
+that a response was delivered: applications must also check `response->ret_code`
+before using its values. Device error `0x20` is preserved. The public broad
+query does not automatically retry a rejected or timed-out request. View-mode
+discovery can issue another read on a later discovery response until setup
+succeeds; that existing discovery behavior is unchanged. See the
+[MID-360S hardware procedure](mid360s-information-query.md) for qualification
+of an exact candidate revision.
+
 ## Compatibility discipline
 
 A public-header change can affect source compatibility, ABI, callback lifetime,

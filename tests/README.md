@@ -90,6 +90,17 @@ fresh and repeated view sessions, JSON master/non-master roles, transitions to
 view mode, independent framework configurations, and retry after logger or
 I/O-initialization failure.
 
+The #54 regressions call the public information-query API and inspect encoded
+packets for all five supported query lists. MID-360S excludes optional IMU-range;
+the other lists, including MID-360L's IMU-range key, retain their wire fixtures.
+A synthetic MID-360S rejects queries containing `0x002B` and otherwise completes
+view discovery. Both receive paths preserve successful query data and device
+error `0x20`; duplicate/late ACKs, send failure, timeout and repeated timer ticks
+check single completion without query-level retries. The explicit IMU-range
+setter and state parser are also exercised. These fixtures do not establish
+firmware support; use the separate
+[MID-360S hardware procedure](../docs/sdk/mid360s-information-query.md).
+
 Recording socket and I/O-loop doubles prevent network access and asynchronous
 event-loop work. A test-only translation unit redirects the production device
 manager's final `sendto` call, including its real discovery-sender thread, to

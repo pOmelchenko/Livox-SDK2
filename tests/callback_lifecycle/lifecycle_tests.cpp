@@ -68,12 +68,25 @@ void CallbackB(uint32_t, uint8_t, LivoxLidarEthernetPacket*, void* data) {
 void TestRegistration() {
   auto& handler = DataHandler::GetInstance();
   const unsigned a = 1, b = 2;
+  mismatches.store(0);
+  calls.store(0);
+  handler.SetPointDataCallback(CallbackA, const_cast<unsigned*>(&a));
+  handler.SetImuDataCallback(CallbackB, const_cast<unsigned*>(&b));
+  std::promise<void> first_delivery;
+  const auto delivered = first_delivery.get_future().share();
   std::promise<void> start;
   const auto ready = start.get_future().share();
   std::thread receiver([&] {
     ready.wait();
     auto point = Packet(kLivoxLidarCartesianCoordinateHighData);
     auto imu = Packet(kLivoxLidarImuData);
+    // Establish non-vacuous callback coverage before either mutator can reset
+    // registrations. A valid receiver-first schedule otherwise observes none.
+    handler.Handle(1, 1, point.data(), static_cast<uint32_t>(point.size()));
+    handler.Handle(1, 1, imu.data(), static_cast<uint32_t>(imu.size()));
+    Require(calls.load() == 2 && mismatches.load() == 0,
+            "initial point and IMU callbacks receive their registered contexts");
+    first_delivery.set_value();
     for (unsigned i = 0; i < 10000; ++i) {
       handler.Handle(1, 1, point.data(), static_cast<uint32_t>(point.size()));
       handler.Handle(1, 1, imu.data(), static_cast<uint32_t>(imu.size()));
@@ -81,6 +94,8 @@ void TestRegistration() {
   });
   std::thread registration([&] {
     ready.wait();
+    Require(delivered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+            "initial callbacks complete before replacement stress");
     for (unsigned i = 0; i < 10000; ++i) {
       handler.SetPointDataCallback(CallbackA, const_cast<unsigned*>(&a));
       handler.SetImuDataCallback(CallbackA, const_cast<unsigned*>(&a));
@@ -90,6 +105,8 @@ void TestRegistration() {
   });
   std::thread observers([&] {
     ready.wait();
+    Require(delivered.wait_for(std::chrono::seconds(5)) == std::future_status::ready,
+            "initial callbacks complete before observer/reset stress");
     for (unsigned i = 0; i < 10000; ++i) {
       const auto id = handler.AddPointCloudObserver(CallbackA, const_cast<unsigned*>(&a));
       handler.RemovePointCloudObserver(id);
@@ -99,7 +116,7 @@ void TestRegistration() {
   start.set_value();
   receiver.join(); registration.join(); observers.join();
   handler.Destory();
-  Require(mismatches.load() == 0 && calls.load() > 0,
+  Require(mismatches.load() == 0,
           "callback and application context remain paired during replacement/reset");
 
   struct Observer { uint16_t id; unsigned count = 0; } observer;

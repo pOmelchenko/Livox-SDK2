@@ -8,6 +8,7 @@ enum class Failure { kNone, kLogger, kIOInit };
 extern Failure failure;
 extern bool expected_master;
 extern unsigned invalid_startup_roles;
+extern bool fail_command_send;
 int SendTo(socket_t socket, const char* bytes, int size, int flags,
            const sockaddr* address, socklen_t address_size);
 std::vector<std::vector<uint8_t>> Commands();
