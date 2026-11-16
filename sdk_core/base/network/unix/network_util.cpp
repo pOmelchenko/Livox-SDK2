@@ -30,10 +30,66 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <netdb.h>
+#ifdef __APPLE__
+#include <net/if.h>
+#endif
 
 namespace livox {
 namespace lidar {
 namespace util {
+
+#ifdef __APPLE__
+namespace {
+bool BindToLocalInterface(int sock, const std::string& netif) {
+  // Broadcast receive sockets intentionally bind to ANY on Apple (#2).
+  if (netif.empty() || netif == "255.255.255.255") {
+    return true;
+  }
+  const in_addr_t local_ip = inet_addr(netif.c_str());
+  if (local_ip == htonl(INADDR_ANY)) {
+    return true;
+  }
+  if (local_ip == INADDR_NONE) {
+    printf("resolve interface for %s failed: invalid IPv4 address\n", netif.c_str());
+    return false;
+  }
+
+  struct ifaddrs* interfaces = nullptr;
+  if (getifaddrs(&interfaces) != 0) {
+    printf("getifaddrs for %s failed: %s\n", netif.c_str(), strerror(errno));
+    return false;
+  }
+  unsigned int index = 0;
+  int lookup_error = EADDRNOTAVAIL;
+  for (const struct ifaddrs* entry = interfaces; entry; entry = entry->ifa_next) {
+    if (!entry->ifa_addr || !entry->ifa_name || entry->ifa_addr->sa_family != AF_INET) {
+      continue;
+    }
+    const auto* address = reinterpret_cast<const struct sockaddr_in*>(entry->ifa_addr);
+    if (address->sin_addr.s_addr == local_ip) {
+      errno = 0;
+      index = if_nametoindex(entry->ifa_name);
+      lookup_error = errno ? errno : ENXIO;
+      break;
+    }
+  }
+  if (interfaces) {
+    freeifaddrs(interfaces);
+  }
+  if (index == 0) {
+    printf("resolve interface for %s failed: %s\n", netif.c_str(), strerror(lookup_error));
+    return false;
+  }
+  // Binding the local address alone does not select the egress interface on
+  // macOS when wired and wireless networks overlap (#53).
+  if (setsockopt(sock, IPPROTO_IP, IP_BOUND_IF, &index, sizeof(index)) != 0) {
+    printf("IP_BOUND_IF for %s failed: %s\n", netif.c_str(), strerror(errno));
+    return false;
+  }
+  return true;
+}
+}  // namespace
+#endif
 
 socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_broadcast, const std::string netif, const std::string multicast_ip) {
   int status = -1;
@@ -81,6 +137,13 @@ socket_t CreateSocket(uint16_t port, bool nonblock, bool reuse_port, bool is_bro
 	  close(sock);
 	  return -1;
   }
+
+#ifdef __APPLE__
+  if (!BindToLocalInterface(sock, netif)) {
+    close(sock);
+    return -1;
+  }
+#endif
 
   memset(&servaddr, 0, sizeof(servaddr));
 

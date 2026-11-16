@@ -45,6 +45,17 @@ available. Subscription errors fail channel creation instead of silently
 leaving an unusable receiver. Network and firewall settings must permit the
 group on the selected interface.
 
+On macOS, a socket created with an explicit local IPv4 address is also scoped
+to that address's interface using `IP_BOUND_IF`. This applies to discovery,
+control, and data sockets, including multicast membership on that host address.
+If the address cannot be resolved to an interface or scoping fails, creation
+fails and closes the socket instead of allowing another interface to be used.
+Empty and wildcard addresses, and the SDK's limited-broadcast receive sockets,
+remain unscoped. The selection happens at socket creation; automatic recovery
+after an interface/address change is outside this behavior. See the
+[macOS network interface procedure](macos-network-interface.md) for the
+affected Wi-Fi/Ethernet setup and verification limits.
+
 ## SDK role
 
 Calling `LivoxLidarSdkInit(nullptr, host_ip, log_cfg_info)` initializes view
