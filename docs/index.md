@@ -14,6 +14,7 @@ firmware, and the communication protocol.
 5. [Public API](sdk/public-api.md)
 6. [Supported platforms](sdk/supported-platforms.md)
 7. [MID-360S information-query hardware procedure](sdk/mid360s-information-query.md)
+8. [macOS network interface procedure](sdk/macos-network-interface.md)
 
 ## Contributors and maintainers
 

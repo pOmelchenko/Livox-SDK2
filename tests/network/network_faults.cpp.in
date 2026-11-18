@@ -1,0 +1,17 @@
+#include "network_test_support.h"
+
+// Exercise the Apple source branch with deterministic syscall failures on Unix.
+// This is not a Darwin ABI/runtime test; network_native is the macOS gate.
+#ifndef __APPLE__
+#define __APPLE__ 1
+#endif
+#define socket TestSocket
+#define close TestClose
+#define ioctl TestIoctl
+#define bind TestBind
+#define setsockopt TestSetSockOpt
+#define getifaddrs TestGetIfAddrs
+#define freeifaddrs TestFreeIfAddrs
+#define if_nametoindex TestIfNameToIndex
+#define printf TestPrintf
+#include "@LIVOX_SDK_SOURCE_DIR@/sdk_core/base/network/unix/network_util.cpp"

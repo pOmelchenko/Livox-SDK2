@@ -1,0 +1,14 @@
+#include "base/network/network_util.h"
+#include <errno.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+// Only cap the inherited 200 MiB receive-buffer request in this test. All
+// interface, bind, reuse, broadcast and membership operations reach Darwin.
+int NativeSetSockOpt(int, int, int, const void*, socklen_t);
+#define setsockopt NativeSetSockOpt
+#include "@LIVOX_SDK_SOURCE_DIR@/sdk_core/base/network/unix/network_util.cpp"

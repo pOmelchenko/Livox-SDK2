@@ -44,6 +44,7 @@ if(LIVOX_SDK_TEST_SUITE STREQUAL "all" OR
   add_subdirectory(command_lifecycle)
   add_subdirectory(command_dispatch)
   add_subdirectory(command_channel)
+  add_subdirectory(network)
   add_subdirectory(configuration)
   add_subdirectory(view_mode)
   add_subdirectory(callback_lifecycle)

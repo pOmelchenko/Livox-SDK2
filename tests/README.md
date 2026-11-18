@@ -62,13 +62,36 @@ and event-loop doubles. It checks multicast status subscriptions for the
 Mid-360 family and Avia2 in both SDK roles, unchanged unicast command routing,
 subscription deduplication, distinct groups and interfaces, error propagation,
 and cleanup. The production network helper is also compiled on each platform.
-The default suite performs no network I/O.
+The default command-channel suite performs no network I/O.
 
 On Unix, `-DCOMMAND_CHANNEL_ENABLE_LOOPBACK_TEST=ON` adds a focused test using
 the production socket helper. It sends unicast and multicast status-sized
 messages over loopback at an ephemeral port with multicast TTL zero, and checks
 failed membership handling. This optional check depends on host networking
 support and does not qualify firmware or physical devices.
+
+## Network interface regressions
+
+`network/` compiles the production Unix socket helper. On Unix, deterministic
+syscall doubles exercise its Apple branch: exact local-address matching across
+mixed interface entries, wildcard/broadcast exceptions, retained bind/reuse and
+multicast settings, and enumeration/index/socket-option failures. They check
+interface-list cleanup and socket closure, including descriptor zero. Running
+this branch on Linux is a source-level simulation, not Darwin qualification.
+
+On macOS, the common suite additionally runs `livox_network_native_tests` with
+real sockets. It reads the effective `IP_BOUND_IF`, checks the existing broadcast
+wildcard and shared-port behavior, and delivers unicast/multicast packets over
+loopback at ephemeral ports with multicast TTL zero. Only the inherited 200 MiB
+`SO_RCVBUF` request is capped to 64 KiB by the test adapter to avoid dependence
+on host buffer limits; all other socket operations reach the kernel. Production
+buffer sizing is unchanged. These tests do not establish physical routing with
+overlapping Wi-Fi/Ethernet subnets; use the
+[macOS device procedure](../docs/sdk/macos-network-interface.md).
+
+Configure the focused suite with `cmake -S tests/network -B build/network`.
+Windows continues to compile its unchanged helper in `command_channel/` and
+does not compile the Unix interface tests.
 
 ## Configuration regressions
 
